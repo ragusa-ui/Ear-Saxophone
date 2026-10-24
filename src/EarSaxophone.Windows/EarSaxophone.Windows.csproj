@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>EarSaxophone.Windows</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="NAudio.WinMM" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\EarSaxophone.Core\EarSaxophone.Core.csproj" />
+  </ItemGroup>
+</Project>

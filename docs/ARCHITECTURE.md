@@ -2,14 +2,17 @@
 
 ```
 src/EarSaxophone.Core   net10.0          plattformneutral, vollständig unit-getestet
+src/EarSaxophone.Windows net10.0-windows Windows-Adapter (aktuell NAudio-MIDI-Eingang)
 src/EarSaxophone.App    net10.0-windows  WPF-Oberfläche (aktuell nur Platzhalterfenster)
 tests/EarSaxophone.Core.Tests            xUnit
 ```
-Geplant (spätere Meilensteine): `EarSaxophone.Windows` (NAudio-MIDI, Core Audio, SendInput).
+Geplant für `EarSaxophone.Windows`: Core Audio (NAudio.Wasapi), SendInput.
 
 ## Core
 - `Midi/`: `MidiMessage`, `ControlId` (Identität eines physischen Reglers), `MidiMessageParser` (Rohbytes und WinMM-Kurznachricht; nur Note-Off/On und Control-Change).
+- `Midi/IMidiInput.cs`: Schnittstellen für Eingabeports; `MidiConnectionManager` verbindet per Namensfragment ("nanoKONTROL2") und verbindet nach Trennung selbst neu (Polling der Geräteliste, da WinMM kein Entfernen meldet).
 - `Mapping/`
+  - `ControlRouter`: ein Eingang für alle Nachrichten; schaltet zwischen MIDI-Learn und Aktionen um.
   - `ControlMapping`: Regler -> Aktion; ein Regler darf pro Profil nur einmal belegt sein (`Profile.Validate`).
   - Aktionen: `SetVolumeAction`, `ToggleMuteAction`, `MediaAction`, `HotkeyAction`.
   - `AudioTarget`: trennt `DeviceFlow.Render` (Lautsprecher) und `DeviceFlow.Capture` (Mikrofon) ausdrücklich, dazu `DeviceRole` und optional eine konkrete Geräte-ID. Anwendungen werden über `AppSelector` (Exe-Name/-Pfad) beschrieben, nie über Session-IDs.

@@ -13,6 +13,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EarSaxophone.Core.Tests", "tests\EarSaxophone.Core.Tests\EarSaxophone.Core.Tests.csproj", "{6D5F1EEB-7F19-4B99-BCFF-B42C9C72FB39}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EarSaxophone.Windows", "src\EarSaxophone.Windows\EarSaxophone.Windows.csproj", "{51322A48-5031-45EC-BD82-7B35BF68D423}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -59,6 +61,18 @@ Global
 		{6D5F1EEB-7F19-4B99-BCFF-B42C9C72FB39}.Release|x64.Build.0 = Release|Any CPU
 		{6D5F1EEB-7F19-4B99-BCFF-B42C9C72FB39}.Release|x86.ActiveCfg = Release|Any CPU
 		{6D5F1EEB-7F19-4B99-BCFF-B42C9C72FB39}.Release|x86.Build.0 = Release|Any CPU
+		{51322A48-5031-45EC-BD82-7B35BF68D423}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{51322A48-5031-45EC-BD82-7B35BF68D423}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{51322A48-5031-45EC-BD82-7B35BF68D423}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{51322A48-5031-45EC-BD82-7B35BF68D423}.Debug|x64.Build.0 = Debug|Any CPU
+		{51322A48-5031-45EC-BD82-7B35BF68D423}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{51322A48-5031-45EC-BD82-7B35BF68D423}.Debug|x86.Build.0 = Debug|Any CPU
+		{51322A48-5031-45EC-BD82-7B35BF68D423}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{51322A48-5031-45EC-BD82-7B35BF68D423}.Release|Any CPU.Build.0 = Release|Any CPU
+		{51322A48-5031-45EC-BD82-7B35BF68D423}.Release|x64.ActiveCfg = Release|Any CPU
+		{51322A48-5031-45EC-BD82-7B35BF68D423}.Release|x64.Build.0 = Release|Any CPU
+		{51322A48-5031-45EC-BD82-7B35BF68D423}.Release|x86.ActiveCfg = Release|Any CPU
+		{51322A48-5031-45EC-BD82-7B35BF68D423}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -67,5 +81,6 @@ Global
 		{14C71F09-2393-4E90-AB71-22D11E0E7FFA} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{BF8BFDA9-C75E-4F17-86E8-29CF6B2C7A68} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{6D5F1EEB-7F19-4B99-BCFF-B42C9C72FB39} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{51322A48-5031-45EC-BD82-7B35BF68D423} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal

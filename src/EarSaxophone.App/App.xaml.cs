@@ -54,6 +54,14 @@ public partial class App : Application
         }
 
         DispatcherUnhandledException += OnUnhandledException;
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+            LogError(args.ExceptionObject as Exception ?? new InvalidOperationException(args.ExceptionObject?.ToString()));
+        TaskScheduler.UnobservedTaskException += (_, args) =>
+        {
+            LogError(args.Exception);
+            args.SetObserved();
+        };
+        Microsoft.Win32.SystemEvents.PowerModeChanged += OnPowerModeChanged;
         ApplicationThemeManager.Apply(ApplicationTheme.Dark);
 
         _dataFolder = demo
@@ -73,6 +81,7 @@ public partial class App : Application
             var real = new NAudioAudioSystem();
             _audioToDispose = real;
             audio = real;
+            audioProblem = real.Problem; // the system keeps retrying by itself; the hint explains why audio actions may fail meanwhile
         }
         catch (Exception ex)
         {
@@ -123,6 +132,7 @@ public partial class App : Application
         }
 
         IsExiting = true;
+        Microsoft.Win32.SystemEvents.PowerModeChanged -= OnPowerModeChanged;
         _timer?.Dispose();
         _tray?.Dispose();
         _viewModel?.Dispose();
@@ -130,6 +140,28 @@ public partial class App : Application
         _audioToDispose?.Dispose();
         _singleInstance?.Dispose();
         Shutdown();
+    }
+
+    // After sleep the open MIDI handle can belong to the old USB instance although the device name is still listed.
+    private void OnPowerModeChanged(object sender, Microsoft.Win32.PowerModeChangedEventArgs e)
+    {
+        if (e.Mode != Microsoft.Win32.PowerModes.Resume)
+        {
+            return;
+        }
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(TimeSpan.FromSeconds(3)).ConfigureAwait(false); // let USB re-enumerate first
+            try
+            {
+                _viewModel?.ReconnectDevice();
+            }
+            catch (Exception ex)
+            {
+                LogError(ex);
+            }
+        });
     }
 
     private static string? ArgumentValue(string[] args, string name)

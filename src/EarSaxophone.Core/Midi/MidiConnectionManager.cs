@@ -18,6 +18,7 @@ public sealed class MidiConnectionManager(IMidiInputProvider provider, string de
     private readonly object _gate = new();
     private IMidiInput? _input;
     private string? _lastDetail;
+    private int _connectedIndex = -1;
     private bool _disposed;
 
     public MidiConnectionState State { get; private set; } = MidiConnectionState.Disconnected;
@@ -56,7 +57,9 @@ public sealed class MidiConnectionManager(IMidiInputProvider provider, string de
 
             if (_input is not null)
             {
-                if (devices.Any(d => d.Name == ConnectedDeviceName))
+                // Same name AND same port index: if the index changed (another MIDI device was added or removed) or the name
+                // vanished, the open handle cannot be trusted; reopen.
+                if (devices.Any(d => d.Name == ConnectedDeviceName && d.Index == _connectedIndex))
                 {
                     return;
                 }
@@ -91,6 +94,7 @@ public sealed class MidiConnectionManager(IMidiInputProvider provider, string de
 
                 _input = input;
                 ConnectedDeviceName = target.Name;
+                _connectedIndex = target.Index;
                 SetState(MidiConnectionState.Connected, Texts.MidiConnected(target.Name));
             }
             catch (Exception ex)
@@ -99,6 +103,20 @@ public sealed class MidiConnectionManager(IMidiInputProvider provider, string de
                     Texts.MidiOpenFailed(target.Name, ex.Message));
             }
         }
+    }
+
+    /// <summary>
+    /// Drops the current connection and opens the device again right away. For situations the device list cannot reveal:
+    /// return from sleep, USB re-enumeration, a very short unplug, or the "reconnect" button.
+    /// </summary>
+    public void Reconnect()
+    {
+        lock (_gate)
+        {
+            CloseInput();
+        }
+
+        Poll();
     }
 
     public void Dispose()
@@ -143,6 +161,7 @@ public sealed class MidiConnectionManager(IMidiInputProvider provider, string de
 
         _input = null;
         ConnectedDeviceName = null;
+        _connectedIndex = -1;
     }
 
     private void SetState(MidiConnectionState state, string detail)

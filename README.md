@@ -61,7 +61,7 @@ Oben wählst du das Profil, benennst es um oder legst ein neues an. Jedes Profil
 |---|---|
 | "nanoKONTROL2 nicht gefunden" | Gerät per USB anschließen, anderen USB-Port probieren. Im Windows-Geräte-Manager sollte es unter "Audio-, Video- und Gamecontroller" stehen. Das Programm sucht automatisch weiter. |
 | "…konnte nicht geöffnet werden (nutzt ein anderes Programm das Gerät?)" | Anderes MIDI-Programm schließen (MIDI Mixer, DAW, Korg KONTROL Editor). Danach verbindet sich die App von selbst. |
-| Gerät eingesteckt, aber nichts passiert | Gerät kurz abziehen und wieder einstecken; sehr kurzes Abziehen bemerkt die App eventuell nicht. Notfalls Programm neu starten. |
+| Gerät eingesteckt oder aus dem Ruhezustand zurück, aber nichts passiert | Oben auf **Neu verbinden** klicken (die App versucht das nach dem Ruhezustand auch selbst). Sehr kurzes Abziehen und Einstecken kann die App nicht erkennen. Hilft das nicht, Gerät abziehen und Programm neu starten. |
 | Regler reagiert, aber die Beschriftung stimmt nicht | Dein Gerät sendet andere Control-Nummern. Regler per MIDI-Learn auswählen und belegen; er erscheint unter "Weitere Regler". |
 | Discord (oder anderes Programm) reagiert nicht | Läuft es und gibt es Ton aus? Programmdatei-Name prüfen (`Discord.exe`). Bei Discord PTB/Canary heißt die Datei anders (`DiscordPTB.exe`). Läuft das Programm als Administrator, die App ebenfalls als Administrator starten oder das Programm normal starten. |
 | Meldung "Kein Standard-Aufnahmegerät verfügbar" | In Windows unter Einstellungen > System > Sound > Eingabe ein Mikrofon aktivieren und als Standard wählen. |

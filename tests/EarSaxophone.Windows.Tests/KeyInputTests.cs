@@ -72,6 +72,20 @@ public class KeyInputTests
         Assert.Equal(extended, (mainKeyDown.u.ki.dwFlags & NativeInput.KeyEventExtendedKey) != 0);
     }
 
+    [Theory]
+    [InlineData("A")]
+    [InlineData("Enter")]
+    [InlineData("F5")]
+    [InlineData("Left")]
+    public void Keys_CarryAScanCode_ForProgramsThatReadRawInput(string key)
+    {
+        Hotkey hotkey = Hotkey.Parse(key);
+
+        NativeInput.INPUT down = KeyInputBuilder.Build(hotkey).First(i => i.u.ki.wVk == hotkey.VirtualKey);
+
+        Assert.NotEqual((ushort)0, down.u.ki.wScan);
+    }
+
     [Fact]
     public void UnknownMediaCommand_IsRejected() =>
         Assert.Throws<ArgumentOutOfRangeException>(() => MediaKeys.CodeFor((MediaCommand)99));

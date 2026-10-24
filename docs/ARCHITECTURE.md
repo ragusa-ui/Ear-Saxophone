@@ -1,4 +1,4 @@
-# Architektur (Stand Meilenstein 5)
+# Architektur (Stand Meilenstein 6)
 
 ```
 src/EarSaxophone.Core   net10.0          plattformneutral, vollständig unit-getestet
@@ -53,3 +53,10 @@ Entwurf und Stand der Absicherung:
 **Stand:** Im Modell durch 31 Tests mit simulierten Sessions bestätigt (mehrere Sessions/Prozesse/Geräte, Neustart mit neuer PID, Update mit neuem Ordner, Gerätewechsel, sterbende Sessions, ähnliche Namen, Systemklänge, Capture vs. Render). Die Tests wurden mit gezielten Code-Änderungen (Mutationen) auf Aussagekraft geprüft. **Ob echte Windows-Sessions von Discord so reagieren, ist noch nicht bestätigt** (Tests M3-5 bis M3-10 in `docs/LOCAL_TESTS.md`).
 
 Bekannte Grenzen: Der Exe-Pfad wird per `QueryFullProcessImageName` gelesen; bei geschützten Prozessen kann das scheitern, die Anwendung gilt dann als nicht gefunden. Browser-Tabs sind Teil einer Anwendung (Chrome-Sessions teilen sich `chrome.exe`) und nicht einzeln steuerbar.
+
+## Robustheit (Ergebnis des unabhängigen Reviews, umgesetzt)
+- **Threads:** Der WinMM-Treiber-Callback tut nur `MidiMessagePump.Post`. Ein eigener Arbeits-Thread führt Router, Audio und `SendInput` aus; Ausnahmen werden abgefangen und angezeigt. Wartende Nachrichten desselben Reglers werden nur zusammengefasst, wenn sie auf derselben Seite der Druckschwelle liegen: Fader laufen nie in einen Rückstau, ein schnelles Drücken und Loslassen einer Taste geht nie verloren.
+- **Geräteverbindung:** `MidiConnectionManager` vergleicht Name **und** Port-Index; `Reconnect()` (Schaltfläche, Rückkehr aus dem Ruhezustand nach 3 s) öffnet das Gerät erneut.
+- **Audio-Adapter:** Der Neuaufbau der Geräteliste ist atomar (bei Fehler bleibt der alte Zustand, `_needsRebuild` löst Wiederholungen im 1-s-Takt aus, auch nach einem Fehler beim Start). Windows-Meldungen zu Geräteänderungen werden 250 ms lang zu einem Neuaufbau zusammengefasst. Alle Aufrufe auf COM-Wrappern laufen unter derselben Sperre, unter der sie freigegeben werden; nach der Freigabe liefern sie `AudioGoneException` statt abzustürzen. Überzählige COM-Objekte werden freigegeben, bei einem Fehler an einem Gerät bleiben dessen bisherige Sitzungen erhalten (kein erneutes Anwenden des gemerkten Werts).
+- **Fehlerprotokoll:** Unbehandelte Ausnahmen (UI-Thread, andere Threads, nicht beobachtete Tasks) landen in `error.log`.
+- **Sperren-Reihenfolge:** `AudioController` vor `NAudioAudioSystem`; Ereignisse werden außerhalb von Sperren ausgelöst; COM-Callbacks starten nur Tasks.

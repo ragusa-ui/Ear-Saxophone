@@ -12,6 +12,9 @@ Hinweis: nanoKONTROL2 im Standardmodus verwenden (Korg KONTROL Editor nicht glei
 | M2-4 | Anderes Programm hält das MIDI-Gerät offen (z. B. MIDI Mixer, DAW) | Verständliche Meldung "konnte nicht geöffnet werden", automatischer Neuversuch, wenn das andere Programm es freigibt | offen |
 | M2-5 | Gerät an anderem USB-Port einstecken | Wird anhand des Namens gefunden (Index spielt keine Rolle) | offen |
 | M2-6 | Alle Regler/Tasten des nanoKONTROL2 einzeln bewegen | Jeder sendet eine eigene Control-Nummer; Tasten senden 127 beim Drücken und 0 beim Loslassen | offen |
+| M2-7 | Rechner in den Ruhezustand/Standby schicken und wieder aufwecken | Nach wenigen Sekunden reagieren die Regler wieder (die App verbindet nach dem Aufwachen selbst neu); sonst "Neu verbinden" probieren und notieren | offen |
+| M2-8 | Schaltfläche "Neu verbinden" bei laufender Verbindung | Kurzes Neuaufbauen, danach funktionieren die Regler weiter, keine Fehlermeldung | offen |
+| M2-9 | Anderes USB-MIDI-Gerät (falls vorhanden) während des Betriebs ein- und abstecken | nanoKONTROL2 bleibt nutzbar (kurze Unterbrechung ist in Ordnung) | offen |
 
 ## M3: Audio (Windows 11, echte Geräte)
 | Nr. | Test | Erwartung | Status |
@@ -58,3 +61,12 @@ Die CI hat das Fenster gerendert und per UI-Automation bedient, aber nie ein Men
 | M5-11 | Programmordner verschieben, bei eingeschaltetem Autostart einmal starten | Autostart-Eintrag zeigt danach auf den neuen Ort | offen |
 | M5-12 | Anwendung zuordnen: Discord starten, "Aktualisieren" | Discord.exe erscheint in der Liste; Auswahl funktioniert, auch ohne Liste per Eintippen | offen |
 | M5-13 | Gerät abziehen; Mikrofon-Aktion ohne Mikrofon auslösen | Roter Punkt und Hinweistext; rote Fehlerleiste mit verständlicher Meldung, "Schließen" blendet sie aus | offen |
+
+## Nachträge aus dem Review (Robustheit, Windows 11)
+| Nr. | Test | Erwartung | Status |
+|---|---|---|---|
+| R-1 | USB-Headset einstecken, während du einen Fader bewegst | Kein Absturz, kein Hängen; Fader reagiert nach höchstens ca. 1 s wieder | offen |
+| R-2 | Standard-Wiedergabegerät mehrfach schnell wechseln (Tastenkombination Win+Ctrl+V oder Einstellungen) | Master-Fader folgt dem jeweils aktuellen Gerät, keine Fehlermeldung | offen |
+| R-3 | Windows-Audiodienst neu starten (Administrator-Eingabeaufforderung: `net stop audiosrv && net start audiosrv`) | Programm läuft weiter; nach wenigen Sekunden funktionieren Lautstärke-Aktionen wieder (bis dahin eventuell Meldung) | offen |
+| R-4 | Fader schnell und lange hin- und herziehen, dabei Discord/Browser Ton ausgeben lassen | Gleichmäßige Reaktion, keine Verzögerung, CPU-Last gering | offen |
+| R-5 | Programm 1 Stunde laufen lassen, Task-Manager beobachten | Speicherverbrauch bleibt stabil (kein stetiges Wachstum) | offen |

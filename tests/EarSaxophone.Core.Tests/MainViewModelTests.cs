@@ -63,6 +63,13 @@ public class MainViewModelTests : IDisposable
         return vm;
     }
 
+    /// <summary>Sends a MIDI message from the fake device and waits until the view model has processed it (it works on a worker thread).</summary>
+    private void Send(MainViewModel vm, byte cc, byte value)
+    {
+        _provider.Ports[0].Send(cc, value);
+        Assert.True(vm.WaitUntilIdle(TimeSpan.FromSeconds(10)), "MIDI messages were not processed in time");
+    }
+
     private static ControllerElementViewModel Element(MainViewModel vm, string label) =>
         vm.Rows.SelectMany(r => r.Elements).Concat(vm.ExtraElements).Single(e => e.Label == label);
 
@@ -113,6 +120,36 @@ public class MainViewModelTests : IDisposable
     }
 
     [Fact]
+    public void ReconnectCommand_OpensTheDeviceAgain_AndTheOldPortGoesSilent()
+    {
+        MainViewModel vm = Create();
+        FakeMidiPort stale = _provider.Ports[0];
+        Assign(vm, "Fader 1", e => { e.Kind = ActionKind.SetVolume; e.Target = TargetKind.Speakers; });
+
+        vm.ReconnectCommand.Execute(null);
+        stale.Send(cc: 0, value: 127);
+        Assert.True(vm.WaitUntilIdle(TimeSpan.FromSeconds(5)));
+        Assert.Equal(0.5f, _speakers.Volume, 5);
+
+        Assert.Equal(2, _provider.Ports.Count);
+        _provider.Ports[1].Send(cc: 0, value: 127); // the new port
+        Assert.True(vm.WaitUntilIdle(TimeSpan.FromSeconds(5)));
+        Assert.Equal(1f, _speakers.Volume, 5);
+        Assert.True(vm.IsConnected);
+    }
+
+    [Fact]
+    public void MidiDriverWarning_IsShownInTheStatusLine()
+    {
+        MainViewModel vm = Create();
+
+        _provider.Ports[0].RaiseFault("Der MIDI-Treiber meldete eine ungültige Nachricht (0x00000001).");
+
+        Assert.Contains("MIDI-Treiber", vm.StatusMessage);
+        Assert.False(vm.HasError);
+    }
+
+    [Fact]
     public void MidiLearn_SelectsTheTouchedStandardElement_WithoutRunningAnyAction()
     {
         MainViewModel vm = Create();
@@ -122,7 +159,7 @@ public class MainViewModelTests : IDisposable
 
         vm.StartLearning();
         Assert.True(vm.IsLearning);
-        _provider.Ports[0].Send(cc: 0, value: 120);
+        Send(vm, 0, 120);
 
         Assert.False(vm.IsLearning);
         Assert.Equal("Fader 1", vm.SelectedElement?.Label);
@@ -136,7 +173,7 @@ public class MainViewModelTests : IDisposable
         MainViewModel vm = Create();
 
         vm.StartLearning();
-        _provider.Ports[0].Send(cc: 100, value: 90);
+        Send(vm, 100, 90);
 
         Assert.True(vm.HasExtraElements);
         Assert.Equal(vm.ExtraElements[0], vm.SelectedElement);
@@ -149,7 +186,7 @@ public class MainViewModelTests : IDisposable
         MainViewModel vm = Create();
         vm.StartLearning();
         vm.CancelLearning();
-        _provider.Ports[0].Send(cc: 0, value: 100);
+        Send(vm, 0, 100);
 
         Assert.False(vm.IsLearning);
         Assert.False(vm.HasSelection);
@@ -166,10 +203,10 @@ public class MainViewModelTests : IDisposable
         ControllerElementViewModel tile = Element(vm, "Fader 1");
         Assert.Equal("Lautstärke: Discord.exe", tile.Summary);
         Assert.True(tile.HasMapping && tile.IsContinuous);
-        _provider.Ports[0].Send(cc: 0, value: 127);
+        Send(vm, 0, 127);
         Assert.Equal(1f, _discord.Volume, 5);
         Assert.Equal(127, tile.LastValue);
-        _provider.Ports[0].Send(cc: 0, value: 0);
+        Send(vm, 0, 0);
         Assert.Equal(0f, _discord.Volume, 5);
 
         // A new program start reads the saved profile.
@@ -184,8 +221,8 @@ public class MainViewModelTests : IDisposable
         MainViewModel vm = Create();
         Assign(vm, "M 1", e => { e.Kind = ActionKind.ToggleMute; e.Target = TargetKind.Microphone; });
 
-        _provider.Ports[0].Send(cc: 48, value: 127);
-        _provider.Ports[0].Send(cc: 48, value: 0);
+        Send(vm, 48, 127);
+        Send(vm, 48, 0);
 
         FakeEndpoint mic = _audio.Endpoints.Single(e => e.Flow == DeviceFlow.Capture);
         Assert.True(mic.Muted);
@@ -198,9 +235,9 @@ public class MainViewModelTests : IDisposable
         MainViewModel vm = Create();
         Assign(vm, "Play", e => { e.Kind = ActionKind.Media; e.Media = MediaCommand.PlayPause; });
 
-        _provider.Ports[0].Send(cc: 41, value: 127);
-        _provider.Ports[0].Send(cc: 41, value: 127);
-        _provider.Ports[0].Send(cc: 41, value: 0);
+        Send(vm, 41, 127);
+        Send(vm, 41, 127);
+        Send(vm, 41, 0);
 
         Assert.Equal([MediaCommand.PlayPause], _keyboard.Media);
         Assert.Contains("Wiedergabe/Pause", vm.StatusMessage);
@@ -222,7 +259,7 @@ public class MainViewModelTests : IDisposable
         vm.Editor.HotkeyText = "strg+alt+m";
         vm.ApplyEditor();
         Assert.Equal("Tasten: Ctrl+Alt+M", Element(vm, "Cycle").Summary);
-        _provider.Ports[0].Send(cc: 46, value: 127);
+        Send(vm, 46, 127);
         Assert.Equal(new Hotkey(KeyModifiers.Ctrl | KeyModifiers.Alt, 0x4D), _keyboard.Hotkeys.Single());
     }
 
@@ -253,9 +290,9 @@ public class MainViewModelTests : IDisposable
             e.MaxPercent = 80;
         });
 
-        _provider.Ports[0].Send(cc: 2, value: 0);
+        Send(vm, 2, 0);
         Assert.Equal(0.8f, _speakers.Volume, 3);
-        _provider.Ports[0].Send(cc: 2, value: 127);
+        Send(vm, 2, 127);
         Assert.Equal(0.2f, _speakers.Volume, 3);
 
         vm.Select(Element(vm, "Fader 3"));
@@ -279,7 +316,7 @@ public class MainViewModelTests : IDisposable
 
         Assert.False(Element(vm, "Fader 1").HasMapping);
         _speakers.Volume = 0.3f;
-        _provider.Ports[0].Send(cc: 0, value: 127);
+        Send(vm, 0, 127);
         Assert.Equal(0.3f, _speakers.Volume, 5);
     }
 
@@ -317,7 +354,7 @@ public class MainViewModelTests : IDisposable
         Assign(vm, "Fader 4", e => { e.Kind = ActionKind.SetVolume; e.Target = TargetKind.Microphone; });
         Assign(vm, "Fader 5", e => { e.Kind = ActionKind.SetVolume; e.Target = TargetKind.Speakers; });
 
-        _provider.Ports[0].Send(cc: 3, value: 100);
+        Send(vm, 3, 100);
         Assert.True(vm.HasError);
         Assert.Contains("Fader 4", vm.ErrorMessage);
         Assert.Contains("Aufnahmegerät", vm.ErrorMessage);
@@ -325,9 +362,9 @@ public class MainViewModelTests : IDisposable
         vm.DismissErrorCommand.Execute(null);
         Assert.False(vm.HasError);
 
-        _provider.Ports[0].Send(cc: 3, value: 100);
+        Send(vm, 3, 100);
         Assert.True(vm.HasError);
-        _provider.Ports[0].Send(cc: 4, value: 100);
+        Send(vm, 4, 100);
         Assert.False(vm.HasError);
     }
 
@@ -342,12 +379,12 @@ public class MainViewModelTests : IDisposable
         Assert.Equal(["Default", "Profil 2"], vm.ProfileNames);
         Assert.False(Element(vm, "Fader 1").HasMapping);
         _speakers.Volume = 0.3f;
-        _provider.Ports[0].Send(cc: 0, value: 127);
+        Send(vm, 0, 127);
         Assert.Equal(0.3f, _speakers.Volume, 5); // new profile has no mapping
 
         vm.ActiveProfileName = "Default";
         Assert.True(Element(vm, "Fader 1").HasMapping);
-        _provider.Ports[0].Send(cc: 0, value: 127);
+        Send(vm, 0, 127);
         Assert.Equal(1f, _speakers.Volume, 5);
 
         vm.RenameActive("Streaming");

@@ -14,7 +14,14 @@ public sealed class NAudioMidiInputProvider : IMidiInputProvider
         var devices = new List<MidiDeviceInfo>();
         for (int i = 0; i < MidiIn.NumberOfDevices; i++)
         {
-            devices.Add(new MidiDeviceInfo(i, MidiIn.DeviceInfo(i).ProductName));
+            try
+            {
+                devices.Add(new MidiDeviceInfo(i, MidiIn.DeviceInfo(i).ProductName));
+            }
+            catch (Exception)
+            {
+                // Another MIDI device was removed while listing; skip this entry instead of dropping a working connection.
+            }
         }
 
         return devices;

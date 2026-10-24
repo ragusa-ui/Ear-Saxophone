@@ -24,6 +24,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly SettingsStore _settingsStore;
     private readonly IAutostart _autostart;
     private readonly ControlRouter _router;
+    private readonly MidiMessagePump _pump;
     private readonly List<Profile> _profiles;
     private readonly Dictionary<ControlId, ControllerElementViewModel> _elements = [];
     private int _active;
@@ -82,8 +83,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
 
         _router = new ControlRouter(Current);
-        _midi.MessageReceived += _router.Handle;
+        _pump = new MidiMessagePump(_router.Handle, ex => _ui.Post(() => ShowError(Texts.ActionFailed(ex.Message))));
+        _midi.MessageReceived += _pump.Post;
         _midi.StateChanged += OnConnectionChanged;
+        _midi.Warning += OnMidiWarning;
         _router.MessageObserved += OnMessageObserved;
         _router.ActionRequested += OnActionRequested;
         _router.ControlLearned += OnControlLearned;
@@ -98,6 +101,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         DeleteProfileCommand = new RelayCommand(_ => DeleteProfile());
         DismissErrorCommand = new RelayCommand(_ => ErrorMessage = null);
         RefreshAppsCommand = new RelayCommand(_ => RefreshApps());
+        ReconnectCommand = new RelayCommand(_ => ReconnectDevice());
 
         RefreshSummaries();
         RefreshApps();
@@ -131,6 +135,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public RelayCommand DismissErrorCommand { get; }
 
     public RelayCommand RefreshAppsCommand { get; }
+
+    public RelayCommand ReconnectCommand { get; }
 
     public Profile Current => _profiles[_active];
 
@@ -227,10 +233,18 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     /// <summary>Called about once per second: finds, reconnects and checks the MIDI device.</summary>
     public void Tick() => _midi.Poll();
 
+    /// <summary>Opens the MIDI device again (button, or return from sleep).</summary>
+    public void ReconnectDevice() => _midi.Reconnect();
+
+    /// <summary>Waits until all MIDI messages received so far were processed (tests).</summary>
+    public bool WaitUntilIdle(TimeSpan timeout) => _pump.WaitUntilIdle(timeout);
+
     public void Dispose()
     {
-        _midi.MessageReceived -= _router.Handle;
+        _midi.MessageReceived -= _pump.Post;
         _midi.StateChanged -= OnConnectionChanged;
+        _midi.Warning -= OnMidiWarning;
+        _pump.Dispose();
         _router.MessageObserved -= OnMessageObserved;
         _router.ActionRequested -= OnActionRequested;
         _router.ControlLearned -= OnControlLearned;
@@ -475,6 +489,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         IsConnected = state == MidiConnectionState.Connected;
         ConnectionText = detail;
     });
+
+    private void OnMidiWarning(string text) => _ui.Post(() => StatusMessage = text);
 
     private void OnMessageObserved(MidiMessage message) => _ui.Post(() =>
     {

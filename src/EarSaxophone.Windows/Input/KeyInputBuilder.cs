@@ -10,6 +10,7 @@ internal static class KeyInputBuilder
     private const ushort VkControl = 0x11;
     private const ushort VkMenu = 0x12;
     private const ushort VkLeftWin = 0x5B;
+    private const uint MapVkToVscEx = 4;
 
     public static INPUT[] Build(Hotkey hotkey)
     {
@@ -65,7 +66,7 @@ internal static class KeyInputBuilder
             type = InputKeyboard,
             u = new InputUnion
             {
-                ki = new KEYBDINPUT { wVk = virtualKey, wScan = 0, dwFlags = flags },
+                ki = new KEYBDINPUT { wVk = virtualKey, wScan = (ushort)(MapVirtualKeyW(virtualKey, MapVkToVscEx) & 0xFF), dwFlags = flags },
             },
         };
     }

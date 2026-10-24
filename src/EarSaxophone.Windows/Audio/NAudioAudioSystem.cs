@@ -18,28 +18,31 @@ public sealed class NAudioAudioSystem : IAudioSystem, IDisposable
     private const int ElementNotFound = unchecked((int)0x80070490);
 
     private readonly object _gate = new();
-    private readonly MMDeviceEnumerator _enumerator = new();
-    private readonly MMDeviceNotificationClient _notifications;
     private readonly Timer _timer;
-    private readonly Dictionary<string, (MMDevice Device, DeviceFlow Flow)> _devices = [];
     private readonly Dictionary<(DataFlow, Role), string?> _defaultIds = [];
-    private readonly Dictionary<string, NAudioEndpoint> _endpoints = [];
+    private MMDeviceEnumerator? _enumerator;
+    private MMDeviceNotificationClient? _notifications;
+    private Dictionary<string, (MMDevice Device, DeviceFlow Flow)> _devices = [];
+    private Dictionary<string, NAudioEndpoint> _endpoints = [];
     private Dictionary<string, NAudioSession> _sessions = [];
     private bool _disposed;
+    private bool _needsRebuild = true;
+    private int _rebuildScheduled;
 
     public NAudioAudioSystem()
     {
-        _notifications = _enumerator.CreateNotificationClient(useSynchronizationContext: false);
-        _notifications.DeviceAdded += (_, _) => TopologyChanged();
-        _notifications.DeviceRemoved += (_, _) => TopologyChanged();
-        _notifications.DeviceStateChanged += (_, _) => TopologyChanged();
-        _notifications.DefaultDeviceChanged += (_, _) => TopologyChanged();
+        lock (_gate)
+        {
+            TryRebuildLocked();
+        }
 
-        Rebuild();
-        _timer = new Timer(_ => Refresh(), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+        _timer = new Timer(_ => Tick(), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
     }
 
     public event Action? Changed;
+
+    /// <summary>Why the Windows audio service could not be used right now, or null. The system keeps retrying on its own.</summary>
+    public string? Problem { get; private set; }
 
     public IAudioEndpoint? GetDefaultEndpoint(DeviceFlow flow, Core.Mapping.DeviceRole role)
     {
@@ -47,6 +50,11 @@ public sealed class NAudioAudioSystem : IAudioSystem, IDisposable
         Role naudioRole = ToRole(role);
         lock (_gate)
         {
+            if (_enumerator is null)
+            {
+                return null;
+            }
+
             if (!_defaultIds.TryGetValue((dataFlow, naudioRole), out string? id))
             {
                 id = null;
@@ -58,8 +66,10 @@ public sealed class NAudioAudioSystem : IAudioSystem, IDisposable
                         device.Dispose();
                     }
                 }
-                catch (COMException)
+                catch (Exception)
                 {
+                    _needsRebuild = true;
+                    return null;
                 }
 
                 _defaultIds[(dataFlow, naudioRole)] = id;
@@ -98,13 +108,13 @@ public sealed class NAudioAudioSystem : IAudioSystem, IDisposable
         }
 
         _timer.Dispose();
-        _notifications.Dispose();
+        _notifications?.Dispose();
         lock (_gate)
         {
             ClearCaches();
         }
 
-        _enumerator.Dispose();
+        _enumerator?.Dispose();
     }
 
     private NAudioEndpoint? GetEndpointLocked(string id)
@@ -119,15 +129,33 @@ public sealed class NAudioAudioSystem : IAudioSystem, IDisposable
             return null;
         }
 
-        var endpoint = new NAudioEndpoint(entry.Device, entry.Flow);
-        _endpoints[id] = endpoint;
-        return endpoint;
+        try
+        {
+            var endpoint = new NAudioEndpoint(this, entry.Device, entry.Flow);
+            _endpoints[id] = endpoint;
+            return endpoint;
+        }
+        catch (Exception)
+        {
+            _needsRebuild = true;
+            return null;
+        }
     }
 
+    // Windows reports one plugged-in headset as a burst of notifications (added, state, up to six default-device changes).
+    // They are collapsed into a single rebuild shortly after the burst.
     private void TopologyChanged()
     {
-        Task.Run(() =>
+        if (Interlocked.Exchange(ref _rebuildScheduled, 1) == 1)
         {
+            return;
+        }
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(250).ConfigureAwait(false);
+            Interlocked.Exchange(ref _rebuildScheduled, 0);
+            bool rebuilt;
             try
             {
                 lock (_gate)
@@ -137,19 +165,22 @@ public sealed class NAudioAudioSystem : IAudioSystem, IDisposable
                         return;
                     }
 
-                    Rebuild();
+                    rebuilt = TryRebuildLocked();
                 }
-
-                Changed?.Invoke();
             }
             catch (Exception)
             {
-                // The next timer tick retries.
+                return;
+            }
+
+            if (rebuilt)
+            {
+                RaiseChanged();
             }
         });
     }
 
-    private void Refresh()
+    private void Tick()
     {
         bool changed;
         try
@@ -161,41 +192,104 @@ public sealed class NAudioAudioSystem : IAudioSystem, IDisposable
                     return;
                 }
 
-                changed = RefreshSessionsLocked();
+                // A failed or partial rebuild, or a device error during refresh, sets _needsRebuild: retry from scratch.
+                changed = _needsRebuild ? TryRebuildLocked() : RefreshSessionsLocked();
             }
         }
         catch (Exception)
         {
+            lock (_gate)
+            {
+                _needsRebuild = true;
+            }
+
             return;
         }
 
         if (changed)
         {
-            Changed?.Invoke();
+            RaiseChanged();
         }
     }
 
-    /// <summary>Rebuilds devices, endpoint cache and sessions from scratch. Caller holds the lock (or is the constructor).</summary>
-    private void Rebuild()
+    private void RaiseChanged()
     {
-        ClearCaches();
-        foreach ((DataFlow dataFlow, DeviceFlow flow) in new[] { (DataFlow.Render, DeviceFlow.Render), (DataFlow.Capture, DeviceFlow.Capture) })
+        try
         {
-            foreach (MMDevice device in _enumerator.EnumerateAudioEndPoints(dataFlow, DeviceState.Active))
+            Changed?.Invoke();
+        }
+        catch (Exception)
+        {
+            // A faulty subscriber must never take down the process from a thread-pool thread.
+        }
+    }
+
+    private void EnsureEnumeratorLocked()
+    {
+        if (_enumerator is not null)
+        {
+            return;
+        }
+
+        var enumerator = new MMDeviceEnumerator();
+        try
+        {
+            MMDeviceNotificationClient notifications = enumerator.CreateNotificationClient(useSynchronizationContext: false);
+            notifications.DeviceAdded += (_, _) => TopologyChanged();
+            notifications.DeviceRemoved += (_, _) => TopologyChanged();
+            notifications.DeviceStateChanged += (_, _) => TopologyChanged();
+            notifications.DefaultDeviceChanged += (_, _) => TopologyChanged();
+            _notifications = notifications;
+            _enumerator = enumerator;
+        }
+        catch
+        {
+            enumerator.Dispose();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Builds the device list anew. The new state replaces the old one only when it was built completely; on any error the
+    /// old state stays in use, <see cref="Problem"/> is set and the next timer tick tries again. Caller holds the lock.
+    /// </summary>
+    private bool TryRebuildLocked()
+    {
+        var devices = new Dictionary<string, (MMDevice Device, DeviceFlow Flow)>();
+        try
+        {
+            EnsureEnumeratorLocked();
+            foreach ((DataFlow dataFlow, DeviceFlow flow) in new[] { (DataFlow.Render, DeviceFlow.Render), (DataFlow.Capture, DeviceFlow.Capture) })
             {
-                _devices[device.ID] = (device, flow);
-                try
+                using MMDeviceCollection collection = _enumerator!.EnumerateAudioEndPoints(dataFlow, DeviceState.Active);
+                foreach (MMDevice device in collection)
                 {
-                    device.AudioSessionManager.OnSessionCreated += OnSessionCreated;
-                }
-                catch (COMException)
-                {
-                    // Device without session manager: only endpoint control is possible.
+                    devices[device.ID] = (device, flow);
+                    try
+                    {
+                        device.AudioSessionManager.OnSessionCreated += OnSessionCreated;
+                    }
+                    catch (COMException)
+                    {
+                        // Device without session manager: only endpoint control is possible.
+                    }
                 }
             }
         }
+        catch (Exception ex)
+        {
+            DisposeDevices(devices);
+            _needsRebuild = true;
+            Problem = Texts.AudioUnavailable(ex.Message);
+            return false;
+        }
 
+        ClearCaches();
+        _devices = devices;
+        _needsRebuild = false;
+        Problem = null;
         RefreshSessionsLocked();
+        return true;
     }
 
     private void ClearCaches()
@@ -205,10 +299,21 @@ public sealed class NAudioAudioSystem : IAudioSystem, IDisposable
             session.Dispose();
         }
 
+        foreach (NAudioEndpoint endpoint in _endpoints.Values)
+        {
+            endpoint.MarkDisposed();
+        }
+
         _sessions = [];
-        _endpoints.Clear();
+        _endpoints = [];
         _defaultIds.Clear();
-        foreach ((MMDevice device, _) in _devices.Values)
+        DisposeDevices(_devices);
+        _devices = [];
+    }
+
+    private void DisposeDevices(Dictionary<string, (MMDevice Device, DeviceFlow Flow)> devices)
+    {
+        foreach ((MMDevice device, _) in devices.Values)
         {
             try
             {
@@ -218,16 +323,20 @@ public sealed class NAudioAudioSystem : IAudioSystem, IDisposable
             {
             }
 
-            device.Dispose();
+            try
+            {
+                device.Dispose();
+            }
+            catch (Exception)
+            {
+            }
         }
-
-        _devices.Clear();
     }
 
     // Called on a Windows audio worker thread that holds an internal lock: never do COM work here.
-    private void OnSessionCreated(object sender, object newSession) => Task.Run(Refresh);
+    private void OnSessionCreated(object sender, object newSession) => _ = Task.Run(Tick);
 
-    /// <summary>Re-reads all session lists; returns true when sessions appeared or disappeared.</summary>
+    /// <summary>Re-reads all session lists; returns true when sessions appeared or disappeared. Caller holds the lock.</summary>
     private bool RefreshSessionsLocked()
     {
         var fresh = new Dictionary<string, NAudioSession>();
@@ -237,30 +346,39 @@ public sealed class NAudioAudioSystem : IAudioSystem, IDisposable
             {
                 AudioSessionManager manager = device.AudioSessionManager;
                 manager.RefreshSessions();
-                SessionCollection collection = manager.Sessions;
+                using SessionCollection collection = manager.Sessions;
                 for (int i = 0; i < collection.Count; i++)
                 {
                     AudioSessionControl control = collection[i];
                     string key = $"{deviceId}|{control.GetSessionInstanceIdentifier}";
                     if (fresh.ContainsKey(key))
                     {
+                        DisposeQuietly(control);
                         continue;
                     }
 
                     if (_sessions.TryGetValue(key, out NAudioSession? existing))
                     {
+                        DisposeQuietly(control);
                         fresh[key] = existing;
                         continue;
                     }
 
                     int pid = (int)control.GetProcessID;
                     var info = new AudioSessionInfo(key, pid, ProcessPath.TryGet(pid), deviceId, flow, control.IsSystemSoundsSession);
-                    fresh[key] = new NAudioSession(control, info);
+                    fresh[key] = new NAudioSession(this, control, info);
                 }
             }
-            catch (COMException)
+            catch (Exception)
             {
-                // Device vanished while listing; the topology notification will rebuild.
+                // A temporary error on one device must not make its sessions look closed (they would be treated as new
+                // and get the remembered value again). Keep what we knew and rebuild from scratch on the next tick.
+                foreach ((string key, NAudioSession previous) in _sessions.Where(kv => kv.Value.Info.DeviceId == deviceId))
+                {
+                    fresh.TryAdd(key, previous);
+                }
+
+                _needsRebuild = true;
             }
         }
 
@@ -275,6 +393,17 @@ public sealed class NAudioAudioSystem : IAudioSystem, IDisposable
 
         _sessions = fresh;
         return changed;
+    }
+
+    private static void DisposeQuietly(IDisposable disposable)
+    {
+        try
+        {
+            disposable.Dispose();
+        }
+        catch (Exception)
+        {
+        }
     }
 
     private static DataFlow ToDataFlow(DeviceFlow flow) => flow == DeviceFlow.Capture ? DataFlow.Capture : DataFlow.Render;
@@ -292,8 +421,38 @@ public sealed class NAudioAudioSystem : IAudioSystem, IDisposable
         _ => new AudioUnsupportedException(Texts.WindowsReported(ex.HResult), ex),
     };
 
-    private sealed class NAudioEndpoint(MMDevice device, DeviceFlow flow) : IAudioEndpoint
+    /// <summary>
+    /// All calls into a COM wrapper run under the system lock, the same lock under which wrappers are disposed during a
+    /// rebuild, so a wrapper can never be released while another thread is inside a call on it.
+    /// </summary>
+    private static T Guarded<T>(NAudioAudioSystem owner, ref bool disposed, Func<T> action)
     {
+        lock (owner._gate)
+        {
+            if (disposed)
+            {
+                throw new AudioGoneException(Texts.DeviceOrSessionGone);
+            }
+
+            try
+            {
+                return action();
+            }
+            catch (COMException ex)
+            {
+                throw Translate(ex);
+            }
+            catch (ObjectDisposedException ex)
+            {
+                throw new AudioGoneException(Texts.DeviceOrSessionGone, ex);
+            }
+        }
+    }
+
+    private sealed class NAudioEndpoint(NAudioAudioSystem owner, MMDevice device, DeviceFlow flow) : IAudioEndpoint
+    {
+        private bool _disposed;
+
         public string Id { get; } = device.ID;
 
         public string Name { get; } = device.FriendlyName;
@@ -302,66 +461,42 @@ public sealed class NAudioAudioSystem : IAudioSystem, IDisposable
 
         public float Volume
         {
-            get => Run(() => device.AudioEndpointVolume.MasterVolumeLevelScalar);
-            set => Run(() => device.AudioEndpointVolume.MasterVolumeLevelScalar = value);
+            get => Guarded(owner, ref _disposed, () => device.AudioEndpointVolume.MasterVolumeLevelScalar);
+            set => Guarded(owner, ref _disposed, () => device.AudioEndpointVolume.MasterVolumeLevelScalar = value);
         }
 
         public bool Muted
         {
-            get => Run(() => device.AudioEndpointVolume.Mute);
-            set => Run(() => device.AudioEndpointVolume.Mute = value);
+            get => Guarded(owner, ref _disposed, () => device.AudioEndpointVolume.Mute);
+            set => Guarded(owner, ref _disposed, () => device.AudioEndpointVolume.Mute = value);
         }
 
-        private static T Run<T>(Func<T> action)
-        {
-            try
-            {
-                return action();
-            }
-            catch (COMException ex)
-            {
-                throw Translate(ex);
-            }
-        }
+        public void MarkDisposed() => _disposed = true;
     }
 
-    private sealed class NAudioSession(AudioSessionControl control, AudioSessionInfo info) : IAudioSession, IDisposable
+    private sealed class NAudioSession(NAudioAudioSystem owner, AudioSessionControl control, AudioSessionInfo info) : IAudioSession, IDisposable
     {
+        private bool _disposed;
+
         public AudioSessionInfo Info { get; } = info;
 
         public float Volume
         {
-            get => Run(() => control.SimpleAudioVolume.Volume);
-            set => Run(() => control.SimpleAudioVolume.Volume = value);
+            get => Guarded(owner, ref _disposed, () => control.SimpleAudioVolume.Volume);
+            set => Guarded(owner, ref _disposed, () => control.SimpleAudioVolume.Volume = value);
         }
 
         public bool Muted
         {
-            get => Run(() => control.SimpleAudioVolume.Mute);
-            set => Run(() => control.SimpleAudioVolume.Mute = value);
+            get => Guarded(owner, ref _disposed, () => control.SimpleAudioVolume.Mute);
+            set => Guarded(owner, ref _disposed, () => control.SimpleAudioVolume.Mute = value);
         }
 
+        /// <summary>Called by the owner while it holds the system lock.</summary>
         public void Dispose()
         {
-            try
-            {
-                control.Dispose();
-            }
-            catch (Exception)
-            {
-            }
-        }
-
-        private static T Run<T>(Func<T> action)
-        {
-            try
-            {
-                return action();
-            }
-            catch (COMException ex)
-            {
-                throw Translate(ex);
-            }
+            _disposed = true;
+            DisposeQuietly(control);
         }
     }
 }

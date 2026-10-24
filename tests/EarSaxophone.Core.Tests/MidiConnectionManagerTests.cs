@@ -159,6 +159,56 @@ public class MidiConnectionManagerTests
     }
 
     [Fact]
+    public void ChangedPortIndex_ReopensTheDevice_BecauseTheOldHandleCannotBeTrusted()
+    {
+        var provider = new FakeProvider();
+        provider.Devices.Add(new MidiDeviceInfo(1, "nanoKONTROL2"));
+        using var manager = new MidiConnectionManager(provider);
+        manager.Poll();
+        FakeInput first = provider.Opened[0];
+
+        provider.Devices.Clear();
+        provider.Devices.Add(new MidiDeviceInfo(0, "nanoKONTROL2")); // another MIDI device went away, numbering shifted
+        manager.Poll();
+
+        Assert.Equal(MidiConnectionState.Connected, manager.State);
+        Assert.True(first.Disposed);
+        Assert.Equal(2, provider.Opened.Count);
+    }
+
+    [Fact]
+    public void Reconnect_ClosesAndReopens_EvenThoughTheDeviceStillLooksFine()
+    {
+        var provider = new FakeProvider();
+        provider.Devices.Add(new MidiDeviceInfo(0, "nanoKONTROL2"));
+        using var manager = new MidiConnectionManager(provider);
+        var received = new List<MidiMessage>();
+        manager.MessageReceived += received.Add;
+        manager.Poll();
+        FakeInput stale = provider.Opened[0];
+
+        manager.Reconnect();
+        stale.Raise(Sample);          // the stale handle must be silent
+        provider.Opened[1].Raise(Sample);
+
+        Assert.Equal(MidiConnectionState.Connected, manager.State);
+        Assert.True(stale.Disposed);
+        Assert.Equal(2, provider.Opened.Count);
+        Assert.Single(received);
+    }
+
+    [Fact]
+    public void Reconnect_WithoutDevice_StaysDisconnected()
+    {
+        var provider = new FakeProvider();
+        using var manager = new MidiConnectionManager(provider);
+
+        manager.Reconnect();
+
+        Assert.Equal(MidiConnectionState.Disconnected, manager.State);
+    }
+
+    [Fact]
     public void OpenFailure_IsReported_AndRetriedOnNextPoll()
     {
         var provider = new FakeProvider { FailOpen = true };

@@ -126,6 +126,8 @@
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                     <ui:Button Content="Abbrechen" Margin="0,0,8,0" Command="{Binding CancelLearnCommand}"
                                Visibility="{Binding IsLearning, Converter={StaticResource BoolToVis}}" />
+                    <ui:Button Content="Neu verbinden" Margin="0,0,8,0" Command="{Binding ReconnectCommand}"
+                               ToolTip="Gerät neu öffnen, falls es nach Ruhezustand oder kurzem Abziehen nicht mehr reagiert" />
                     <ui:Button Content="Regler wählen (MIDI-Learn)" Appearance="Primary" Command="{Binding LearnCommand}"
                                ToolTip="Danach einen Regler oder eine Taste am Gerät bewegen oder drücken" />
                 </StackPanel>

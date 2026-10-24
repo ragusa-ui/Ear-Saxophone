@@ -1,12 +1,12 @@
-# Architektur (Stand Meilenstein 1)
+# Architektur (Stand Meilenstein 3)
 
 ```
 src/EarSaxophone.Core   net10.0          plattformneutral, vollständig unit-getestet
-src/EarSaxophone.Windows net10.0-windows Windows-Adapter (aktuell NAudio-MIDI-Eingang)
+src/EarSaxophone.Windows net10.0-windows Windows-Adapter (NAudio: MIDI-Eingang, Core Audio)
 src/EarSaxophone.App    net10.0-windows  WPF-Oberfläche (aktuell nur Platzhalterfenster)
 tests/EarSaxophone.Core.Tests            xUnit
 ```
-Geplant für `EarSaxophone.Windows`: Core Audio (NAudio.Wasapi), SendInput.
+Geplant für `EarSaxophone.Windows`: SendInput (Medientasten, Hotkeys).
 
 ## Core
 - `Midi/`: `MidiMessage`, `ControlId` (Identität eines physischen Reglers), `MidiMessageParser` (Rohbytes und WinMM-Kurznachricht; nur Note-Off/On und Control-Change).
@@ -21,5 +21,21 @@ Geplant für `EarSaxophone.Windows`: Core Audio (NAudio.Wasapi), SendInput.
   - `MidiLearnSession`: erste sinnvolle Nachricht nach `Start()` wird als Regler übernommen.
 - `Persistence/`: `ProfileSerializer` (System.Text.Json, Schema-Version, sprechende Fehler), `ProfileStore` (atomares Schreiben über Temp-Datei, defekte Datei bleibt als `.corrupt` erhalten).
 
-## Offene Entwurfsentscheidung: Anwendungs-Identität (Hypothese, noch nicht umgesetzt)
-Ein Anwendungsziel wird über den normalisierten Exe-Namen/-Pfad der Prozesse aufgelöst, nicht über Session-IDs. Alle aktuellen Sessions dieser Anwendung (mehrere Prozesse, mehrere Geräte) werden gemeinsam gesteuert; neue Sessions bekommen den zuletzt gesetzten Wert. Das ist **eine Hypothese** und wird in Meilenstein 3 mit Tests für mehrere Sessions, Neustarts und Gerätewechsel abgesichert, bevor sie als gelöst gilt.
+## Audio (Core: `Audio/`, Windows: `EarSaxophone.Windows/Audio/`)
+- `IAudioSystem`, `IAudioEndpoint`, `IAudioSession`: Abstraktion; `NAudioAudioSystem` implementiert sie mit NAudio.Wasapi (nur kompiliert, nicht an echter Hardware geprüft).
+- `AudioController`: führt `SetVolumeAction`/`ToggleMuteAction` aus.
+  - **Geräte** (Lautsprecher, Mikrofon): Standardgerät je `DeviceFlow` und `DeviceRole` oder eine Geräte-ID. Das Mikrofon ist ein Capture-Gerät und kann nie mit den Lautsprechern verwechselt werden. Fehlende Geräte und Geräte ohne Lautstärkeregelung führen zu verständlichen Meldungen (`AudioActionResult`).
+  - **Anwendungen:** siehe unten.
+- Der Windows-Adapter cacht Geräte und Sessions, baut sie bei Geräteänderungen neu auf und gleicht Sessions einmal pro Sekunde ab. `Changed` wird nur bei tatsächlichen Änderungen ausgelöst.
+
+### Anwendungs-Identität (Discord)
+Entwurf und Stand der Absicherung:
+1. Identität einer Anwendung = normalisierter **Exe-Name** (ohne Groß-/Kleinschreibung, `.exe` optional, exakter Vergleich: `Discord` trifft nicht `DiscordPTB`). Ein Pfad im `AppSelector` ist optional und bricht bei Programm-Updates mit Versionsordnern (Discord: `app-1.0.xxxx`).
+2. Session-Schlüssel (Gerät + Session-Instanz) sind **keine** Identität. Sie dienen nur dazu, sich zu merken, welche Session den Sollwert schon bekommen hat.
+3. Bei jeder Aktion werden die Sessions frisch aufgelöst (kein dauerhafter Verweis, der veralten kann). Alle passenden Sessions (mehrere Prozesse, mehrere Geräte) werden gemeinsam geändert.
+4. Der zuletzt gesetzte Wert wird jeder **neuen** Session genau einmal mitgegeben (Neustart, Gerätewechsel). Danach kann der Nutzer in Windows abweichen, ohne dass der Fader es überschreibt.
+5. Sessions, die zwischen Auflisten und Schreiben verschwinden, werden übersprungen; nur wenn keine einzige geändert werden konnte, gilt die Aktion als fehlgeschlagen.
+
+**Stand:** Im Modell durch 31 Tests mit simulierten Sessions bestätigt (mehrere Sessions/Prozesse/Geräte, Neustart mit neuer PID, Update mit neuem Ordner, Gerätewechsel, sterbende Sessions, ähnliche Namen, Systemklänge, Capture vs. Render). Die Tests wurden mit gezielten Code-Änderungen (Mutationen) auf Aussagekraft geprüft. **Ob echte Windows-Sessions von Discord so reagieren, ist noch nicht bestätigt** (Tests M3-5 bis M3-10 in `docs/LOCAL_TESTS.md`).
+
+Bekannte Grenzen: Der Exe-Pfad wird per `QueryFullProcessImageName` gelesen; bei geschützten Prozessen kann das scheitern, die Anwendung gilt dann als nicht gefunden. Browser-Tabs sind Teil einer Anwendung (Chrome-Sessions teilen sich `chrome.exe`) und nicht einzeln steuerbar.

@@ -1,6 +1,6 @@
 # STATUS
 
-**Letztes Update:** 2026-10-24 (Meilenstein 2 abgeschlossen, CI-Lauf für diesen Stand ausstehend)
+**Letztes Update:** 2026-10-24 (Meilenstein 3 umgesetzt, CI-Lauf für diesen Stand ausstehend)
 **Letzter bestätigter Build (noch für M1-Stand; Lauf für M2 folgt):** GitHub Actions, [Lauf #1](https://github.com/ragusa-ui/Ear-Saxophone/actions/runs/40086116728) auf Commit `09035c4`: **erfolgreich** (Linux-Tests, Windows-Build, Windows-Tests, self-contained Publish, ZIP-Artefakt 65 MB). Lokal (Cloud, Linux): 0 Warnungen, 0 Fehler.
 
 ## Fortschritt

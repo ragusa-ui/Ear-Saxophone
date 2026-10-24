@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="NAudio.WinMM" />
+    <PackageReference Include="NAudio.Wasapi" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\EarSaxophone.Core\EarSaxophone.Core.csproj" />

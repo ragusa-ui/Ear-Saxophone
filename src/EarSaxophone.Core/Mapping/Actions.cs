@@ -39,7 +39,7 @@ public sealed record AppSelector(string ExeName, string? ExePath = null)
 public sealed record AudioTarget(
     AudioTargetKind Kind,
     DeviceFlow Flow = DeviceFlow.Render,
-    DeviceRole Role = DeviceRole.Multimedia,
+    DeviceRole Role = DeviceRole.Console,
     string? DeviceId = null,
     AppSelector? App = null)
 {

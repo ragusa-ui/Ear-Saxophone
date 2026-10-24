@@ -40,3 +40,21 @@ Hintergrund und erwartete Grenzen: `docs/MEDIA_CONTROL.md`.
 | M4-5 | Task-Manager als Administrator im Vordergrund, dann Tastenkombination/Medientaste auslösen | Verhalten notieren (Meldung "Windows blockiert" oder stillschweigend ignoriert) | offen |
 | M4-6 | Eine Taste kurz drücken, lang halten, schnell mehrfach drücken | Genau eine Aktion pro Druck, kein Wiederholen beim Halten | offen |
 | M4-7 | Ungültige Kombination eintragen (z. B. `Ctrl+Banana`) | Verständliche Fehlermeldung in der Oberfläche (ab M5 prüfbar) | offen |
+
+## M5: Oberfläche, Tray, Autostart (Windows 11)
+Die CI hat das Fenster gerendert und per UI-Automation bedient, aber nie ein Mensch. Bitte besonders auf Aussehen und Bedienung achten.
+| Nr. | Test | Erwartung | Status |
+|---|---|---|---|
+| M5-1 | App starten (ZIP entpacken, `EarSaxophone.exe`) | Dunkles Fenster, gut lesbare Schrift, keine abgeschnittenen Texte; auch bei Windows-Skalierung 125 % und 150 %; Fenster auf Mindestgröße ziehen | offen |
+| M5-2 | Auf "Regler wählen (MIDI-Learn)" klicken, dann nacheinander Fader 1, einen Drehregler, S/M/R und Play am Gerät bewegen/drücken | Jeweils die passende Kachel wird gewählt (Beschriftung stimmt mit dem Gerät überein). Weicht etwas ab: "Weiterer Regler" erscheint, bitte notieren welche | offen |
+| M5-3 | Fader 1 auf Lautsprecher legen, "Übernehmen"; Fader bewegen | Windows-Lautstärke folgt; Kachel zeigt Pegel und "Lautstärke: Lautsprecher" | offen |
+| M5-4 | Zuordnungen anlegen, App beenden (Tray: Beenden), neu starten | Zuordnungen sind noch da (`profiles.json` im Programmordner) | offen |
+| M5-5 | "Testen" im Editor (Lautstärke, Medienbefehl) | Aktion läuft einmal, ohne zu speichern; Lautstärke steht danach auf 50 % | offen |
+| M5-6 | Fenster mit X schließen (Einstellung "Im Infobereich bleiben" an); Tray-Symbol: Doppelklick, Rechtsklick-Menü | Programm läuft weiter, Symbol sichtbar, Doppelklick öffnet, Menü "Öffnen"/"Beenden" funktioniert; mit Einstellung aus beendet das X das Programm | offen |
+| M5-7 | "Mit Windows starten" einschalten, abmelden/neu starten (oder Task-Manager > Autostart prüfen) | Eintrag "EarSaxophone" vorhanden, Programm startet minimiert im Tray; Ausschalten entfernt den Eintrag | offen |
+| M5-8 | Programm ein zweites Mal starten | Kein zweites Fenster; das vorhandene kommt in den Vordergrund (auch aus dem Tray) | offen |
+| M5-9 | ZIP in einen nicht beschreibbaren Ordner entpacken (z. B. unter `C:\Program Files`), starten, etwas zuordnen | Profile werden unter `%APPDATA%\EarSaxophone` gespeichert; keine Fehlermeldung | offen |
+| M5-10 | Profile: neues Profil anlegen, umbenennen, wechseln, löschen; je Profil andere Belegung | Wechsel wirkt sofort auf das Gerät; letztes Profil lässt sich nicht löschen | offen |
+| M5-11 | Programmordner verschieben, bei eingeschaltetem Autostart einmal starten | Autostart-Eintrag zeigt danach auf den neuen Ort | offen |
+| M5-12 | Anwendung zuordnen: Discord starten, "Aktualisieren" | Discord.exe erscheint in der Liste; Auswahl funktioniert, auch ohne Liste per Eintippen | offen |
+| M5-13 | Gerät abziehen; Mikrofon-Aktion ohne Mikrofon auslösen | Roter Punkt und Hinweistext; rote Fehlerleiste mit verständlicher Meldung, "Schließen" blendet sie aus | offen |

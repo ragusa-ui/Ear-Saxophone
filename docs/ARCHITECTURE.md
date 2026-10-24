@@ -1,9 +1,9 @@
-# Architektur (Stand Meilenstein 4)
+# Architektur (Stand Meilenstein 5)
 
 ```
 src/EarSaxophone.Core   net10.0          plattformneutral, vollständig unit-getestet
 src/EarSaxophone.Windows net10.0-windows Windows-Adapter (NAudio: MIDI-Eingang, Core Audio; SendInput)
-src/EarSaxophone.App    net10.0-windows  WPF-Oberfläche (aktuell nur Platzhalterfenster)
+src/EarSaxophone.App    net10.0-windows  WPF-Oberfläche (WPF-UI, Tray, Einzelinstanz, Start-Logik)
 tests/EarSaxophone.Core.Tests            xUnit, plattformneutral (läuft auf Linux und Windows)
 tests/EarSaxophone.Windows.Tests         xUnit, nur Windows (läuft in der CI auf windows-latest)
 ```
@@ -20,6 +20,14 @@ tests/EarSaxophone.Windows.Tests         xUnit, nur Windows (läuft in der CI au
   - `MappingDispatcher`: Regler-Aktionen laufend, Tasten nur bei steigender Flanke (Wert >= 64).
   - `MidiLearnSession`: erste sinnvolle Nachricht nach `Start()` wird als Regler übernommen.
 - `Persistence/`: `ProfileSerializer` (System.Text.Json, Schema-Version, sprechende Fehler), `ProfileStore` (atomares Schreiben über Temp-Datei, defekte Datei bleibt als `.corrupt` erhalten).
+
+## Oberfläche (Core: `ViewModels/`, `Devices/`, `Localization/`, `Settings/`; App: `EarSaxophone.App`)
+- Die Bedienlogik liegt **ohne WPF-Typen** im Core und ist unter Linux testbar: `MainViewModel` (MIDI-Learn, Auswahl, Übernehmen/Testen/Entfernen, Profile, Fehler- und Statusanzeige, Einstellungen), `MappingEditorViewModel` (Eingaben prüfen, Aktion bauen), `ControllerElementViewModel`/`ElementRowViewModel` (Kacheln mit Live-Pegel). Wechsel auf den UI-Thread über `IUiThread`.
+- `Devices/Nanokontrol2Layout`: Standardbelegung (51 Elemente) für die Übersicht; unbekannte Regler erscheinen per MIDI-Learn als "Weitere Regler".
+- `Localization/Texts`: **alle** Texte für den Nutzer (Deutsch) an einer Stelle; `MappingDescriber` formuliert die Kurzbeschreibung je Zuordnung.
+- `Settings/`: `AppSettings` (Autostart, im Tray bleiben, minimiert starten), `DataLocation` (portabel neben der Programmdatei, sonst `%APPDATA%\EarSaxophone`), `IAutostart` (Windows: `RegistryAutostart`, Run-Schlüssel mit Pfadreparatur).
+- App: dünnes XAML (`MainWindow.xaml`) mit Bindings; `App.xaml.cs` setzt alles zusammen (Audio mit Ersatz `UnavailableAudioSystem`, MIDI, Executor, Timer 1 s für die Geräteprüfung), Einzelinstanz per Mutex, Tray (H.NotifyIcon), `error.log` bei unerwarteten Fehlern.
+- CI-Hilfen (nur mit `--demo-screenshot`, nie im Normalbetrieb): `DemoData`, `UiReport` (Textbericht, Überlappungs- und Ressourcenprüfung, ASCII-Vorschau), `UiSelfCheck` (Bedienung per UI-Automation).
 
 ## Aktionen und Eingabe
 - `Actions/ActionExecutor`: führt jede Aktion aus (Audio, Medienbefehl, Tastenkombination) und liefert ein `ActionResult` mit verständlicher Meldung; Ausnahmen werden nie nach außen gereicht.

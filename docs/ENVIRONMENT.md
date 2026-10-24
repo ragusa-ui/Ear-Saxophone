@@ -19,8 +19,13 @@ Die Installation gilt nur für diese Sitzung (flüchtiger Container) und muss in
 | Paket | Version | Lizenz | .NET-10-Kompatibilität |
 |---|---|---|---|
 | NAudio.WinMM, NAudio.Wasapi | 3.3.0 | MIT | Ziel `net9.0` (läuft auf .NET 10); eingebunden; in CI kompiliert (WinMM Lauf #3, Wasapi Lauf #4) |
-| WPF-UI | 4.3.0 | MIT | Ziel `net10.0-windows7.0`; noch nicht eingebunden |
-| H.NotifyIcon.Wpf | 2.4.1 | MIT | Ziel `net10.0-windows7.0`; noch nicht eingebunden |
+| WPF-UI | 4.3.0 | MIT | Ziel `net10.0-windows7.0`; eingebunden, in CI gestartet und gerendert |
+| H.NotifyIcon.Wpf | 2.4.1 | MIT | Ziel `net10.0-windows7.0`; eingebunden, im Normalstart in der CI erzeugt (Tray-Aussehen ungesehen) |
 | xunit / Test.Sdk | 2.9.3 / 18.11.0 | Apache-2.0 | in Benutzung |
 
 Entscheidung .NET 10 (LTS, Support bis 14.11.2028) statt .NET 8 (LTS, Support endet 10.11.2026).
+
+## Weitere Hinweise zur Cloud-Umgebung
+- Das Herunterladen von CI-Logs und Artefakten (Host `productionresultssa17.blob.core.windows.net`) ist per Netzwerkregel der Umgebung gesperrt. Logs lese ich über die GitHub-Werkzeuge. Zum Freigeben des Hosts: Einstellungen der Cloud-Umgebung > Netzwerkzugriff (siehe https://code.claude.com/docs/en/cloud-environments#network-access).
+- Das Aussehen der Oberfläche prüft die CI selbst: Die App rendert ihr Fenster als PNG (Artefakt `EarSaxophone-ui-screenshot`) und schreibt einen Textbericht (Theme-Ressourcen, Position aller Elemente, Überlappungen, ASCII-Vorschau, Klickprüfungen per UI-Automation) in das Log.
+- Das Python-Paket Pillow war bereits vorhanden und wurde nur zum Erzeugen des Programmsymbols genutzt (keine Änderung an der Umgebung).

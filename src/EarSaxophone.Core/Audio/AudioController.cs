@@ -1,3 +1,4 @@
+using EarSaxophone.Core.Actions;
 using EarSaxophone.Core.Mapping;
 
 namespace EarSaxophone.Core.Audio;
@@ -38,14 +39,14 @@ public sealed class AudioController : IDisposable
     public void Dispose() => _system.Changed -= Reconcile;
 
     /// <summary>Runs audio actions; returns null for actions that are not audio actions.</summary>
-    public AudioActionResult? Execute(ActionInvocation invocation) => invocation.Mapping.Action switch
+    public ActionResult? Execute(ActionInvocation invocation) => invocation.Mapping.Action switch
     {
         SetVolumeAction a => SetVolume(a.Target, invocation.Level),
         ToggleMuteAction a => ToggleMute(a.Target),
         _ => null,
     };
 
-    public AudioActionResult SetVolume(AudioTarget target, float level)
+    public ActionResult SetVolume(AudioTarget target, float level)
     {
         level = Math.Clamp(level, 0f, 1f);
         lock (_gate)
@@ -56,7 +57,7 @@ public sealed class AudioController : IDisposable
         }
     }
 
-    public AudioActionResult ToggleMute(AudioTarget target)
+    public ActionResult ToggleMute(AudioTarget target)
     {
         lock (_gate)
         {
@@ -119,7 +120,7 @@ public sealed class AudioController : IDisposable
         }
     }
 
-    private AudioActionResult SetApplication(AudioTarget target, float? volume, bool? muted)
+    private ActionResult SetApplication(AudioTarget target, float? volume, bool? muted)
     {
         if (!target.IsValid)
         {
@@ -141,7 +142,7 @@ public sealed class AudioController : IDisposable
         List<IAudioSession> sessions = FindSessions(desired);
         if (sessions.Count == 0)
         {
-            return new AudioActionResult(AudioOutcome.Deferred,
+            return new ActionResult(ActionOutcome.Deferred,
                 $"{name} is not playing audio right now. The value is kept and applied when it starts.");
         }
 
@@ -156,11 +157,11 @@ public sealed class AudioController : IDisposable
         }
 
         return applied > 0
-            ? new AudioActionResult(AudioOutcome.Applied, $"{name}: {applied} session(s) updated.")
+            ? new ActionResult(ActionOutcome.Applied, $"{name}: {applied} session(s) updated.")
             : Fail($"{name}: its audio sessions could not be changed (they may have just closed).");
     }
 
-    private AudioActionResult SetEndpoint(AudioTarget target, Action<IAudioEndpoint> change, string what)
+    private ActionResult SetEndpoint(AudioTarget target, Action<IAudioEndpoint> change, string what)
     {
         string label = Describe(target);
         IAudioEndpoint? endpoint;
@@ -185,7 +186,7 @@ public sealed class AudioController : IDisposable
         try
         {
             change(endpoint);
-            return new AudioActionResult(AudioOutcome.Applied, $"{endpoint.Name}: {what} changed.");
+            return new ActionResult(ActionOutcome.Applied, $"{endpoint.Name}: {what} changed.");
         }
         catch (AudioUnsupportedException ex)
         {
@@ -272,5 +273,5 @@ public sealed class AudioController : IDisposable
         _ => "The default playback device",
     };
 
-    private static AudioActionResult Fail(string message) => new(AudioOutcome.Failed, message);
+    private static ActionResult Fail(string message) => new(ActionOutcome.Failed, message);
 }

@@ -1,3 +1,4 @@
+using EarSaxophone.Core.Actions;
 using EarSaxophone.Core.Audio;
 using EarSaxophone.Core.Mapping;
 
@@ -32,9 +33,9 @@ public class AudioControllerApplicationTests
         FakeSession other = system.AddSession(@"C:\Apps\Spotify.exe", "spk");
         FakeSession mic = system.AddSession(DiscordV1, "mic", DeviceFlow.Capture, pid: 100);
 
-        AudioActionResult result = controller.SetVolume(Discord, 0.3f);
+        ActionResult result = controller.SetVolume(Discord, 0.3f);
 
-        Assert.Equal(AudioOutcome.Applied, result.Outcome);
+        Assert.Equal(ActionOutcome.Applied, result.Outcome);
         Assert.All(new[] { a, b, c }, s => Assert.Equal(0.3f, s.Volume, 5));
         Assert.Equal(1f, other.Volume, 5);
         Assert.Equal(1f, mic.Volume, 5); // capture session belongs to the capture target, not the playback one
@@ -50,7 +51,7 @@ public class AudioControllerApplicationTests
         // Discord quits: session disappears, nothing to control for a while.
         system.Sessions.Remove(first);
         system.RaiseChanged();
-        Assert.Equal(AudioOutcome.Deferred, controller.SetVolume(Discord, 0.4f).Outcome);
+        Assert.Equal(ActionOutcome.Deferred, controller.SetVolume(Discord, 0.4f).Outcome);
 
         // Discord starts again with a new process id and a new session.
         FakeSession second = system.AddSession(DiscordV1, "spk", pid: 777);
@@ -118,9 +119,9 @@ public class AudioControllerApplicationTests
         FakeSession alive = system.AddSession(DiscordV1, "spk", pid: 101);
         dying.Gone = true;
 
-        AudioActionResult result = controller.SetVolume(Discord, 0.7f);
+        ActionResult result = controller.SetVolume(Discord, 0.7f);
 
-        Assert.Equal(AudioOutcome.Applied, result.Outcome);
+        Assert.Equal(ActionOutcome.Applied, result.Outcome);
         Assert.Equal(0.7f, alive.Volume, 5);
     }
 
@@ -138,9 +139,9 @@ public class AudioControllerApplicationTests
     {
         (_, AudioController controller) = Create();
 
-        AudioActionResult result = controller.SetVolume(Discord, 0.7f);
+        ActionResult result = controller.SetVolume(Discord, 0.7f);
 
-        Assert.Equal(AudioOutcome.Deferred, result.Outcome);
+        Assert.Equal(ActionOutcome.Deferred, result.Outcome);
         Assert.Contains("Discord.exe", result.Message);
     }
 
@@ -190,7 +191,7 @@ public class AudioControllerApplicationTests
     public void MuteWhileAppIsClosed_IsAppliedWhenItStarts()
     {
         (FakeAudioSystem system, AudioController controller) = Create();
-        Assert.Equal(AudioOutcome.Deferred, controller.ToggleMute(Discord).Outcome);
+        Assert.Equal(ActionOutcome.Deferred, controller.ToggleMute(Discord).Outcome);
 
         FakeSession session = system.AddSession(DiscordV1, "spk");
         system.RaiseChanged();
@@ -204,10 +205,10 @@ public class AudioControllerApplicationTests
         (FakeAudioSystem system, AudioController controller) = Create();
         system.ThrowOnListing = true;
 
-        AudioActionResult result = controller.SetVolume(Discord, 0.5f);
+        ActionResult result = controller.SetVolume(Discord, 0.5f);
         system.RaiseChanged();
 
-        Assert.Equal(AudioOutcome.Deferred, result.Outcome);
+        Assert.Equal(ActionOutcome.Deferred, result.Outcome);
     }
 
     [Fact]

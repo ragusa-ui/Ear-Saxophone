@@ -1,3 +1,4 @@
+using EarSaxophone.Core.Actions;
 using EarSaxophone.Core.Audio;
 using EarSaxophone.Core.Mapping;
 
@@ -18,8 +19,8 @@ public class AudioControllerEndpointTests
         FakeEndpoint speakers = system.AddEndpoint("spk", "Speakers", DeviceFlow.Render);
         FakeEndpoint mic = system.AddEndpoint("mic", "Microphone", DeviceFlow.Capture);
 
-        Assert.Equal(AudioOutcome.Applied, controller.SetVolume(AudioTarget.Speakers, 0.8f).Outcome);
-        Assert.Equal(AudioOutcome.Applied, controller.ToggleMute(AudioTarget.Speakers).Outcome);
+        Assert.Equal(ActionOutcome.Applied, controller.SetVolume(AudioTarget.Speakers, 0.8f).Outcome);
+        Assert.Equal(ActionOutcome.Applied, controller.ToggleMute(AudioTarget.Speakers).Outcome);
 
         Assert.Equal(0.8f, speakers.Volume, 5);
         Assert.True(speakers.Muted);
@@ -51,7 +52,7 @@ public class AudioControllerEndpointTests
         (FakeAudioSystem system, AudioController controller) = Create();
         system.AddEndpoint("spk", "Speakers", DeviceFlow.Render);
 
-        AudioActionResult result = controller.ToggleMute(AudioTarget.Microphone);
+        ActionResult result = controller.ToggleMute(AudioTarget.Microphone);
 
         Assert.True(result.IsFailure);
         Assert.Contains("recording device", result.Message);
@@ -64,7 +65,7 @@ public class AudioControllerEndpointTests
         FakeEndpoint mic = system.AddEndpoint("mic", "Headset Mic", DeviceFlow.Capture);
         mic.Failure = new AudioUnsupportedException("no hardware volume");
 
-        AudioActionResult result = controller.SetVolume(AudioTarget.Microphone, 0.5f);
+        ActionResult result = controller.SetVolume(AudioTarget.Microphone, 0.5f);
 
         Assert.True(result.IsFailure);
         Assert.Contains("Headset Mic", result.Message);
@@ -94,7 +95,7 @@ public class AudioControllerEndpointTests
         system.AddEndpoint("spk", "Speakers", DeviceFlow.Render);
         FakeEndpoint other = system.AddEndpoint("hs", "Headset", DeviceFlow.Render, makeDefault: false);
 
-        Assert.Equal(AudioOutcome.Applied,
+        Assert.Equal(ActionOutcome.Applied,
             controller.SetVolume(new AudioTarget(AudioTargetKind.SpecificDevice, DeviceId: "hs"), 0.3f).Outcome);
         Assert.Equal(0.3f, other.Volume, 5);
 

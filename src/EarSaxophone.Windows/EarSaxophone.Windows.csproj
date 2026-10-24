@@ -8,6 +8,9 @@
     <PackageReference Include="NAudio.Wasapi" />
   </ItemGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="EarSaxophone.Windows.Tests" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\EarSaxophone.Core\EarSaxophone.Core.csproj" />
   </ItemGroup>
 </Project>

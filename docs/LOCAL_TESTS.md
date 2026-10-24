@@ -28,3 +28,15 @@ Hinweis: nanoKONTROL2 im Standardmodus verwenden (Korg KONTROL Editor nicht glei
 | M3-10 | Anwendung als Administrator gestartet (z. B. Discord "Als Administrator ausführen") | Verhalten notieren: wird sie gefunden oder meldet die App "nicht aktiv"? (Bekanntes Risiko: Pfad nicht auslesbar) | offen |
 | M3-11 | USB-Headset während des Betriebs abziehen | Kein Absturz; Meldung bei der nächsten Aktion | offen |
 | M3-12 | Fader schnell hin- und herziehen (viele Nachrichten pro Sekunde) | Keine spürbare Verzögerung, CPU-Last gering | offen |
+
+## M4: Medientasten und Tastenkombinationen (Windows 11)
+Hintergrund und erwartete Grenzen: `docs/MEDIA_CONTROL.md`.
+| Nr. | Test | Erwartung | Status |
+|---|---|---|---|
+| M4-1 | Spotify (Desktop) spielt; Taste auf Play/Pause, Nächster, Vorheriger legen und drücken | Spotify pausiert/startet bzw. wechselt den Titel | offen |
+| M4-2 | Spotify im Browser und SoundCloud im Browser (Chrome/Edge), jeweils einzeln spielend | Notieren, welche Befehle funktionieren (Play/Pause, Nächster, Vorheriger) | offen |
+| M4-3 | Spotify und ein Browser-Tab gleichzeitig geöffnet, einer pausiert | Notieren, welches Programm den Befehl bekommt | offen |
+| M4-4 | Tastenkombination `Win+D` und `Ctrl+Shift+Esc` auf Tasten legen | Desktop wird angezeigt bzw. Task-Manager öffnet sich | offen |
+| M4-5 | Task-Manager als Administrator im Vordergrund, dann Tastenkombination/Medientaste auslösen | Verhalten notieren (Meldung "Windows blockiert" oder stillschweigend ignoriert) | offen |
+| M4-6 | Eine Taste kurz drücken, lang halten, schnell mehrfach drücken | Genau eine Aktion pro Druck, kein Wiederholen beim Halten | offen |
+| M4-7 | Ungültige Kombination eintragen (z. B. `Ctrl+Banana`) | Verständliche Fehlermeldung in der Oberfläche (ab M5 prüfbar) | offen |

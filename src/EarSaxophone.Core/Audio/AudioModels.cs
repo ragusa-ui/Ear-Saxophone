@@ -57,19 +57,3 @@ public interface IAudioSystem
     /// <summary>Raised when devices, default devices or sessions changed. May be raised on any thread.</summary>
     event Action? Changed;
 }
-
-public enum AudioOutcome
-{
-    /// <summary>The change reached at least one device or session.</summary>
-    Applied,
-
-    /// <summary>The target is not active right now; the value is remembered and applied when it appears.</summary>
-    Deferred,
-
-    Failed,
-}
-
-public sealed record AudioActionResult(AudioOutcome Outcome, string Message)
-{
-    public bool IsFailure => Outcome == AudioOutcome.Failed;
-}

@@ -1,12 +1,12 @@
-# Architektur (Stand Meilenstein 3)
+# Architektur (Stand Meilenstein 4)
 
 ```
 src/EarSaxophone.Core   net10.0          plattformneutral, vollständig unit-getestet
-src/EarSaxophone.Windows net10.0-windows Windows-Adapter (NAudio: MIDI-Eingang, Core Audio)
+src/EarSaxophone.Windows net10.0-windows Windows-Adapter (NAudio: MIDI-Eingang, Core Audio; SendInput)
 src/EarSaxophone.App    net10.0-windows  WPF-Oberfläche (aktuell nur Platzhalterfenster)
-tests/EarSaxophone.Core.Tests            xUnit
+tests/EarSaxophone.Core.Tests            xUnit, plattformneutral (läuft auf Linux und Windows)
+tests/EarSaxophone.Windows.Tests         xUnit, nur Windows (läuft in der CI auf windows-latest)
 ```
-Geplant für `EarSaxophone.Windows`: SendInput (Medientasten, Hotkeys).
 
 ## Core
 - `Midi/`: `MidiMessage`, `ControlId` (Identität eines physischen Reglers), `MidiMessageParser` (Rohbytes und WinMM-Kurznachricht; nur Note-Off/On und Control-Change).
@@ -20,6 +20,12 @@ Geplant für `EarSaxophone.Windows`: SendInput (Medientasten, Hotkeys).
   - `MappingDispatcher`: Regler-Aktionen laufend, Tasten nur bei steigender Flanke (Wert >= 64).
   - `MidiLearnSession`: erste sinnvolle Nachricht nach `Start()` wird als Regler übernommen.
 - `Persistence/`: `ProfileSerializer` (System.Text.Json, Schema-Version, sprechende Fehler), `ProfileStore` (atomares Schreiben über Temp-Datei, defekte Datei bleibt als `.corrupt` erhalten).
+
+## Aktionen und Eingabe
+- `Actions/ActionExecutor`: führt jede Aktion aus (Audio, Medienbefehl, Tastenkombination) und liefert ein `ActionResult` mit verständlicher Meldung; Ausnahmen werden nie nach außen gereicht.
+- `Input/Hotkey` (+ `KeyTable`): Parser und kanonische Schreibweise für Kombinationen wie `Ctrl+Alt+M` (`Strg` wird akzeptiert), Tasten als Windows-Virtual-Key-Codes.
+- `Input/IKeyboardSender`: Schnittstelle; `SendInputKeyboardSender` (Windows) sendet Modifikatoren, Taste, Loslassen in einem `SendInput`-Aufruf. Grenzen der Mediensteuerung: `docs/MEDIA_CONTROL.md`.
+- Datenfluss: MIDI-Nachricht -> `ControlRouter` -> `ActionExecutor` -> `AudioController` / `IKeyboardSender`.
 
 ## Audio (Core: `Audio/`, Windows: `EarSaxophone.Windows/Audio/`)
 - `IAudioSystem`, `IAudioEndpoint`, `IAudioSession`: Abstraktion; `NAudioAudioSystem` implementiert sie mit NAudio.Wasapi (nur kompiliert, nicht an echter Hardware geprüft).

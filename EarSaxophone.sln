@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EarSaxophone.Core.Tests", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EarSaxophone.Windows", "src\EarSaxophone.Windows\EarSaxophone.Windows.csproj", "{51322A48-5031-45EC-BD82-7B35BF68D423}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EarSaxophone.Windows.Tests", "tests\EarSaxophone.Windows.Tests\EarSaxophone.Windows.Tests.csproj", "{64ADB90E-18C3-4129-AD70-F02F0F718B97}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -73,6 +75,18 @@ Global
 		{51322A48-5031-45EC-BD82-7B35BF68D423}.Release|x64.Build.0 = Release|Any CPU
 		{51322A48-5031-45EC-BD82-7B35BF68D423}.Release|x86.ActiveCfg = Release|Any CPU
 		{51322A48-5031-45EC-BD82-7B35BF68D423}.Release|x86.Build.0 = Release|Any CPU
+		{64ADB90E-18C3-4129-AD70-F02F0F718B97}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{64ADB90E-18C3-4129-AD70-F02F0F718B97}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{64ADB90E-18C3-4129-AD70-F02F0F718B97}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{64ADB90E-18C3-4129-AD70-F02F0F718B97}.Debug|x64.Build.0 = Debug|Any CPU
+		{64ADB90E-18C3-4129-AD70-F02F0F718B97}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{64ADB90E-18C3-4129-AD70-F02F0F718B97}.Debug|x86.Build.0 = Debug|Any CPU
+		{64ADB90E-18C3-4129-AD70-F02F0F718B97}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{64ADB90E-18C3-4129-AD70-F02F0F718B97}.Release|Any CPU.Build.0 = Release|Any CPU
+		{64ADB90E-18C3-4129-AD70-F02F0F718B97}.Release|x64.ActiveCfg = Release|Any CPU
+		{64ADB90E-18C3-4129-AD70-F02F0F718B97}.Release|x64.Build.0 = Release|Any CPU
+		{64ADB90E-18C3-4129-AD70-F02F0F718B97}.Release|x86.ActiveCfg = Release|Any CPU
+		{64ADB90E-18C3-4129-AD70-F02F0F718B97}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -82,5 +96,6 @@ Global
 		{BF8BFDA9-C75E-4F17-86E8-29CF6B2C7A68} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{6D5F1EEB-7F19-4B99-BCFF-B42C9C72FB39} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{51322A48-5031-45EC-BD82-7B35BF68D423} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{64ADB90E-18C3-4129-AD70-F02F0F718B97} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 EndGlobal

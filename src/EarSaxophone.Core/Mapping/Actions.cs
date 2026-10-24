@@ -103,10 +103,10 @@ public sealed record MediaAction(MediaCommand Command) : ActionDefinition
     public override bool IsValid => Enum.IsDefined(Command);
 }
 
-/// <summary>Sends a keyboard shortcut such as "Ctrl+Alt+M". Parsing of the text is added with the hotkey milestone.</summary>
+/// <summary>Sends a keyboard shortcut such as "Ctrl+Alt+M" (see <see cref="Input.Hotkey"/> for the accepted syntax).</summary>
 public sealed record HotkeyAction(string Keys) : ActionDefinition
 {
     public override bool IsContinuous => false;
 
-    public override bool IsValid => !string.IsNullOrWhiteSpace(Keys);
+    public override bool IsValid => Input.Hotkey.TryParse(Keys, out _, out _);
 }

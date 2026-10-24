@@ -25,11 +25,17 @@ public static class AppMatcher
         return selector.ExePath is null || NormalizePath(selector.ExePath) == NormalizePath(session.ExePath);
     }
 
-    public static string NormalizeName(string nameOrPath)
+    /// <summary>The file name part of a path (works with both separators), original casing.</summary>
+    public static string FileNameOf(string nameOrPath)
     {
         string trimmed = nameOrPath.Trim();
         int cut = Math.Max(trimmed.LastIndexOf('\\'), trimmed.LastIndexOf('/'));
-        string file = cut >= 0 ? trimmed[(cut + 1)..] : trimmed;
+        return cut >= 0 ? trimmed[(cut + 1)..] : trimmed;
+    }
+
+    public static string NormalizeName(string nameOrPath)
+    {
+        string file = FileNameOf(nameOrPath);
         if (file.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
         {
             file = file[..^4];

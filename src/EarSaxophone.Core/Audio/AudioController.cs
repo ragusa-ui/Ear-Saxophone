@@ -1,3 +1,4 @@
+using EarSaxophone.Core.Localization;
 using EarSaxophone.Core.Actions;
 using EarSaxophone.Core.Mapping;
 
@@ -53,7 +54,7 @@ public sealed class AudioController : IDisposable
         {
             return target.Kind == AudioTargetKind.Application
                 ? SetApplication(target, volume: level, muted: null)
-                : SetEndpoint(target, e => e.Volume = level, "volume");
+                : SetEndpoint(target, e => e.Volume = level, Texts.WhatVolume);
         }
     }
 
@@ -63,12 +64,12 @@ public sealed class AudioController : IDisposable
         {
             if (target.Kind != AudioTargetKind.Application)
             {
-                return SetEndpoint(target, e => e.Muted = !e.Muted, "mute");
+                return SetEndpoint(target, e => e.Muted = !e.Muted, Texts.WhatMute);
             }
 
             if (!target.IsValid)
             {
-                return Fail("The application is not set.");
+                return Fail(Texts.AppNotSet);
             }
 
             Desired desired = GetDesired(target);
@@ -124,7 +125,7 @@ public sealed class AudioController : IDisposable
     {
         if (!target.IsValid)
         {
-            return Fail("The application is not set.");
+            return Fail(Texts.AppNotSet);
         }
 
         Desired desired = GetDesired(target);
@@ -143,7 +144,7 @@ public sealed class AudioController : IDisposable
         if (sessions.Count == 0)
         {
             return new ActionResult(ActionOutcome.Deferred,
-                $"{name} is not playing audio right now. The value is kept and applied when it starts.");
+                Texts.AppSilentDeferred(name));
         }
 
         int applied = 0;
@@ -157,8 +158,8 @@ public sealed class AudioController : IDisposable
         }
 
         return applied > 0
-            ? new ActionResult(ActionOutcome.Applied, $"{name}: {applied} session(s) updated.")
-            : Fail($"{name}: its audio sessions could not be changed (they may have just closed).");
+            ? new ActionResult(ActionOutcome.Applied, Texts.AppSessionsUpdated(name, applied))
+            : Fail(Texts.AppSessionsFailed(name));
     }
 
     private ActionResult SetEndpoint(AudioTarget target, Action<IAudioEndpoint> change, string what)
@@ -173,32 +174,32 @@ public sealed class AudioController : IDisposable
         }
         catch (Exception ex)
         {
-            return Fail($"{label} could not be queried: {ex.Message}");
+            return Fail(Texts.TargetQueryFailed(label, ex.Message));
         }
 
         if (endpoint is null)
         {
             return Fail(target.Flow == DeviceFlow.Capture && target.Kind == AudioTargetKind.DefaultDevice
-                ? "No default recording device is available. Connect or enable a microphone."
-                : $"{label} is not available.");
+                ? Texts.NoRecordingDevice
+                : Texts.TargetUnavailable(label));
         }
 
         try
         {
             change(endpoint);
-            return new ActionResult(ActionOutcome.Applied, $"{endpoint.Name}: {what} changed.");
+            return new ActionResult(ActionOutcome.Applied, Texts.EndpointChanged(endpoint.Name, what));
         }
         catch (AudioUnsupportedException ex)
         {
-            return Fail($"{endpoint.Name} does not allow {what} control through Windows ({ex.Message}).");
+            return Fail(Texts.EndpointUnsupported(endpoint.Name, what, ex.Message));
         }
         catch (AudioGoneException)
         {
-            return Fail($"{endpoint.Name} was just disconnected.");
+            return Fail(Texts.EndpointDisconnected(endpoint.Name));
         }
         catch (Exception ex)
         {
-            return Fail($"{endpoint.Name}: {what} could not be changed ({ex.Message}).");
+            return Fail(Texts.EndpointFailed(endpoint.Name, what, ex.Message));
         }
     }
 
@@ -268,9 +269,9 @@ public sealed class AudioController : IDisposable
 
     private static string Describe(AudioTarget target) => target.Kind switch
     {
-        AudioTargetKind.SpecificDevice => "The selected device",
-        _ when target.Flow == DeviceFlow.Capture => "The default recording device",
-        _ => "The default playback device",
+        AudioTargetKind.SpecificDevice => Texts.TargetSelectedDevice,
+        _ when target.Flow == DeviceFlow.Capture => Texts.TargetDefaultRecording,
+        _ => Texts.TargetDefaultPlayback,
     };
 
     private static ActionResult Fail(string message) => new(ActionOutcome.Failed, message);

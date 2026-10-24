@@ -1,3 +1,4 @@
+using EarSaxophone.Core.Localization;
 using System.Runtime.InteropServices;
 using EarSaxophone.Core.Input;
 using EarSaxophone.Core.Mapping;
@@ -21,9 +22,7 @@ public sealed class SendInputKeyboardSender : IKeyboardSender
         uint sent = NativeInput.SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<NativeInput.INPUT>());
         if (sent != inputs.Length)
         {
-            throw new InvalidOperationException(
-                $"Windows blocked the key input ({sent} of {inputs.Length} events, error {Marshal.GetLastWin32Error()}). " +
-                "A program running as administrator may have the focus.");
+            throw new InvalidOperationException(Texts.KeyInputBlocked(sent, inputs.Length, Marshal.GetLastWin32Error()));
         }
     }
 }

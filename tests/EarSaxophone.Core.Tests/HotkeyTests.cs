@@ -23,16 +23,16 @@ public class HotkeyTests
     }
 
     [Theory]
-    [InlineData("", "empty")]
-    [InlineData("   ", "empty")]
-    [InlineData(null, "empty")]
-    [InlineData("Ctrl+Alt", "needs a key")]
-    [InlineData("Ctrl+", "empty part")]
-    [InlineData("+M", "empty part")]
-    [InlineData("Ctrl++M", "empty part")]
-    [InlineData("Ctrl+A+B", "more than one key")]
-    [InlineData("Ctrl+Banana", "Unknown key 'Banana'")]
-    [InlineData("F25", "Unknown key")]
+    [InlineData("", "leer")]
+    [InlineData("   ", "leer")]
+    [InlineData(null, "leer")]
+    [InlineData("Ctrl+Alt", "fehlt eine Taste")]
+    [InlineData("Ctrl+", "leeren Teil")]
+    [InlineData("+M", "leeren Teil")]
+    [InlineData("Ctrl++M", "leeren Teil")]
+    [InlineData("Ctrl+A+B", "mehr als eine Taste")]
+    [InlineData("Ctrl+Banana", "Unbekannte Taste 'Banana'")]
+    [InlineData("F25", "Unbekannte Taste")]
     public void InvalidShortcuts_AreRejectedWithReadableReason(string? text, string expectedFragment)
     {
         Assert.False(Hotkey.TryParse(text, out Hotkey hotkey, out string error));

@@ -1,3 +1,4 @@
+using EarSaxophone.Core.Localization;
 using System.Text;
 
 namespace EarSaxophone.Core.Input;
@@ -29,7 +30,7 @@ public readonly record struct Hotkey(KeyModifiers Modifiers, ushort VirtualKey)
         hotkey = default;
         if (string.IsNullOrWhiteSpace(text))
         {
-            error = "The shortcut is empty.";
+            error = Texts.HotkeyEmpty;
             return false;
         }
 
@@ -40,7 +41,7 @@ public readonly record struct Hotkey(KeyModifiers Modifiers, ushort VirtualKey)
             string token = raw.Trim();
             if (token.Length == 0)
             {
-                error = $"'{text}' has an empty part (a '+' without a key next to it).";
+                error = Texts.HotkeyEmptyPart(text);
                 return false;
             }
 
@@ -53,13 +54,13 @@ public readonly record struct Hotkey(KeyModifiers Modifiers, ushort VirtualKey)
 
             if (!KeyTable.TryGetCode(token, out ushort code))
             {
-                error = $"Unknown key '{token}'.";
+                error = Texts.HotkeyUnknownKey(token);
                 return false;
             }
 
             if (key is not null)
             {
-                error = $"'{text}' contains more than one key; use modifiers (Ctrl, Alt, Shift, Win) plus a single key.";
+                error = Texts.HotkeyTwoKeys(text);
                 return false;
             }
 
@@ -68,7 +69,7 @@ public readonly record struct Hotkey(KeyModifiers Modifiers, ushort VirtualKey)
 
         if (key is null)
         {
-            error = "The shortcut needs a key in addition to the modifiers.";
+            error = Texts.HotkeyNeedsKey;
             return false;
         }
 

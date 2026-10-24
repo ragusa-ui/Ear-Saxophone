@@ -1,3 +1,4 @@
+using EarSaxophone.Core.Localization;
 using EarSaxophone.Core.Midi;
 
 namespace EarSaxophone.Core.Mapping;
@@ -23,13 +24,20 @@ public sealed record Profile(string Name, IReadOnlyList<ControlMapping> Mappings
         return null;
     }
 
+    /// <summary>Returns a copy in which the control is bound to this mapping (replacing an existing binding).</summary>
+    public Profile WithMapping(ControlMapping mapping) =>
+        this with { Mappings = Mappings.Where(m => m.Control != mapping.Control).Append(mapping).ToList() };
+
+    public Profile WithoutMapping(ControlId control) =>
+        this with { Mappings = Mappings.Where(m => m.Control != control).ToList() };
+
     /// <summary>Returns human-readable problems; an empty list means the profile is usable.</summary>
     public IReadOnlyList<string> Validate()
     {
         var problems = new List<string>();
         if (string.IsNullOrWhiteSpace(Name))
         {
-            problems.Add("Profile name is empty.");
+            problems.Add(Texts.ProfileNameEmpty);
         }
 
         var seen = new HashSet<ControlId>();
@@ -37,17 +45,17 @@ public sealed record Profile(string Name, IReadOnlyList<ControlMapping> Mappings
         {
             if (!seen.Add(mapping.Control))
             {
-                problems.Add($"{mapping.Control} is mapped more than once.");
+                problems.Add(Texts.ControlMappedTwice(new ControlLabel(mapping.Control.ToString())));
             }
 
             if (!mapping.Action.IsValid)
             {
-                problems.Add($"{mapping.Control}: the action is incomplete (missing target, device or keys).");
+                problems.Add(Texts.ActionIncomplete(new ControlLabel(mapping.Control.ToString())));
             }
 
             if (mapping.Scaling is { IsValid: false })
             {
-                problems.Add($"{mapping.Control}: scaling range must satisfy 0 <= min <= max <= 1.");
+                problems.Add(Texts.ScalingInvalid(new ControlLabel(mapping.Control.ToString())));
             }
         }
 

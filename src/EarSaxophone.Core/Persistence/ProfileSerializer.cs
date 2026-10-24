@@ -1,3 +1,4 @@
+using EarSaxophone.Core.Localization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using EarSaxophone.Core.Mapping;
@@ -26,18 +27,18 @@ public static class ProfileSerializer
         }
         catch (JsonException ex)
         {
-            throw new ProfileFormatException("The profile file is not valid JSON or has an unexpected structure.", ex);
+            throw new ProfileFormatException(Texts.ProfileFileInvalid, ex);
         }
 
         if (document is null || document.Profiles is null)
         {
-            throw new ProfileFormatException("The profile file is empty.");
+            throw new ProfileFormatException(Texts.ProfileFileEmpty);
         }
 
         if (document.SchemaVersion < 1 || document.SchemaVersion > ProfileDocument.CurrentSchemaVersion)
         {
             throw new ProfileFormatException(
-                $"Unsupported profile file version {document.SchemaVersion} (this build supports up to {ProfileDocument.CurrentSchemaVersion}).");
+                Texts.ProfileFileVersion(document.SchemaVersion, ProfileDocument.CurrentSchemaVersion));
         }
 
         return document;

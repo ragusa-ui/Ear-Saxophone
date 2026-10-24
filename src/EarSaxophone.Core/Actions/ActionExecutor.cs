@@ -1,3 +1,4 @@
+using EarSaxophone.Core.Localization;
 using EarSaxophone.Core.Audio;
 using EarSaxophone.Core.Input;
 using EarSaxophone.Core.Mapping;
@@ -14,22 +15,22 @@ public sealed class ActionExecutor(AudioController audio, IKeyboardSender keyboa
             return invocation.Mapping.Action switch
             {
                 SetVolumeAction or ToggleMuteAction => audio.Execute(invocation)
-                    ?? new ActionResult(ActionOutcome.Failed, "This audio action could not be run."),
+                    ?? new ActionResult(ActionOutcome.Failed, Texts.AudioActionFailed),
                 MediaAction media => RunMedia(media),
                 HotkeyAction hotkey => RunHotkey(hotkey),
-                _ => new ActionResult(ActionOutcome.Failed, "This kind of action is not supported."),
+                _ => new ActionResult(ActionOutcome.Failed, Texts.ActionUnsupported),
             };
         }
         catch (Exception ex)
         {
-            return new ActionResult(ActionOutcome.Failed, $"The action failed: {ex.Message}");
+            return new ActionResult(ActionOutcome.Failed, Texts.ActionFailed(ex.Message));
         }
     }
 
     private ActionResult RunMedia(MediaAction action)
     {
         keyboard.SendMediaCommand(action.Command);
-        return new ActionResult(ActionOutcome.Applied, $"Media key sent: {action.Command}.");
+        return new ActionResult(ActionOutcome.Applied, Texts.MediaSent(action.Command));
     }
 
     private ActionResult RunHotkey(HotkeyAction action)
@@ -40,6 +41,6 @@ public sealed class ActionExecutor(AudioController audio, IKeyboardSender keyboa
         }
 
         keyboard.SendHotkey(hotkey);
-        return new ActionResult(ActionOutcome.Applied, $"Shortcut sent: {hotkey}.");
+        return new ActionResult(ActionOutcome.Applied, Texts.HotkeySent(hotkey.ToString()));
     }
 }

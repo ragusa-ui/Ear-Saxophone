@@ -1,3 +1,4 @@
+using EarSaxophone.Core.Localization;
 using System.Runtime.InteropServices;
 using EarSaxophone.Core.Audio;
 using EarSaxophone.Core.Mapping;
@@ -287,8 +288,8 @@ public sealed class NAudioAudioSystem : IAudioSystem, IDisposable
 
     internal static Exception Translate(COMException ex) => ex.HResult switch
     {
-        DeviceInvalidated or ElementNotFound => new AudioGoneException("The device or session is gone.", ex),
-        _ => new AudioUnsupportedException($"Windows reported 0x{ex.HResult:X8}", ex),
+        DeviceInvalidated or ElementNotFound => new AudioGoneException(Texts.DeviceOrSessionGone, ex),
+        _ => new AudioUnsupportedException(Texts.WindowsReported(ex.HResult), ex),
     };
 
     private sealed class NAudioEndpoint(MMDevice device, DeviceFlow flow) : IAudioEndpoint

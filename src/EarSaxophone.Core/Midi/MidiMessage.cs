@@ -17,7 +17,7 @@ public enum ControlKind
 /// <summary>Identity of a physical control on a device, independent of the value it sends.</summary>
 public readonly record struct ControlId(ControlKind Kind, byte Channel, byte Number)
 {
-    public override string ToString() => $"{(Kind == ControlKind.ControlChange ? "CC" : "Note")} {Number} (Ch {Channel + 1})";
+    public override string ToString() => $"{(Kind == ControlKind.ControlChange ? "CC" : "Note")} {Number} (Kanal {Channel + 1})";
 }
 
 /// <summary>A parsed channel-voice MIDI message. Channel is 0-15, Number and Value are 0-127.</summary>

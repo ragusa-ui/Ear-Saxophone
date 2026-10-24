@@ -1,3 +1,4 @@
+using EarSaxophone.Core.Localization;
 using EarSaxophone.Core.Midi;
 using NAudio.Midi;
 using IMidiInput = EarSaxophone.Core.Midi.IMidiInput;
@@ -56,6 +57,6 @@ public sealed class NAudioMidiInputProvider : IMidiInputProvider
         }
 
         private void OnError(object? sender, MidiInMessageEventArgs e) =>
-            Faulted?.Invoke($"MIDI driver reported an invalid message (0x{e.RawMessage:X8}).");
+            Faulted?.Invoke(Texts.MidiDriverWarning(e.RawMessage));
     }
 }

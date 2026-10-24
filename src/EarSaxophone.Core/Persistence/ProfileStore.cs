@@ -1,3 +1,4 @@
+using EarSaxophone.Core.Localization;
 using EarSaxophone.Core.Mapping;
 
 namespace EarSaxophone.Core.Persistence;
@@ -31,16 +32,16 @@ public sealed class ProfileStore(string path)
             try
             {
                 File.Move(Path, backup, overwrite: true);
-                note = $"The old file was kept as '{backup}'.";
+                note = Texts.ProfileBackupKept(backup);
             }
             catch (Exception moveEx) when (moveEx is IOException or UnauthorizedAccessException)
             {
-                note = "The old file could not be backed up.";
+                note = Texts.ProfileBackupFailed;
             }
 
             return new ProfileLoadResult(
                 ProfileDocument.CreateDefault(),
-                $"Profiles could not be loaded ({ex.Message}). Defaults are used. {note}");
+                Texts.ProfileLoadFailed(ex.Message, note));
         }
     }
 

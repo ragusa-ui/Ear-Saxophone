@@ -55,7 +55,7 @@ public class AudioControllerEndpointTests
         ActionResult result = controller.ToggleMute(AudioTarget.Microphone);
 
         Assert.True(result.IsFailure);
-        Assert.Contains("recording device", result.Message);
+        Assert.Contains("Aufnahmegerät", result.Message);
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public class AudioControllerEndpointTests
 
         Assert.True(result.IsFailure);
         Assert.Contains("Headset Mic", result.Message);
-        Assert.Contains("does not allow", result.Message);
+        Assert.Contains("erlaubt keine", result.Message);
     }
 
     [Fact]

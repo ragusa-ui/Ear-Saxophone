@@ -1,3 +1,4 @@
+using EarSaxophone.Core.Localization;
 namespace EarSaxophone.Core.Midi;
 
 public enum MidiConnectionState
@@ -49,7 +50,7 @@ public sealed class MidiConnectionManager(IMidiInputProvider provider, string de
             catch (Exception ex)
             {
                 CloseInput();
-                SetState(MidiConnectionState.Disconnected, $"MIDI devices could not be listed: {ex.Message}");
+                SetState(MidiConnectionState.Disconnected, Texts.MidiListFailed(ex.Message));
                 return;
             }
 
@@ -61,13 +62,13 @@ public sealed class MidiConnectionManager(IMidiInputProvider provider, string de
                 }
 
                 CloseInput();
-                SetState(MidiConnectionState.Disconnected, $"{deviceNameFragment} was disconnected. Waiting for it to return.");
+                SetState(MidiConnectionState.Disconnected, Texts.MidiDisconnected(deviceNameFragment));
             }
 
             MidiDeviceInfo? target = devices.FirstOrDefault(d => d.Name.Contains(deviceNameFragment, StringComparison.OrdinalIgnoreCase));
             if (target is null)
             {
-                SetState(MidiConnectionState.Disconnected, $"{deviceNameFragment} not found. Connect it via USB.");
+                SetState(MidiConnectionState.Disconnected, Texts.MidiNotFound(deviceNameFragment));
                 return;
             }
 
@@ -90,12 +91,12 @@ public sealed class MidiConnectionManager(IMidiInputProvider provider, string de
 
                 _input = input;
                 ConnectedDeviceName = target.Name;
-                SetState(MidiConnectionState.Connected, $"Connected to {target.Name}.");
+                SetState(MidiConnectionState.Connected, Texts.MidiConnected(target.Name));
             }
             catch (Exception ex)
             {
                 SetState(MidiConnectionState.Disconnected,
-                    $"{target.Name} was found but could not be opened (is another program using it?): {ex.Message}");
+                    Texts.MidiOpenFailed(target.Name, ex.Message));
             }
         }
     }

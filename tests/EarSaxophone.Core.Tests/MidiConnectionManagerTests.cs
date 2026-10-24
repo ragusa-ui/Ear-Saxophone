@@ -77,7 +77,7 @@ public class MidiConnectionManagerTests
 
         Assert.Equal(MidiConnectionState.Disconnected, manager.State);
         Assert.Single(events);
-        Assert.Contains("not found", events[0]);
+        Assert.Contains("nicht gefunden", events[0]);
     }
 
     [Fact]
@@ -169,7 +169,7 @@ public class MidiConnectionManagerTests
 
         manager.Poll();
         Assert.Equal(MidiConnectionState.Disconnected, manager.State);
-        Assert.Contains("could not be opened", detail);
+        Assert.Contains("nicht geöffnet", detail);
 
         provider.FailOpen = false;
         manager.Poll();

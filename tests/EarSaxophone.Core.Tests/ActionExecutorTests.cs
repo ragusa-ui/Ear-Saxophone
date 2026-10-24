@@ -93,14 +93,14 @@ public class ActionExecutorTests
     public void KeyboardRefusal_BecomesFailureResult_NotAnException()
     {
         (ActionExecutor executor, FakeKeyboard keyboard, _) = Create();
-        keyboard.Failure = new InvalidOperationException("Windows blocked the input");
+        keyboard.Failure = new InvalidOperationException("Windows hat die Eingabe blockiert");
 
         ActionResult media = executor.Execute(Invocation(new MediaAction(MediaCommand.Next)));
         ActionResult hotkey = executor.Execute(Invocation(new HotkeyAction("Ctrl+M")));
 
         Assert.True(media.IsFailure);
         Assert.True(hotkey.IsFailure);
-        Assert.Contains("blocked", media.Message);
+        Assert.Contains("blockiert", media.Message);
     }
 
     [Fact]

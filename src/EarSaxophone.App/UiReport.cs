@@ -37,29 +37,58 @@ internal static class UiReport
         }
 
         sb.AppendLine("== Visible elements (x,y wxh) text");
-        int outside = 0;
-        Walk(window, window, sb, ref outside);
-        sb.AppendLine($"== Elements outside the window (not inside a ScrollViewer): {outside}");
+        var found = new List<Found>();
+        Walk(window, window, found);
+        foreach (Found item in found)
+        {
+            sb.AppendLine($"{(item.Outside ? "!!" : "  ")} ({item.Bounds.X:0},{item.Bounds.Y:0} {item.Bounds.Width:0}x{item.Bounds.Height:0}) {item.Description}");
+        }
+
+        sb.AppendLine($"== Elements outside the window (not inside a ScrollViewer): {found.Count(f => f.Outside)}");
+
+        var overlaps = new List<string>();
+        for (int i = 0; i < found.Count; i++)
+        {
+            for (int j = i + 1; j < found.Count; j++)
+            {
+                Rect common = Rect.Intersect(found[i].Bounds, found[j].Bounds);
+                bool nested = found[i].Element.IsAncestorOf(found[j].Element) || found[j].Element.IsAncestorOf(found[i].Element);
+                if (!common.IsEmpty && common.Width * common.Height > 4 && !nested)
+                {
+                    overlaps.Add($"!! OVERLAP {found[i].Description} ({found[i].Bounds.X:0},{found[i].Bounds.Y:0} {found[i].Bounds.Width:0}x{found[i].Bounds.Height:0})  <->  {found[j].Description} ({found[j].Bounds.X:0},{found[j].Bounds.Y:0} {found[j].Bounds.Width:0}x{found[j].Bounds.Height:0})");
+                }
+            }
+        }
+
+        sb.AppendLine($"== Overlapping elements: {overlaps.Count}");
+        overlaps.ForEach(o => sb.AppendLine(o));
+
+        sb.AppendLine("== Header area (y < 150)");
+        foreach (Found item in found.Where(f => f.Bounds.Y < 150))
+        {
+            sb.AppendLine($"   ({item.Bounds.X:0},{item.Bounds.Y:0} {item.Bounds.Width:0}x{item.Bounds.Height:0}) {item.Description}");
+        }
 
         AppendPixels(bitmap, sb);
         return sb.ToString();
     }
 
-    private static void Walk(DependencyObject node, Window window, StringBuilder sb, ref int outside)
+    private sealed record Found(FrameworkElement Element, Rect Bounds, string Description, bool Outside);
+
+    private static void Walk(DependencyObject node, Window window, List<Found> found)
     {
         if (node is FrameworkElement element && element.IsVisible && Describe(element) is { } description)
         {
             Rect bounds = element.TransformToAncestor(window).TransformBounds(new Rect(0, 0, element.ActualWidth, element.ActualHeight));
-            bool inScroll = IsInsideScrollViewer(element);
-            bool isOutside = !inScroll && (bounds.Right > window.ActualWidth + 1 || bounds.Bottom > window.ActualHeight + 1 || bounds.Left < -1 || bounds.Top < -1);
-            outside += isOutside ? 1 : 0;
-            sb.AppendLine($"{(isOutside ? "!!" : "  ")} ({bounds.X:0},{bounds.Y:0} {bounds.Width:0}x{bounds.Height:0}) {description}");
+            bool outside = !IsInsideScrollViewer(element)
+                && (bounds.Right > window.ActualWidth + 1 || bounds.Bottom > window.ActualHeight + 1 || bounds.Left < -1 || bounds.Top < -1);
+            found.Add(new Found(element, bounds, description, outside));
         }
 
         int count = VisualTreeHelper.GetChildrenCount(node);
         for (int i = 0; i < count; i++)
         {
-            Walk(VisualTreeHelper.GetChild(node, i), window, sb, ref outside);
+            Walk(VisualTreeHelper.GetChild(node, i), window, found);
         }
     }
 

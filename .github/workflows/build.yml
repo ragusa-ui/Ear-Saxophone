@@ -55,9 +55,6 @@ jobs:
           if (Test-Path "$png.error.txt") { Get-Content "$png.error.txt" }
           if ($p.ExitCode -ne 0 -or -not (Test-Path $png)) { throw 'UI screenshot failed' }
           Write-Host "PNG size: $((Get-Item $png).Length) bytes"
-          Write-Host "::group::UI report"
-          Get-Content "$png.report.txt" -Encoding UTF8
-          Write-Host "::endgroup::"
       - name: Print screenshot as base64 JPEG
         if: ${{ github.event.inputs.print_screenshot == 'true' }}
         shell: pwsh
@@ -85,3 +82,8 @@ jobs:
           name: EarSaxophone-ui-screenshot
           path: artifacts/ui-screenshot.png
           if-no-files-found: error
+      - name: UI report (text description of the rendered window)
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path artifacts/ui-screenshot.png.report.txt) { Get-Content artifacts/ui-screenshot.png.report.txt -Encoding UTF8 } else { Write-Host 'no report' }

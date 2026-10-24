@@ -55,6 +55,24 @@ jobs:
           if (Test-Path "$png.error.txt") { Get-Content "$png.error.txt" }
           if ($p.ExitCode -ne 0 -or -not (Test-Path $png)) { throw 'UI screenshot failed' }
           Write-Host "PNG size: $((Get-Item $png).Length) bytes"
+      - name: Start in normal mode (tray, single instance)
+        shell: pwsh
+        run: |
+          $env:DOTNET_ROOT = $null
+          $env:PATH = ($env:PATH -split ';' | Where-Object { $_ -notmatch 'dotnet' }) -join ';'
+          $exe = Join-Path $PWD 'artifacts/publish/EarSaxophone.exe'
+          $first = Start-Process -FilePath $exe -ArgumentList '--minimized' -PassThru
+          Start-Sleep -Seconds 8
+          if ($first.HasExited) { throw "First instance exited early with code $($first.ExitCode)" }
+          $second = Start-Process -FilePath $exe -PassThru
+          if (-not $second.WaitForExit(30000)) { $second.Kill(); $first.Kill(); throw 'Second instance did not exit (single instance not working)' }
+          Write-Host "Second instance exit code: $($second.ExitCode)"
+          Start-Sleep -Seconds 3
+          if ($first.HasExited) { throw 'First instance died after the second one was started' }
+          $first.Kill()
+          $log = Join-Path $PWD 'artifacts/publish/error.log'
+          if (Test-Path $log) { Get-Content $log; throw 'error.log was written during normal start' }
+          Write-Host 'Normal mode: first instance stayed running (tray), second instance exited, no error.log'
       - name: Print screenshot as base64 JPEG
         if: ${{ github.event.inputs.print_screenshot == 'true' }}
         shell: pwsh

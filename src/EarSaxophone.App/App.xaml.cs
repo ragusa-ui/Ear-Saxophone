@@ -281,6 +281,15 @@ public partial class App : Application
                 encoder.Save(stream);
                 stream.Close();
                 File.WriteAllText(path + ".report.txt", UiReport.Build(window, bitmap));
+
+                // Operate the window like a user would and record what happened.
+                var checks = UiSelfCheck.Run(window, _viewModel!);
+                var lines = checks.Select(c => $"{(c.Ok ? "ok" : "FAILED")} {c.Name} [{c.Detail}]");
+                File.AppendAllText(path + ".report.txt", Environment.NewLine + "== Interaction checks" + Environment.NewLine + string.Join(Environment.NewLine, lines) + Environment.NewLine);
+                if (checks.Any(c => !c.Ok))
+                {
+                    exitCode = 1;
+                }
             }
             catch (Exception ex)
             {

@@ -188,6 +188,17 @@ public static class Texts
     public const string UiTargetMicrophone = "Mikrofon (Standard-Aufnahmegerät)";
 
     public const string UiTargetApplication = "Anwendung";
+
+    public static string AudioUnavailable(string reason) =>
+        $"Der Windows-Audiodienst ist nicht verfügbar, Lautstärke-Aktionen funktionieren nicht: {reason}";
+
+    public static string UnexpectedError(string reason) => $"Unerwarteter Fehler: {reason}. Einzelheiten stehen in der Datei error.log neben den Profilen.";
+
+    public const string TrayOpen = "Öffnen";
+
+    public const string TrayExit = "Beenden";
+
+    public static string TrayTooltip(string connection) => $"Ear Saxophone – {connection}";
 }
 
 /// <summary>Display text of a control, used inside messages.</summary>

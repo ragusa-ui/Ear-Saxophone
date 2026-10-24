@@ -236,6 +236,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _router.ControlLearned -= OnControlLearned;
     }
 
+    /// <summary>Shows a problem that was detected outside the view model (for example during startup).</summary>
+    public void ShowError(string message)
+    {
+        ErrorMessage = message;
+        _errorFromAction = false;
+    }
+
     public void StartLearning()
     {
         _router.StartLearning();

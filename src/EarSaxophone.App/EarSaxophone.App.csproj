@@ -5,8 +5,19 @@
     <UseWPF>true</UseWPF>
     <RootNamespace>EarSaxophone.App</RootNamespace>
     <AssemblyName>EarSaxophone</AssemblyName>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <SatelliteResourceLanguages>de;en</SatelliteResourceLanguages>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="WPF-UI" />
+    <PackageReference Include="H.NotifyIcon.Wpf" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\EarSaxophone.Core\EarSaxophone.Core.csproj" />
+    <ProjectReference Include="..\EarSaxophone.Windows\EarSaxophone.Windows.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Assets\app.ico" />
   </ItemGroup>
 </Project>

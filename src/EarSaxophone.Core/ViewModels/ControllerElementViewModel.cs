@@ -62,5 +62,6 @@ public sealed class ElementRowViewModel(string title, IReadOnlyList<ControllerEl
 
     public IReadOnlyList<ControllerElementViewModel> Elements { get; } = elements;
 
-    public int Columns => Elements.Count;
+    /// <summary>Strips have 8 columns; the longer transport row is wrapped into two rows of equal width.</summary>
+    public int Columns => Elements.Count <= 8 ? Elements.Count : (Elements.Count + 1) / 2;
 }

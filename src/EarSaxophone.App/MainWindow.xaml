@@ -3,7 +3,7 @@
                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                   xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
                   Title="Ear Saxophone"
-                  Width="1260" Height="800" MinWidth="1060" MinHeight="680"
+                  Width="1280" Height="860" MinWidth="1120" MinHeight="720"
                   WindowStartupLocation="CenterScreen"
                   ExtendsContentIntoTitleBar="True"
                   WindowBackdropType="None"
@@ -16,11 +16,17 @@
     <ui:FluentWindow.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
 
+        <SolidColorBrush x:Key="AccentBrush" Color="#3FB6A8" />
+        <SolidColorBrush x:Key="TileBorder" Color="#2EFFFFFF" />
+        <SolidColorBrush x:Key="TileBorderMapped" Color="#66FFFFFF" />
+        <SolidColorBrush x:Key="TileBackground" Color="#14FFFFFF" />
+        <SolidColorBrush x:Key="TileBackgroundHover" Color="#24FFFFFF" />
+
         <Style x:Key="SectionTitle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="12" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
-            <Setter Property="Margin" Value="2,12,0,6" />
+            <Setter Property="Margin" Value="2,10,0,4" />
         </Style>
 
         <Style x:Key="FieldLabel" TargetType="TextBlock">
@@ -37,7 +43,7 @@
         </Style>
 
         <Style x:Key="TileButton" TargetType="Button">
-            <Setter Property="Margin" Value="3" />
+            <Setter Property="Margin" Value="2" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="VerticalContentAlignment" Value="Stretch" />
@@ -46,21 +52,21 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Root" CornerRadius="8" BorderThickness="1.5"
-                                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                                Padding="9,8">
+                                Background="{StaticResource TileBackground}"
+                                BorderBrush="{StaticResource TileBorder}"
+                                Padding="7,6">
                             <ContentPresenter />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource TileBackgroundHover}" />
                             </Trigger>
                             <DataTrigger Binding="{Binding HasMapping}" Value="True">
-                                <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource ControlStrongStrokeColorDefaultBrush}" />
+                                <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource TileBorderMapped}" />
                             </DataTrigger>
                             <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource SystemAccentColorPrimaryBrush}" />
-                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+                                <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource TileBackgroundHover}" />
                             </DataTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -72,11 +78,11 @@
             <Button Style="{StaticResource TileButton}"
                     Command="{Binding DataContext.SelectCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                     CommandParameter="{Binding}">
-                <StackPanel MinHeight="76">
+                <StackPanel MinHeight="58">
                     <TextBlock Text="{Binding Label}" FontWeight="SemiBold" FontSize="12.5" TextWrapping="Wrap" />
-                    <TextBlock Text="{Binding Summary}" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,0"
+                    <TextBlock Text="{Binding Summary}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0"
                                Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                    <ProgressBar Minimum="0" Maximum="1" Value="{Binding LevelFraction, Mode=OneWay}" Height="4" Margin="0,7,0,0"
+                    <ProgressBar Minimum="0" Maximum="1" Value="{Binding LevelFraction, Mode=OneWay}" Height="4" Margin="0,6,0,0"
                                  Visibility="{Binding IsContinuous, Converter={StaticResource BoolToVis}}" />
                 </StackPanel>
             </Button>
@@ -93,58 +99,62 @@
 
         <ui:TitleBar Grid.Row="0" Title="Ear Saxophone" />
 
-        <!-- Kopfzeile: Verbindung, Profile, MIDI-Learn -->
-        <Grid Grid.Row="1" Margin="20,8,20,4">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
+        <!-- Kopfzeile: Zeile 1 Verbindung und MIDI-Learn, Zeile 2 Profile -->
+        <StackPanel Grid.Row="1" Margin="20,8,20,4">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
 
-            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" MaxWidth="360">
-                <Ellipse Width="11" Height="11" Margin="0,0,9,0" VerticalAlignment="Center">
-                    <Ellipse.Style>
-                        <Style TargetType="Ellipse">
-                            <Setter Property="Fill" Value="#C75050" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsConnected}" Value="True">
-                                    <Setter Property="Fill" Value="#4CC38A" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Ellipse.Style>
-                </Ellipse>
-                <TextBlock Text="{Binding ConnectionText}" TextWrapping="Wrap" VerticalAlignment="Center" FontSize="13" />
-            </StackPanel>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Ellipse Width="11" Height="11" Margin="0,0,9,0" VerticalAlignment="Center">
+                        <Ellipse.Style>
+                            <Style TargetType="Ellipse">
+                                <Setter Property="Fill" Value="#C75050" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsConnected}" Value="True">
+                                        <Setter Property="Fill" Value="#4CC38A" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Ellipse.Style>
+                    </Ellipse>
+                    <TextBlock Text="{Binding ConnectionText}" TextWrapping="Wrap" MaxWidth="560" VerticalAlignment="Center" FontSize="13" />
+                </StackPanel>
 
-            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="16,0">
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <ui:Button Content="Abbrechen" Margin="0,0,8,0" Command="{Binding CancelLearnCommand}"
+                               Visibility="{Binding IsLearning, Converter={StaticResource BoolToVis}}" />
+                    <ui:Button Content="Regler wählen (MIDI-Learn)" Appearance="Primary" Command="{Binding LearnCommand}"
+                               ToolTip="Danach einen Regler oder eine Taste am Gerät bewegen oder drücken" />
+                </StackPanel>
+            </Grid>
+
+            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                 <TextBlock Text="Profil" VerticalAlignment="Center" Margin="0,0,8,0"
                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                <ComboBox ItemsSource="{Binding ProfileNames}" SelectedItem="{Binding ActiveProfileName, Mode=TwoWay}" MinWidth="150" />
-                <TextBox Text="{Binding ProfileNameEdit, UpdateSourceTrigger=LostFocus}" MinWidth="130" Margin="8,0,0,0"
+                <ComboBox ItemsSource="{Binding ProfileNames}" SelectedItem="{Binding ActiveProfileName, Mode=TwoWay}" MinWidth="170" />
+                <TextBlock Text="Name" VerticalAlignment="Center" Margin="16,0,8,0"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                <TextBox Text="{Binding ProfileNameEdit, UpdateSourceTrigger=LostFocus}" MinWidth="170"
                          ToolTip="Name des Profils ändern (mit Enter oder durch Verlassen des Feldes bestätigen)" />
-                <ui:Button Content="Neu" Margin="8,0,0,0" Command="{Binding NewProfileCommand}" />
-                <ui:Button Content="Löschen" Margin="6,0,0,0" Command="{Binding DeleteProfileCommand}" />
+                <ui:Button Content="Neues Profil" Margin="12,0,0,0" Command="{Binding NewProfileCommand}" />
+                <ui:Button Content="Profil löschen" Margin="6,0,0,0" Command="{Binding DeleteProfileCommand}" />
             </StackPanel>
-
-            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                <ui:Button Content="Abbrechen" Margin="0,0,8,0" Command="{Binding CancelLearnCommand}"
-                           Visibility="{Binding IsLearning, Converter={StaticResource BoolToVis}}" />
-                <ui:Button Content="Regler per Bewegung wählen (MIDI-Learn)" Appearance="Primary" Command="{Binding LearnCommand}" />
-            </StackPanel>
-        </Grid>
+        </StackPanel>
 
         <!-- Hauptbereich: Übersicht links, Editor rechts -->
         <Grid Grid.Row="2" Margin="20,4,20,8">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="360" />
+                <ColumnDefinition Width="340" />
             </Grid.ColumnDefinitions>
 
             <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Padding="0,0,12,0">
                 <StackPanel>
                     <Border Visibility="{Binding IsLearning, Converter={StaticResource BoolToVis}}" Padding="12,9" Margin="0,4,0,0"
-                            CornerRadius="8" Background="{DynamicResource SystemFillColorAttentionBackgroundBrush}">
+                            CornerRadius="8" Background="#333FB6A8" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1">
                         <TextBlock Text="{Binding LearnHint}" TextWrapping="Wrap" />
                     </Border>
 
@@ -179,9 +189,9 @@
             </ScrollViewer>
 
             <!-- Editor -->
-            <Border Grid.Column="1" CornerRadius="10" Padding="18,14" Margin="0,4,0,0"
-                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+            <Border Grid.Column="1" CornerRadius="10" Padding="16,12" Margin="0,4,0,0"
+                    Background="{StaticResource TileBackground}"
+                    BorderBrush="{StaticResource TileBorder}" BorderThickness="1">
                 <Grid>
                     <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Top"
                                Text="Wählen Sie links ein Element oder nutzen Sie MIDI-Learn und bewegen Sie einen Regler am Gerät. Danach legen Sie hier fest, was er tun soll.">

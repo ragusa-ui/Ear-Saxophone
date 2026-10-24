@@ -257,6 +257,11 @@ public partial class App : Application
     private void RunDemoScreenshot(string path)
     {
         var window = _window!;
+        window.WindowStartupLocation = WindowStartupLocation.Manual;
+        window.Left = 0;
+        window.Top = 0;
+        window.Width = 1280;
+        window.Height = 860;
         window.Show();
         var element = _viewModel!.Rows.SelectMany(r => r.Elements).First(el => el.Label == "Fader 1");
         _viewModel.Select(element);

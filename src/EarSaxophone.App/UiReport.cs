@@ -26,6 +26,7 @@ internal static class UiReport
     {
         var sb = new StringBuilder();
         sb.AppendLine($"Window: {window.ActualWidth:0}x{window.ActualHeight:0}, title '{window.Title}'");
+        sb.AppendLine($"Screen: {SystemParameters.PrimaryScreenWidth:0}x{SystemParameters.PrimaryScreenHeight:0}, work area {SystemParameters.WorkArea.Width:0}x{SystemParameters.WorkArea.Height:0}");
 
         sb.AppendLine("== Theme resources used in XAML");
         foreach (string key in ResourceKeys)
@@ -64,6 +65,7 @@ internal static class UiReport
 
     private static string? Describe(FrameworkElement element) => element switch
     {
+        TextBlock { Text: "nicht belegt" } => null,
         TextBlock { Text.Length: > 0 } t when IsLeafText(t) => $"Text '{Trim(t.Text)}' size {t.FontSize:0.#}",
         ProgressBar p => $"ProgressBar {p.Value:0.00}",
         Slider s => $"Slider {s.Value:0}",

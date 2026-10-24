@@ -87,6 +87,15 @@ public class MainViewModelTests : IDisposable
     }
 
     [Fact]
+    public void Rows_AreLaidOutInEightColumns_AndTheLongTransportRowIsWrapped()
+    {
+        MainViewModel vm = Create();
+
+        Assert.Equal([8, 8, 8, 8, 8, 6], vm.Rows.Select(r => r.Columns));
+        Assert.Equal(["Drehregler", "Fader", "S-Tasten (Solo)", "M-Tasten (Mute)", "R-Tasten (Rec)", "Transport"], vm.Rows.Select(r => r.Title));
+    }
+
+    [Fact]
     public void ConnectionText_FollowsTheDevice()
     {
         MainViewModel vm = Create(deviceConnected: false);

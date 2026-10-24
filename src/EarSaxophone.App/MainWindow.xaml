@@ -97,7 +97,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <ui:TitleBar Grid.Row="0" Title="Ear Saxophone" />
+        <ui:TitleBar x:Name="WindowTitleBar" Grid.Row="0" Title="Ear Saxophone" />
 
         <!-- Kopfzeile: Zeile 1 Verbindung und MIDI-Learn, Zeile 2 Profile -->
         <StackPanel Grid.Row="1" Margin="20,8,20,4">

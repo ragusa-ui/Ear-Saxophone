@@ -1,0 +1,84 @@
+name: release
+
+# Tag push (v1.0.0, v1.0.0-rc1, ...) builds, tests and publishes a GitHub release with the portable ZIP.
+# Manual run (workflow_dispatch) is a dry run: same build, ZIP only as workflow artifact, no release.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version for the dry run, e.g. 0.9.0-test"
+        required: true
+        default: "0.0.0-test"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Determine version
+        id: ver
+        shell: pwsh
+        run: |
+          if ('${{ github.ref_type }}' -eq 'tag') { $v = '${{ github.ref_name }}'.TrimStart('v') } else { $v = '${{ github.event.inputs.version }}' }
+          if ($v -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$') { throw "Invalid version '$v' (expected 1.2.3 or 1.2.3-rc1)" }
+          "version=$v" >> $env:GITHUB_OUTPUT
+          Write-Host "Version: $v"
+      - name: Build and test
+        run: |
+          dotnet build EarSaxophone.sln -c Release -p:Version=${{ steps.ver.outputs.version }}
+          dotnet test EarSaxophone.sln -c Release --no-build
+      - name: Publish (self-contained, win-x64)
+        run: dotnet publish src/EarSaxophone.App -c Release -r win-x64 --self-contained true -p:Version=${{ steps.ver.outputs.version }} -o artifacts/publish
+      - name: Verify
+        shell: pwsh
+        run: |
+          foreach ($f in 'EarSaxophone.exe', 'coreclr.dll', 'hostpolicy.dll', 'PresentationFramework.dll') {
+            if (-not (Test-Path "artifacts/publish/$f")) { throw "Missing $f in publish output" }
+          }
+          $info = (Get-Item artifacts/publish/EarSaxophone.exe).VersionInfo.ProductVersion
+          Write-Host "ProductVersion: $info"
+          if (-not $info.StartsWith('${{ steps.ver.outputs.version }}')) { throw "Version in EarSaxophone.exe ($info) does not match ${{ steps.ver.outputs.version }}" }
+      - name: Create ZIP and checksum
+        id: pack
+        shell: pwsh
+        run: |
+          $name = "EarSaxophone-${{ steps.ver.outputs.version }}-win-x64"
+          New-Item -ItemType Directory -Path "artifacts/$name" | Out-Null
+          Copy-Item -Path artifacts/publish/* -Destination "artifacts/$name" -Recurse
+          Copy-Item README.md "artifacts/$name/README.md"
+          Compress-Archive -Path "artifacts/$name" -DestinationPath "artifacts/$name.zip"
+          $hash = (Get-FileHash "artifacts/$name.zip" -Algorithm SHA256).Hash.ToLower()
+          "$hash  $name.zip" | Set-Content "artifacts/$name.zip.sha256" -Encoding ascii
+          "zip=artifacts/$name.zip" >> $env:GITHUB_OUTPUT
+          "sha=artifacts/$name.zip.sha256" >> $env:GITHUB_OUTPUT
+          Write-Host "SHA256: $hash"
+          Get-Item "artifacts/$name.zip" | Select-Object Name, Length
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EarSaxophone-${{ steps.ver.outputs.version }}-win-x64
+          path: |
+            ${{ steps.pack.outputs.zip }}
+            ${{ steps.pack.outputs.sha }}
+          if-no-files-found: error
+      - name: Create GitHub release
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $notes = @"
+          Portable Windows-x64-Version, enthält die .NET-Laufzeit (keine Installation nötig). ZIP entpacken und ``EarSaxophone.exe`` starten. Anleitung, Einschränkungen und Fehlersuche: README.md im ZIP.
+
+          Die Programmdatei ist nicht signiert; Windows SmartScreen kann eine Warnung zeigen ("Weitere Informationen" > "Trotzdem ausführen"). Prüfsumme (SHA-256) in der Datei ``.sha256``.
+          "@
+          $flags = @()
+          if ('${{ steps.ver.outputs.version }}' -match '-') { $flags += '--prerelease' }
+          gh release create '${{ github.ref_name }}' '${{ steps.pack.outputs.zip }}' '${{ steps.pack.outputs.sha }}' --title 'Ear Saxophone ${{ steps.ver.outputs.version }}' --notes $notes @flags

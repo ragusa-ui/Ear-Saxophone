@@ -13,6 +13,8 @@ public partial class MainWindow : FluentWindow
         _viewModel = viewModel;
         DataContext = viewModel;
         InitializeComponent();
+        Title = $"Ear Saxophone {AppInfo.Version}";
+        WindowTitleBar.Title = Title;
     }
 
     /// <summary>Shows the window again (from the tray or when a second instance was started) and brings it to the front.</summary>

@@ -1,7 +1,7 @@
 # STATUS
 
-**Letztes Update:** 2026-10-24 (Meilenstein 5 abgeschlossen, CI bestätigt)
-**Letzter bestätigter Build:** GitHub Actions, [Lauf #15](https://github.com/ragusa-ui/Ear-Saxophone/actions/runs/40098245065) auf Commit `676f743` (Stand M5): **erfolgreich** auf `windows-latest`: Build, Tests (Core- und Windows-Testprojekt), self-contained Publish, Start der veröffentlichten App ohne .NET im PATH, 7 UI-Klickprüfungen, Normalstart mit Tray und Einzelinstanz, ZIP und UI-Screenshot als Artefakte; Linux-Job ebenfalls grün.
+**Letztes Update:** 2026-10-24 (Meilenstein 6 abgeschlossen bis auf deine Abnahme, CI bestätigt)
+**Letzter bestätigter Build:** GitHub Actions, [Lauf #18](https://github.com/ragusa-ui/Ear-Saxophone/actions/runs/40102527411) auf Commit `aec8931` (Stand nach Review-Reparaturen): **erfolgreich** auf `windows-latest`: Build, Core- und Windows-Tests, self-contained Publish, Start der veröffentlichten App ohne .NET im PATH, UI-Klickprüfungen, Normalstart mit Tray und Einzelinstanz, ZIP und UI-Screenshot als Artefakte; Linux-Job grün. Release-Probelauf ([Lauf #1 von release.yml](https://github.com/ragusa-ui/Ear-Saxophone/actions/runs/40101697579), Version 0.9.0-test): erfolgreich (ohne den Schritt "Release erstellen", der nur bei einem Tag läuft).
 
 ## Fortschritt
 Berechnung: Summe der Gewichte erledigter Arbeitspakete (Gesamtgewicht 100). Ein Paket zählt, wenn es umgesetzt und **so weit geprüft ist, wie es in der Cloud möglich ist** (Unit-Tests mit Fakes, Kompilieren). Teilfortschritt wird nicht angerechnet. Alles, was echte Hardware braucht, steht zusätzlich in `docs/LOCAL_TESTS.md`; bestätigt hast du davon bisher **nichts**, und 5 Punkte (6.5) sind ausdrücklich für deine Abnahme reserviert.
@@ -13,10 +13,10 @@ Berechnung: Summe der Gewichte erledigter Arbeitspakete (Gesamtgewicht 100). Ein
 | M3 Audio (Master, Mikrofon, Apps) | 25 | 25 | 100 % |
 | M4 Medien und Hotkeys | 10 | 10 | 100 % |
 | M5 Oberfläche, Tray, Autostart | 20 | 20 | 100 % |
-| M6 Release, Review, Abnahme | 13 | 0 | 0 % |
-| **Gesamt** | **100** | **87** | **87 %** |
+| M6 Release, Review, Abnahme | 13 | 8 | 62 % |
+| **Gesamt** | **100** | **95** | **95 %** |
 
-**Einordnung:** 87 % heißt "in der Cloud umgesetzt und geprüft", nicht "auf deinem PC bestätigt". Auf echter Hardware bestätigt: 0 Punkte. Die Windows-Adapter (MIDI, Audio, SendInput) und die Oberfläche wurden bisher nur kompiliert und in der CI ohne Hardware ausgeführt; ein Mensch hat die App noch nie bedient.
+**Einordnung:** 95 % heißt "in der Cloud umgesetzt und geprüft", nicht "auf deinem PC bestätigt". Auf echter Hardware bestätigt: 0 Punkte. Die Windows-Adapter (MIDI, Audio, SendInput) und die Oberfläche wurden bisher nur kompiliert und in der CI ohne Hardware ausgeführt; ein Mensch hat die App noch nie bedient. Die fehlenden 5 Punkte sind genau deine Abnahme (6.5), sie lassen sich nicht ersetzen.
 
 ## Aufgabenliste
 Legende: ☑ erledigt · ◐ in Arbeit · ☐ noch nicht begonnen · ⛔ blockiert
@@ -57,20 +57,21 @@ Legende: ☑ erledigt · ◐ in Arbeit · ☐ noch nicht begonnen · ⛔ blockie
 - ☑ 5.5 Autostart: Run-Schlüssel mit Pfadreparatur; Registry-Tests auf Windows in der CI; Schalter in der Oberfläche getestet (2)
 - ☑ 5.6 Verständliche Fehleranzeige: Fehlerleiste mit "Schließen", deutsche Meldungen zentral; in der CI angezeigt und geschlossen (1)
 
-### M6 (13)
-- ☐ 6.1 Release-Workflow und ZIP (2)
-- ☐ 6.2 README final (2)
-- ☐ 6.3 Unabhängiges Review kritischer Teile (Audio-Interop, Reconnect) mit einem stärkeren Modell (3)
-- ☐ 6.4 Checkliste für lokale Tests final (1)
-- ☐ 6.5 Lokale Abnahme durch den Nutzer auf Windows 11 mit echtem nanoKONTROL2 (5)
+### M6 (13) - bis auf die Abnahme erledigt
+- ☑ 6.1 Release-Workflow `release.yml` (Tag `v1.2.3`/`v1.2.3-rc1` baut, testet, prüft die Version in der EXE, erzeugt ZIP und SHA-256, erstellt ein GitHub-Release; Vorabversion bei `-` im Tag). Probelauf ohne Release grün; **der Schritt "Release erstellen" ist ungetestet**, weil dafür ein Tag nötig ist (2)
+- ☑ 6.2 README final: Installation, Bedienung, Anwendungs-Zuordnung, Einschränkungen, Fehlersuche-Tabelle, Entwicklerhinweise, ehrlicher Stand (2)
+- ☑ 6.3 Unabhängiges Review (frische Opus-Sitzung, 27 Werkzeugaufrufe, Decompilation von NAudio zur Prüfung): 11 Befunde (2 hoch, 4 mittel, 5 niedrig), alle bearbeitet und mit 13 neuen Tests bzw. Code-Änderungen abgesichert (siehe docs/ARCHITECTURE.md, Abschnitt Robustheit). Die Wirkung der Audio-Adapter-Reparaturen unter echter Last ist ungeprüft (3)
+- ☑ 6.4 Checkliste final: `docs/LOCAL_TESTS.md` mit Schnelltest (8 Punkte, ca. 20-30 Minuten) und allen Einzelfällen (1)
+- ☐ 6.5 **Lokale Abnahme durch dich** auf Windows 11 mit echtem nanoKONTROL2 (5)
 
 ## Aktuelle Aufgabe
-**Keine laufende Aufgabe.** M5 ist abgeschlossen. Als Nächstes beginnt M6 (Release, README, Review).
+**Keine laufende Aufgabe.** Alles, was ohne dein Gerät möglich ist, ist erledigt. Offen ist deine Abnahme (6.5) mit dem Schnelltest in `docs/LOCAL_TESTS.md`.
 
 ## Tests
 | Bereich | Ergebnis |
 |---|---|
-| `EarSaxophone.Core.Tests`, Linux, Release: 148 Tests (Parser, Skalierung, Learn, Dispatcher, Router, Verbindungsmanager, Profile/Store, App-Matching, Endpunkte/Mikrofon, Anwendungs-Identität, Hotkeys, Executor, MainViewModel/Editor/Einstellungen) | **bestanden** (148/148) |
+| `EarSaxophone.Core.Tests`, Linux, Release: 161 Tests (zusätzlich zu M5: Nachrichten-Warteschlange, Neuverbinden, Port-Index, Treiber-Warnungen, parallele Verarbeitung im MainViewModel), 4 Läufe in Folge ohne Ausreißer | **bestanden** (161/161) |
+| Mutationsprüfung der Nachrichten-Warteschlange (Tastendruck darf nie zusammengefasst werden) | die absichtliche Änderung wurde von 2 Tests erkannt; Code zurückgesetzt |
 | Mutationsprüfung der Identitäts-Tests (Namensvergleich, Einmal-Anwendung, Render/Capture-Trennung) | alle 3 Änderungen wurden von den passenden Tests erkannt; Code wieder zurückgesetzt |
 | GitHub Actions Lauf #8 (M4-Stand), Windows Server 2025: 125 Core-Tests und 16 Windows-Tests (INPUT-Struktur 40 Byte, Tastenfolge, Extended-Flag, Medientasten-Codes, Smoke-Tests der MIDI- und Audio-Adapter ohne Hardware); seit M5 kommen Registry-Tests für den Autostart dazu (Lauf #15 grün, Testschritt erfolgreich) | **bestanden** |
 | GitHub Actions Lauf #15: Linux-Job, self-contained Publish, ZIP (65 MB) | **bestanden** |
@@ -78,19 +79,21 @@ Legende: ☑ erledigt · ◐ in Arbeit · ☐ noch nicht begonnen · ⛔ blockie
 | Lauf #15: 7 UI-Prüfungen durch UI-Automation (Kachel wählen, MIDI-Learn starten/abbrechen, Profil neu/löschen, Fehlerleiste, Tray-Schalter) | **bestanden** |
 | Lauf #15: Normalstart `--minimized` (Tray), zweite Instanz beendet sich, kein `error.log` | **bestanden** |
 | Windows-Adapter (NAudio MIDI, Core Audio, SendInput) | in CI **ohne Hardware** ausgeführt (Erzeugen, Abfragen, Freigeben ohne Fehler; auf dem Runner gibt es kein MIDI-Gerät und vermutlich keine Audiogeräte); mit echten Geräten und Programmen nie ausgeführt |
-| Alles mit nanoKONTROL2, Mikrofon, Discord, WPF-Start | noch nicht ausgeführt (`docs/LOCAL_TESTS.md`: M2-1 bis M2-6, M3-1 bis M3-12, M4-1 bis M4-7, M5-1 bis M5-12, alle offen) |
+| Alles mit nanoKONTROL2, Mikrofon, Discord, WPF-Start | noch nicht ausgeführt (`docs/LOCAL_TESTS.md`: Schnelltest 1-8, M2-1 bis M2-9, M3-1 bis M3-12, M4-1 bis M4-7, M5-1 bis M5-13, R-1 bis R-5, alle offen) |
 
 ## Bekannte Probleme, offene Fragen, Blocker
 - Keine Blocker.
 - **Discord-Zuordnung ist weiterhin eine Hypothese in der Praxis.** Im Modell bestätigt; bei echten Sessions kann Windows/Discord anders reagieren (Tests M3-5 bis M3-10).
-- Reconnect-Risiko: WinMM meldet das Entfernen eines USB-Geräts nicht; Erkennung per Polling (Test M2-3).
+- Reconnect-Risiko: WinMM meldet das Entfernen eines USB-Geräts nicht; Erkennung per Polling von Name und Port-Index, nach dem Ruhezustand und über die Schaltfläche "Neu verbinden". Ein Ziehen und Einstecken innerhalb einer Sekunde ohne Indexänderung bleibt unbemerkt (Tests M2-3, M2-7). Ob Windows ein geöffnetes, abgezogenes Gerät aus der Liste entfernt, ist unbestätigt (der Reviewer konnte es auch nicht verifizieren).
 - Pfad eines Prozesses ist bei geschützten oder höher privilegierten Prozessen eventuell nicht lesbar; diese Anwendung gilt dann als nicht aktiv (Test M3-10).
 - Browser-Tabs sind nicht einzeln steuerbar (eine Anwendung = alle ihre Sessions).
 - Medientasten gehen an das Programm, das Windows als aktuelle Mediensitzung wählt; die App kann das Ziel nicht bestimmen. Ob Spotify/SoundCloud im Browser zuverlässig reagieren, ist offen (Tests M4-1 bis M4-3). Fenster mit Administratorrechten blockieren simulierte Tasten (Test M4-5). Details: `docs/MEDIA_CONTROL.md`.
 - Hotkeys unterstützen in Version 1 keine Sonderzeichen-Tasten (`,` `.` `-` usw.).
-- Threading der COM-Aufrufe (MIDI-Thread, Timer, Notification-Threads) ist nur durchdacht, nicht unter Last getestet (Test M3-12). Die Windows-Callbacks lösen die Arbeit bewusst in einem Task aus, weil sie auf einem gesperrten Audio-Thread laufen.
+- Threading und COM-Lebensdauer im Audio-Adapter wurden reviewt und nachgebessert (Sperren, atomarer Neuaufbau, Zusammenfassen von Geräteereignissen), aber nie unter echter Last oder bei Geräte-Wechseln ausgeführt (Tests R-1 bis R-5, M3-12).
 - CI-Warnung: Actions v4 laufen auf Node 20 (veraltet); Versionen später anheben.
-- Offene Frage: Sprache der Oberfläche und der Meldungen (aktuell englische Texte im Core). Vorschlag: Deutsch als Standard in M5, Texte zentral sammeln. Bitte bestätigen, bevor M5 beginnt.
+- **Entscheidung offen (Lizenz):** Für das Projekt ist keine Lizenz festgelegt (README sagt das). Das entscheidest du.
+- **Entscheidung offen (Release):** Es existiert noch kein Tag/Release. Nach erfolgreicher Abnahme z. B. `v1.0.0-rc1` oder `v1.0.0` setzen; der Workflow `release.yml` erledigt den Rest. Ich habe bewusst nichts veröffentlicht.
+- Die Programmdatei ist nicht signiert (SmartScreen-Warnung möglich, in der README erklärt).
 - Die Standardbelegung des nanoKONTROL2 (Control-Nummern der Beschriftung, z. B. Fader 1 = CC 0, Play = CC 41) stammt aus dem üblichen Werkszustand und ist nicht an deinem Gerät geprüft. Weicht es ab, erkennt MIDI-Learn jeden Regler trotzdem und zeigt ihn als "Weiterer Regler" (Test M5-2).
 - Fensterposition und -größe werden nicht gespeichert.
 - Im Editor ist als Ziel nur Standardgerät oder Anwendung wählbar; ein konkretes Gerät (Modell unterstützt es) kann die Oberfläche noch nicht einstellen.
@@ -99,7 +102,7 @@ Legende: ☑ erledigt · ◐ in Arbeit · ☐ noch nicht begonnen · ⛔ blockie
 - Der Download der CI-Logs/Artefakte von dieser Cloud-Sitzung aus ist blockiert (Host `productionresultssa17.blob.core.windows.net` nicht erlaubt); ich prüfe die Oberfläche deshalb über den Textbericht im Log.
 
 ## Nächste Schritte
-1. M6.1: Release-Workflow (ZIP als GitHub-Release bei Tag) und Hinweise zur ZIP-Nutzung.
-2. M6.2: README final (Installation, Bedienung, Einschränkungen, Fehlersuche).
-3. M6.3: Unabhängiges Review der kritischen Teile (Audio-Interop, Reconnect, Threading) mit einem stärkeren Modell, Befunde beheben.
-4. M6.4: Checkliste für lokale Tests final; danach deine Abnahme (M6.5).
+1. **Du:** ZIP aus dem neuesten grünen Lauf der CI (Actions > Artefakt `EarSaxophone-win-x64`) herunterladen, entpacken und den Schnelltest in `docs/LOCAL_TESTS.md` durchgehen (ca. 20-30 Minuten).
+2. **Du:** Ergebnis mit Version, Meldung und `error.log` zurückmelden; ich behebe Befunde und passe Texte/Layout an.
+3. **Du:** Lizenz festlegen und entscheiden, wann ein Release-Tag gesetzt wird (z. B. `v1.0.0-rc1`).
+4. Danach: Tag setzen, `release.yml` erzeugt das Release, STATUS auf 100 % setzen, sobald die Abnahme bestätigt ist.

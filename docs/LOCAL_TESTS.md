@@ -3,6 +3,21 @@
 Diese Punkte lassen sich in der Cloud nicht prüfen. Die Spalte "Status" bleibt "offen", bis du sie auf deinem PC bestätigt hast.
 Hinweis: nanoKONTROL2 im Standardmodus verwenden (Korg KONTROL Editor nicht gleichzeitig offen, siehe Punkt M2-4).
 
+## Schnelltest für die Abnahme (ca. 20-30 Minuten)
+Wenn du nicht alle Fälle unten durchgehen willst, prüfe zuerst diese acht Punkte in dieser Reihenfolge. Sie decken die wichtigsten Risiken ab (Gerät, Beschriftung, Lautstärke, Mikrofon, Discord, Medientasten, Tray, Ruhezustand).
+| Nr. | Was tun | Verweis | Ergebnis (ok / nicht ok + Notiz) |
+|---|---|---|---|
+| 1 | ZIP entpacken, `EarSaxophone.exe` starten, nanoKONTROL2 angeschlossen: grüner Punkt, Fenster sieht gut aus | M2-1, M5-1 | |
+| 2 | MIDI-Learn: je einen Fader, einen Drehregler, S/M/R-Taste und Play bewegen: passen die Beschriftungen der Kacheln? | M5-2 | |
+| 3 | Fader 1 auf Lautsprecher, Windows-Lautstärke beobachten; Mute-Taste auf Lautsprecher | M5-3, M3-1 | |
+| 4 | Mikrofon: Fader und `M 1` auf Mikrofon, in Windows-Einstellungen > Sound > Eingabe beobachten | M3-2 | |
+| 5 | **Discord:** Fader auf `Discord.exe`; Discord beenden und neu starten (App bleibt offen): reagiert derselbe Fader wieder, ohne neu zu lernen? | M3-5, M3-6 | |
+| 6 | Medientasten mit Spotify (Desktop) und mit einem Browser-Tab; `Strg+Umschalt+Esc` als Tastenkombination | M4-1, M4-2, M4-4 | |
+| 7 | Fenster mit X schließen (Tray bleibt), Tray-Menü, Programm beenden und neu starten: Zuordnungen noch da? | M5-4, M5-6 | |
+| 8 | Rechner in den Ruhezustand und wieder aufwecken: reagieren die Regler wieder? | M2-7 | |
+
+**Bei jedem Fehler bitte notieren:** Version (Fenstertitel), die genaue Meldung (rote Leiste oder Statuszeile) und die letzte Zeile von `error.log`, falls vorhanden.
+
 ## M2: MIDI-Eingang und Wiederverbindung
 | Nr. | Test | Erwartung | Status |
 |---|---|---|---|

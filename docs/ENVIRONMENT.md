@@ -18,7 +18,7 @@ Die Installation gilt nur für diese Sitzung (flüchtiger Container) und muss in
 ## Bibliotheken (geprüft am 2026-10-24)
 | Paket | Version | Lizenz | .NET-10-Kompatibilität |
 |---|---|---|---|
-| NAudio.WinMM, NAudio.Wasapi | 3.3.0 | MIT | Ziel `net9.0` (läuft auf .NET 10); eingebunden; WinMM in CI kompiliert (Lauf #3), Wasapi lokal in der Cloud kompiliert, CI-Lauf ausstehend |
+| NAudio.WinMM, NAudio.Wasapi | 3.3.0 | MIT | Ziel `net9.0` (läuft auf .NET 10); eingebunden; WinMM in CI kompiliert (Lauf #3), Wasapi lokal in der Cloud kompiliert, Lauf #3 (WinMM) und Lauf #4 (Wasapi) bestätigt |
 | WPF-UI | 4.3.0 | MIT | Ziel `net10.0-windows7.0`; noch nicht eingebunden |
 | H.NotifyIcon.Wpf | 2.4.1 | MIT | Ziel `net10.0-windows7.0`; noch nicht eingebunden |
 | xunit / Test.Sdk | 2.9.3 / 18.11.0 | Apache-2.0 | in Benutzung |

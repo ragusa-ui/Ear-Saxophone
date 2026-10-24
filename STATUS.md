@@ -1,7 +1,7 @@
 # STATUS
 
-**Letztes Update:** 2026-10-24 (Meilenstein 3 umgesetzt, CI-Lauf für diesen Stand ausstehend)
-**Letzter bestätigter Build:** GitHub Actions, [Lauf #3](https://github.com/ragusa-ui/Ear-Saxophone/actions/runs/40086408389) auf Commit `f4a5dd4` (Stand M2): **erfolgreich** (Linux-Tests, Windows-Build, Windows-Tests, self-contained Publish, ZIP-Artefakt). Für den M3-Stand (NAudio.Wasapi, Audio-Code) liegt noch kein CI-Lauf vor; lokal in der Cloud (Linux): 0 Warnungen, 0 Fehler.
+**Letztes Update:** 2026-10-24 (Meilenstein 3 abgeschlossen, CI bestätigt)
+**Letzter bestätigter Build:** GitHub Actions, [Lauf #4](https://github.com/ragusa-ui/Ear-Saxophone/actions/runs/40086820052) auf Commit `00d2b22` (Stand M3, inkl. NAudio.Wasapi und 89 Tests): **erfolgreich** (Linux-Tests, Windows-Build, Windows-Tests, self-contained Publish, ZIP-Artefakt). Lauf #5 (nur STATUS) ebenfalls erfolgreich.
 
 ## Fortschritt
 Berechnung: Summe der Gewichte erledigter Arbeitspakete (Gesamtgewicht 100). Ein Paket zählt, wenn es umgesetzt und **so weit geprüft ist, wie es in der Cloud möglich ist** (Unit-Tests mit Fakes, Kompilieren). Teilfortschritt wird nicht angerechnet. Alles, was echte Hardware braucht, steht zusätzlich in `docs/LOCAL_TESTS.md`; bestätigt hast du davon bisher **nichts**, und 5 Punkte (6.5) sind ausdrücklich für deine Abnahme reserviert.
@@ -37,7 +37,7 @@ Legende: ☑ erledigt · ◐ in Arbeit · ☐ noch nicht begonnen · ⛔ blockie
 - ☑ 2.3 `ControlRouter` (Learn + Dispatch) (3)
 - ☑ 2.4 Lokale Testfälle M2 in `docs/LOCAL_TESTS.md` (2)
 
-### M3 (25) - umgesetzt, CI-Lauf ausstehend
+### M3 (25) - abgeschlossen (CI grün, Hardware-Tests offen)
 - ☑ 3.1 Audio-Abstraktionen (`IAudioSystem`, Endpunkt, Session) und Fakes (3)
 - ☑ 3.2 Ausgabegerät: Lautstärke und Mute im `AudioController` (Core, getestet) und NAudio-Adapter (nur kompiliert) (4)
 - ☑ 3.3 Mikrofon als Capture-Gerät: Lautstärke, Mute, Meldungen bei fehlendem Gerät und bei Geräten ohne Windows-Regelung (Core getestet; Adapter nur kompiliert) (5)
@@ -65,15 +65,14 @@ Legende: ☑ erledigt · ◐ in Arbeit · ☐ noch nicht begonnen · ⛔ blockie
 - ☐ 6.5 Lokale Abnahme durch den Nutzer auf Windows 11 mit echtem nanoKONTROL2 (5)
 
 ## Aktuelle Aufgabe
-**Keine laufende Aufgabe.** M3 ist fertig umgesetzt; offen ist nur die CI-Bestätigung. Als Nächstes beginnt M4.1 (Medientasten per SendInput).
+**Keine laufende Aufgabe.** M3 ist abgeschlossen. Als Nächstes beginnt M4.1 (Medientasten per SendInput).
 
 ## Tests
 | Bereich | Ergebnis |
 |---|---|
 | `EarSaxophone.Core.Tests`, Linux, Release: 89 Tests (Parser, Skalierung, Learn, Dispatcher, Router, Verbindungsmanager, Profile/Store, App-Matching, Endpunkte/Mikrofon, Anwendungs-Identität) | **bestanden** (89/89) |
 | Mutationsprüfung der Identitäts-Tests (Namensvergleich, Einmal-Anwendung, Render/Capture-Trennung) | alle 3 Änderungen wurden von den passenden Tests erkannt; Code wieder zurückgesetzt |
-| GitHub Actions Lauf #3 (M2-Stand, 58 Tests): Linux, Windows-Build/-Tests, self-contained Publish, ZIP | **bestanden** |
-| GitHub Actions für M3-Stand (89 Tests, NAudio.Wasapi) | **noch nicht ausgeführt** |
+| GitHub Actions Lauf #4 (M3-Stand, 89 Tests, NAudio.Wasapi): Linux, Windows-Build/-Tests, self-contained Publish, ZIP | **bestanden** |
 | Windows-Adapter (NAudio MIDI, Core Audio) | **nur kompiliert**, nie mit Hardware oder echten Sessions ausgeführt |
 | Alles mit nanoKONTROL2, Mikrofon, Discord, WPF-Start | noch nicht ausgeführt (`docs/LOCAL_TESTS.md`: M2-1 bis M2-6, M3-1 bis M3-12, alle offen) |
 
@@ -89,7 +88,6 @@ Legende: ☑ erledigt · ◐ in Arbeit · ☐ noch nicht begonnen · ⛔ blockie
 - Das Platzhalterfenster der App wurde nie gestartet.
 
 ## Nächste Schritte
-1. CI-Lauf für den M3-Stand prüfen.
-2. M4.1: Medientasten (Play/Pause, Nächster, Vorheriger, Stop) per SendInput hinter einer Schnittstelle, mit Fake getestet.
-3. M4.2: Hotkey-Parser ("Ctrl+Alt+M") im Core testen, Senden per SendInput im Windows-Projekt.
-4. M4.3: Grenzen der globalen Mediensteuerung dokumentieren.
+1. M4.1: Medientasten (Play/Pause, Nächster, Vorheriger, Stop) per SendInput hinter einer Schnittstelle, mit Fake getestet.
+2. M4.2: Hotkey-Parser ("Ctrl+Alt+M") im Core testen, Senden per SendInput im Windows-Projekt.
+3. M4.3: Grenzen der globalen Mediensteuerung dokumentieren.

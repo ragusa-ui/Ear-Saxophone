@@ -1,0 +1,7 @@
+<Window x:Class="EarSaxophone.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Ear Saxophone" Height="450" Width="800" Background="#1E1E1E">
+    <TextBlock Foreground="#E0E0E0" FontSize="16" Margin="24"
+               Text="Ear Saxophone - Platzhalter (Meilenstein 1: nur Build-Gerüst)" />
+</Window>

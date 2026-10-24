@@ -1,0 +1,46 @@
+name: build
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  core-tests-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - run: dotnet test tests/EarSaxophone.Core.Tests -c Release
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Build
+        run: dotnet build EarSaxophone.sln -c Release
+      - name: Test
+        run: dotnet test EarSaxophone.sln -c Release --no-build
+      - name: Publish (self-contained, win-x64)
+        run: dotnet publish src/EarSaxophone.App -c Release -r win-x64 --self-contained true -o artifacts/publish
+      - name: Verify self-contained output
+        shell: pwsh
+        run: |
+          foreach ($f in 'EarSaxophone.exe', 'coreclr.dll', 'hostpolicy.dll', 'PresentationFramework.dll') {
+            if (-not (Test-Path "artifacts/publish/$f")) { throw "Missing $f in publish output" }
+          }
+          Get-ChildItem artifacts/publish | Measure-Object -Property Length -Sum | ForEach-Object { "Files: $($_.Count), Size: $([math]::Round($_.Sum / 1MB, 1)) MB" }
+      - name: Zip
+        shell: pwsh
+        run: Compress-Archive -Path artifacts/publish/* -DestinationPath artifacts/EarSaxophone-win-x64.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EarSaxophone-win-x64
+          path: artifacts/EarSaxophone-win-x64.zip
+          if-no-files-found: error

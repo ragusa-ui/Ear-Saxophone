@@ -274,6 +274,8 @@ public partial class App : Application
                 encoder.Frames.Add(BitmapFrame.Create(bitmap));
                 using FileStream stream = File.Create(path);
                 encoder.Save(stream);
+                stream.Close();
+                File.WriteAllText(path + ".report.txt", UiReport.Build(window, bitmap));
             }
             catch (Exception ex)
             {

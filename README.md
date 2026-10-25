@@ -79,7 +79,7 @@ Bei Fehlern bitte die **Version** (steht im Fenstertitel), die genaue Meldung un
 - Portable ZIP lokal erzeugen: `dotnet publish src/EarSaxophone.App -c Release -r win-x64 --self-contained true -o artifacts/publish`.
 - CI: `.github/workflows/build.yml` (Build, Tests, Publish, Start der veröffentlichten App, UI-Prüfungen, Artefakte). Release: `.github/workflows/release.yml` (Tag `v1.2.3` oder `v1.2.3-rc1` erzeugt ein GitHub-Release; manueller Start ist ein Probelauf ohne Release).
 - Dokumentation: [Architektur](docs/ARCHITECTURE.md), [Umgebung und Bibliotheken](docs/ENVIRONMENT.md), [Mediensteuerung](docs/MEDIA_CONTROL.md), [lokale Tests](docs/LOCAL_TESTS.md), [Status](STATUS.md).
-- Verwendete Bibliotheken (alle MIT): NAudio 3.3.0, WPF-UI 4.3.0, H.NotifyIcon.Wpf 2.4.1.
+- Verwendete Bibliotheken (alle MIT, Details in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)): NAudio 3.3.0, WPF-UI 4.3.0, H.NotifyIcon.Wpf 2.4.1.
 
 ## Lizenz
-Für dieses Projekt ist noch keine Lizenz festgelegt (Rechteinhaber entscheidet). Die verwendeten Bibliotheken stehen unter der MIT-Lizenz.
+MIT-Lizenz, siehe [LICENSE](LICENSE). Die verwendeten Bibliotheken (NAudio, WPF-UI, H.NotifyIcon, .NET) stehen ebenfalls unter der MIT-Lizenz; ihre Copyright-Hinweise stehen in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) und liegen dem ZIP bei.

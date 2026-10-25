@@ -54,6 +54,8 @@ jobs:
           New-Item -ItemType Directory -Path "artifacts/$name" | Out-Null
           Copy-Item -Path artifacts/publish/* -Destination "artifacts/$name" -Recurse
           Copy-Item README.md "artifacts/$name/README.md"
+          Copy-Item LICENSE "artifacts/$name/LICENSE"
+          Copy-Item THIRD-PARTY-NOTICES.md "artifacts/$name/THIRD-PARTY-NOTICES.md"
           Compress-Archive -Path "artifacts/$name" -DestinationPath "artifacts/$name.zip"
           $hash = (Get-FileHash "artifacts/$name.zip" -Algorithm SHA256).Hash.ToLower()
           "$hash  $name.zip" | Set-Content "artifacts/$name.zip.sha256" -Encoding ascii
@@ -80,5 +82,8 @@ jobs:
           Die Programmdatei ist nicht signiert; Windows SmartScreen kann eine Warnung zeigen ("Weitere Informationen" > "Trotzdem ausführen"). Prüfsumme (SHA-256) in der Datei ``.sha256``.
           "@
           $flags = @()
-          if ('${{ steps.ver.outputs.version }}' -match '-') { $flags += '--prerelease' }
+          if ('${{ steps.ver.outputs.version }}' -match '-') {
+            $flags += '--prerelease'
+            $notes += "`n`n**Release Candidate:** In der CI gebaut, getestet und gestartet (Windows). Noch **nicht** mit einem echten nanoKONTROL2, echten Audiogeräten und Programmen wie Discord abgenommen. Abnahme-Checkliste: docs/LOCAL_TESTS.md im Repository. Rückmeldungen bitte mit Version, Meldung und der letzten Zeile von error.log."
+          }
           gh release create '${{ github.ref_name }}' '${{ steps.pack.outputs.zip }}' '${{ steps.pack.outputs.sha }}' --title 'Ear Saxophone ${{ steps.ver.outputs.version }}' --notes $notes @flags

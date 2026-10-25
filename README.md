@@ -77,7 +77,7 @@ Bei Fehlern bitte die **Version** (steht im Fenstertitel), die genaue Meldung un
 ## Für Entwickler
 - Voraussetzung: .NET SDK 10. Bauen und testen: `dotnet build EarSaxophone.sln -c Release`, `dotnet test tests/EarSaxophone.Core.Tests -c Release` (läuft auch unter Linux). Das Windows-Testprojekt (`tests/EarSaxophone.Windows.Tests`) und das Starten der Oberfläche laufen nur auf Windows (in der CI).
 - Portable ZIP lokal erzeugen: `dotnet publish src/EarSaxophone.App -c Release -r win-x64 --self-contained true -o artifacts/publish`.
-- CI: `.github/workflows/build.yml` (Build, Tests, Publish, Start der veröffentlichten App, UI-Prüfungen, Artefakte). Release: `.github/workflows/release.yml` (Tag `v1.2.3` oder `v1.2.3-rc1` erzeugt ein GitHub-Release; manueller Start ist ein Probelauf ohne Release).
+- CI: `.github/workflows/build.yml` (Build, Tests, Publish, Start der veröffentlichten App, UI-Prüfungen, Artefakte). Release: `.github/workflows/release.yml` (ein Tag `v1.2.3` oder `v1.2.3-rc1` erzeugt ein GitHub-Release; manueller Start mit Version ist ein Probelauf, mit gesetztem Haken "publish" erzeugt er das Release samt Tag auf dem gewählten Commit).
 - Dokumentation: [Architektur](docs/ARCHITECTURE.md), [Umgebung und Bibliotheken](docs/ENVIRONMENT.md), [Mediensteuerung](docs/MEDIA_CONTROL.md), [lokale Tests](docs/LOCAL_TESTS.md), [Status](STATUS.md).
 - Verwendete Bibliotheken (alle MIT, Details in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)): NAudio 3.3.0, WPF-UI 4.3.0, H.NotifyIcon.Wpf 2.4.1.
 

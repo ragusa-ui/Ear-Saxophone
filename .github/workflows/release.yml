@@ -1,7 +1,8 @@
 name: release
 
 # Tag push (v1.0.0, v1.0.0-rc1, ...) builds, tests and publishes a GitHub release with the portable ZIP.
-# Manual run (workflow_dispatch) is a dry run: same build, ZIP only as workflow artifact, no release.
+# Manual run (workflow_dispatch) is a dry run: same build, ZIP only as workflow artifact, no release,
+# unless "publish" is ticked: then the release v<version> is created and GitHub creates the tag on the run's commit.
 on:
   push:
     tags: ["v*"]
@@ -11,6 +12,10 @@ on:
         description: "Version for the dry run, e.g. 0.9.0-test"
         required: true
         default: "0.0.0-test"
+      publish:
+        description: "Create the GitHub release v<version> (and its tag) on this commit"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -71,7 +76,7 @@ jobs:
             ${{ steps.pack.outputs.sha }}
           if-no-files-found: error
       - name: Create GitHub release
-        if: github.ref_type == 'tag'
+        if: github.ref_type == 'tag' || github.event.inputs.publish == 'true'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -86,4 +91,7 @@ jobs:
             $flags += '--prerelease'
             $notes += "`n`n**Release Candidate:** In der CI gebaut, getestet und gestartet (Windows). Noch **nicht** mit einem echten nanoKONTROL2, echten Audiogeräten und Programmen wie Discord abgenommen. Abnahme-Checkliste: docs/LOCAL_TESTS.md im Repository. Rückmeldungen bitte mit Version, Meldung und der letzten Zeile von error.log."
           }
-          gh release create '${{ github.ref_name }}' '${{ steps.pack.outputs.zip }}' '${{ steps.pack.outputs.sha }}' --title 'Ear Saxophone ${{ steps.ver.outputs.version }}' --notes $notes @flags
+          $tag = 'v${{ steps.ver.outputs.version }}'
+          $target = @()
+          if ('${{ github.ref_type }}' -ne 'tag') { $target = @('--target', '${{ github.sha }}') }
+          gh release create $tag '${{ steps.pack.outputs.zip }}' '${{ steps.pack.outputs.sha }}' --title 'Ear Saxophone ${{ steps.ver.outputs.version }}' --notes $notes @target @flags

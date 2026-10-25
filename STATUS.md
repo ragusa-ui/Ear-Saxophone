@@ -1,6 +1,6 @@
 # STATUS
 
-**Letztes Update:** 2026-10-24 (Meilenstein 6 abgeschlossen bis auf deine Abnahme, CI bestätigt)
+**Letztes Update:** 2026-10-25 (Release Candidate v1.0.0-rc1 veröffentlicht; offen nur deine Abnahme)
 **Letzter bestätigter Build:** GitHub Actions, [Lauf #18](https://github.com/ragusa-ui/Ear-Saxophone/actions/runs/40102527411) auf Commit `aec8931` (Stand nach Review-Reparaturen): **erfolgreich** auf `windows-latest`: Build, Core- und Windows-Tests, self-contained Publish, Start der veröffentlichten App ohne .NET im PATH, UI-Klickprüfungen, Normalstart mit Tray und Einzelinstanz, ZIP und UI-Screenshot als Artefakte; Linux-Job grün. Release-Probelauf ([Lauf #1 von release.yml](https://github.com/ragusa-ui/Ear-Saxophone/actions/runs/40101697579), Version 0.9.0-test): erfolgreich (ohne den Schritt "Release erstellen", der nur bei einem Tag läuft).
 
 ## Fortschritt
@@ -91,8 +91,9 @@ Legende: ☑ erledigt · ◐ in Arbeit · ☐ noch nicht begonnen · ⛔ blockie
 - Hotkeys unterstützen in Version 1 keine Sonderzeichen-Tasten (`,` `.` `-` usw.).
 - Threading und COM-Lebensdauer im Audio-Adapter wurden reviewt und nachgebessert (Sperren, atomarer Neuaufbau, Zusammenfassen von Geräteereignissen), aber nie unter echter Last oder bei Geräte-Wechseln ausgeführt (Tests R-1 bis R-5, M3-12).
 - CI-Warnung: Actions v4 laufen auf Node 20 (veraltet); Versionen später anheben.
-- **Entscheidung offen (Lizenz):** Für das Projekt ist keine Lizenz festgelegt (README sagt das). Das entscheidest du.
-- **Entscheidung offen (Release):** Es existiert noch kein Tag/Release. Nach erfolgreicher Abnahme z. B. `v1.0.0-rc1` oder `v1.0.0` setzen; der Workflow `release.yml` erledigt den Rest. Ich habe bewusst nichts veröffentlicht.
+- Lizenz: **MIT** (`LICENSE`, Rechteinhaber im Text: `ragusa-ui`, bei Bedarf ändern); Copyright-Hinweise der Bibliotheken in `THIRD-PARTY-NOTICES.md`, beides liegt dem ZIP bei.
+- Release: **[v1.0.0-rc1](https://github.com/ragusa-ui/Ear-Saxophone/releases/tag/v1.0.0-rc1)** (Vorabversion) auf Commit `c77d7af`, erstellt von `release.yml` (Lauf #3, `publish`): ZIP 65,6 MB und `.sha256` angehängt, Tag auf dem richtigen Commit geprüft. Der Tag wurde von GitHub gesetzt, weil ein Tag-Push aus der Cloud-Sitzung scheitert (der Git-Proxy trennt die Verbindung; Branch-Pushes funktionieren). Für das endgültige `v1.0.0` nach der Abnahme: Workflow `release` manuell starten mit Version `1.0.0` und Haken `publish`.
+- Das ZIP des Release enthält den Stand von `c77d7af`; spätere Commits (nur Dokumentation) sind nicht darin.
 - Die Programmdatei ist nicht signiert (SmartScreen-Warnung möglich, in der README erklärt).
 - Die Standardbelegung des nanoKONTROL2 (Control-Nummern der Beschriftung, z. B. Fader 1 = CC 0, Play = CC 41) stammt aus dem üblichen Werkszustand und ist nicht an deinem Gerät geprüft. Weicht es ab, erkennt MIDI-Learn jeden Regler trotzdem und zeigt ihn als "Weiterer Regler" (Test M5-2).
 - Fensterposition und -größe werden nicht gespeichert.
@@ -102,7 +103,6 @@ Legende: ☑ erledigt · ◐ in Arbeit · ☐ noch nicht begonnen · ⛔ blockie
 - Der Download der CI-Logs/Artefakte von dieser Cloud-Sitzung aus ist blockiert (Host `productionresultssa17.blob.core.windows.net` nicht erlaubt); ich prüfe die Oberfläche deshalb über den Textbericht im Log.
 
 ## Nächste Schritte
-1. **Du:** ZIP aus dem neuesten grünen Lauf der CI (Actions > Artefakt `EarSaxophone-win-x64`) herunterladen, entpacken und den Schnelltest in `docs/LOCAL_TESTS.md` durchgehen (ca. 20-30 Minuten).
+1. **Du:** ZIP vom Release [v1.0.0-rc1](https://github.com/ragusa-ui/Ear-Saxophone/releases/tag/v1.0.0-rc1) herunterladen, entpacken und den Schnelltest in `docs/LOCAL_TESTS.md` durchgehen (ca. 20-30 Minuten).
 2. **Du:** Ergebnis mit Version, Meldung und `error.log` zurückmelden; ich behebe Befunde und passe Texte/Layout an.
-3. **Du:** Lizenz festlegen und entscheiden, wann ein Release-Tag gesetzt wird (z. B. `v1.0.0-rc1`).
-4. Danach: Tag setzen, `release.yml` erzeugt das Release, STATUS auf 100 % setzen, sobald die Abnahme bestätigt ist.
+3. Nach bestandener Abnahme: Release `v1.0.0` über `release.yml` (publish) erzeugen und STATUS auf 100 % setzen.

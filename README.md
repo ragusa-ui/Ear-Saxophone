@@ -2,7 +2,7 @@
 
 Eine Alternative zu MIDI Mixer für **Windows 11**: Der Korg **nanoKONTROL2** steuert die Lautstärke von Lautsprechern, Mikrofon und einzelnen Programmen (zum Beispiel Discord), schaltet stumm, sendet Medientasten und beliebige Tastenkombinationen. Alle Regler und Tasten sind frei belegbar (MIDI-Learn), die Belegung wird in Profilen gespeichert.
 
-> **Stand (ehrlich):** Die Anwendung ist vollständig umgesetzt und wird in der CI auf Windows gebaut, getestet und gestartet. **Sie wurde aber noch nie mit einem echten nanoKONTROL2, echten Audiogeräten oder echten Programmen wie Discord bedient.** Die Prüfliste dafür steht in [docs/LOCAL_TESTS.md](docs/LOCAL_TESTS.md). Fortschritt und Testergebnisse: [STATUS.md](STATUS.md).
+> **Stand (ehrlich):** Dies ist ein **Release Candidate (v1.0.0-rc1)**. Die Anwendung ist vollständig umgesetzt und wird in der CI auf Windows gebaut, getestet und gestartet. **Sie wurde aber noch nie mit einem echten nanoKONTROL2, echten Audiogeräten oder echten Programmen wie Discord bedient.** Die Prüfliste dafür steht in [docs/LOCAL_TESTS.md](docs/LOCAL_TESTS.md). Fortschritt und Testergebnisse: [STATUS.md](STATUS.md).
 
 ## Funktionen
 - **Lautstärke** für das Standard-Wiedergabegerät (Lautsprecher/Kopfhörer), das Standard-Aufnahmegerät (**Mikrofon**) und einzelne **Anwendungen**; Bereich einstellbar (zum Beispiel 20–80 %), auch umkehrbar.
@@ -17,7 +17,7 @@ Eine Alternative zu MIDI Mixer für **Windows 11**: Der Korg **nanoKONTROL2** st
 - Ein Korg nanoKONTROL2 per USB (im Werkszustand, Betriebsart "Standard"). Andere MIDI-Controller werden in Version 1 nicht unterstützt.
 
 ## Installation
-1. Das ZIP herunterladen: unter **Releases** des GitHub-Repositorys, oder als Artefakt `EarSaxophone-win-x64` eines erfolgreichen Laufs unter **Actions** (dafür ist eine GitHub-Anmeldung nötig).
+1. Das ZIP herunterladen: [Release v1.0.0-rc1](https://github.com/ragusa-ui/Ear-Saxophone/releases/tag/v1.0.0-rc1) (Datei `EarSaxophone-1.0.0-rc1-win-x64.zip`; die Prüfsumme steht in der `.sha256`-Datei daneben). Neuere Entwicklungsstände gibt es als Artefakt `EarSaxophone-win-x64` eines erfolgreichen Laufs unter **Actions** (GitHub-Anmeldung nötig).
 2. ZIP **vollständig entpacken** (nicht aus dem ZIP heraus starten), am besten in einen Ordner, in den du schreiben darfst, zum Beispiel `C:\Tools\EarSaxophone`.
 3. `EarSaxophone.exe` starten.
 

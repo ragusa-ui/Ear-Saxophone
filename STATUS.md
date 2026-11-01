@@ -1,7 +1,7 @@
 # STATUS
 
 **Letztes Update:** 2026-11-01 (Release Candidate v1.0.0-rc1 veröffentlicht; offen nur deine Abnahme)
-**Letzter bestätigter Build:** GitHub Actions, [Lauf #26](https://github.com/ragusa-ui/Ear-Saxophone/actions/runs/41310821082) auf Commit `618dde9` (Stand nach den Erweiterungen unten): **erfolgreich** auf `windows-latest`: Build, Core- und Windows-Tests, self-contained Publish, Start ohne .NET im PATH, 12 UI-Prüfungen per UI-Automation, Normalstart mit Tray und Einzelinstanz, Test des Update-Skripts in Windows PowerShell 5.1, ZIP und UI-Screenshot als Artefakte; Linux-Job grün. Das veröffentlichte Release [v1.0.0-rc1](https://github.com/ragusa-ui/Ear-Saxophone/releases/tag/v1.0.0-rc1) enthält diese Erweiterungen **noch nicht**.
+**Letzter bestätigter Build:** GitHub Actions, [Lauf #26](https://github.com/ragusa-ui/Ear-Saxophone/actions/runs/41310821082) auf Commit `618dde9` (Stand nach den Erweiterungen unten): **erfolgreich** auf `windows-latest`: Build, Core- und Windows-Tests, self-contained Publish, Start ohne .NET im PATH, 12 UI-Prüfungen per UI-Automation, Normalstart mit Tray und Einzelinstanz, Test des Update-Skripts in Windows PowerShell 5.1, ZIP und UI-Screenshot als Artefakte; Linux-Job grün. Diese Erweiterungen sind im Release [v1.0.0-rc2](https://github.com/ragusa-ui/Ear-Saxophone/releases/tag/v1.0.0-rc2) enthalten (Commit `b431b47`, ZIP 65,6 MB mit `.sha256`, von `release.yml` Lauf #4 erstellt; Vorabversion).
 
 ## Fortschritt
 Berechnung: Summe der Gewichte erledigter Arbeitspakete (Gesamtgewicht 100). Ein Paket zählt, wenn es umgesetzt und **so weit geprüft ist, wie es in der Cloud möglich ist** (Unit-Tests mit Fakes, Kompilieren). Teilfortschritt wird nicht angerechnet. Alles, was echte Hardware braucht, steht zusätzlich in `docs/LOCAL_TESTS.md`; bestätigt hast du davon bisher **nichts**, und 5 Punkte (6.5) sind ausdrücklich für deine Abnahme reserviert.
@@ -64,7 +64,7 @@ Legende: ☑ erledigt · ◐ in Arbeit · ☐ noch nicht begonnen · ⛔ blockie
 - ☑ 6.4 Checkliste final: `docs/LOCAL_TESTS.md` mit Schnelltest (8 Punkte, ca. 20-30 Minuten) und allen Einzelfällen (1)
 - ☐ 6.5 **Lokale Abnahme durch dich** auf Windows 11 mit echtem nanoKONTROL2 (5)
 
-## Erweiterungen nach rc1 (auf Wunsch aus dem ersten Test, noch nicht veröffentlicht)
+## Erweiterungen nach rc1 (auf Wunsch aus dem ersten Test, veröffentlicht in rc2)
 Nicht Teil der 100 gewichteten Punkte; alle in der CI geprüft, keine an echter Hardware.
 - ☑ **Geräteabbild statt Kachel-Tabelle:** Der nanoKONTROL2 ist schematisch gezeichnet (Transportblock, acht Kanäle); Antippen wählt den Regler; Drehregler-Zeiger, Fader-Kappe und Tastenleuchten zeigen live, was am Gerät passiert; Punkt für belegte, Rahmen für gewählte Elemente, Liste der Belegungen darunter. Geometrie per Unit-Test geprüft (51 Elemente, keine Überlappung). Das Aussehen wurde nur über den Textbericht geprüft, nicht angesehen.
 - ☑ **Anzeige bei Änderungen (OSD):** kleines Overlay (immer oben, klickdurchlässig, ohne Fokus) für Lautstärke, Stumm, Gerätewechsel und Medientasten; sechs Positionen, Ein/Aus und Test in den Einstellungen. CI: erscheint, zeigt "Lautsprecher"/"65 %", Fensterstil klickdurchlässig/ohne Fokus, in allen sechs Positionen im sichtbaren Bereich.
@@ -73,7 +73,7 @@ Nicht Teil der 100 gewichteten Punkte; alle in der CI geprüft, keine an echter 
 - Tests: 186 Core-Tests (Linux) bestanden; mehrere Läufe in Folge ohne Ausreißer.
 
 ## Aktuelle Aufgabe
-**Keine laufende Aufgabe.** Die Erweiterungen oben sind fertig und in der CI grün. Offen: (1) Entscheidung, ob daraus eine Vorabversion `v1.0.0-rc2` veröffentlicht wird (bitte bestätigen), (2) deine Abnahme (6.5) mit dem Schnelltest in `docs/LOCAL_TESTS.md`, inklusive der neuen Punkte N1 bis N4.
+**Keine laufende Aufgabe.** rc2 ist veröffentlicht. Offen: deine Abnahme (6.5) mit dem Schnelltest in `docs/LOCAL_TESTS.md`, inklusive der neuen Punkte N1 bis N4.
 
 ## Tests
 | Bereich | Ergebnis |
@@ -111,6 +111,5 @@ Nicht Teil der 100 gewichteten Punkte; alle in der CI geprüft, keine an echter 
 - Der Download der CI-Logs/Artefakte von dieser Cloud-Sitzung aus ist blockiert (Host `productionresultssa17.blob.core.windows.net` nicht erlaubt); ich prüfe die Oberfläche deshalb über den Textbericht im Log.
 
 ## Nächste Schritte
-1. **Du:** Entscheiden, ob ich `v1.0.0-rc2` mit den Erweiterungen veröffentliche (ich veröffentliche nichts ohne dein Ja).
-2. **Du:** ZIP laden, Schnelltest und die neuen Punkte N1-N4 aus `docs/LOCAL_TESTS.md` durchgehen; bei Fehlern Version, Meldung und `error.log` melden.
-3. Danach: Befunde beheben, endgültiges `v1.0.0` über `release.yml` (Option `publish`) erzeugen, STATUS auf 100 %.
+1. **Du:** ZIP von [v1.0.0-rc2](https://github.com/ragusa-ui/Ear-Saxophone/releases/tag/v1.0.0-rc2) laden (von rc1 aus: in denselben Ordner entpacken, Überschreiben bestätigen; ab rc2 geht es mit `Update.cmd`), Schnelltest und die neuen Punkte N1-N4 aus `docs/LOCAL_TESTS.md` durchgehen; bei Fehlern Version, Meldung und `error.log` melden.
+2. Danach: Befunde beheben, endgültiges `v1.0.0` über `release.yml` (Option `publish`) erzeugen, STATUS auf 100 %.

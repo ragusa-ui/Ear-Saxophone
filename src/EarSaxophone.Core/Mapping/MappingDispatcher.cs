@@ -40,17 +40,21 @@ public sealed record ActionInvocation(ControlMapping Mapping, ActionDefinition A
 /// Continuous actions run on every message with the scaled value. For the other actions the rising edge
 /// (value &gt;= 64) is <see cref="ActionPhase.Pressed"/> and the falling edge is <see cref="ActionPhase.Released"/>; repeats on
 /// the same side of the threshold do nothing. Released only reaches mute actions in a "while held" mode.
+/// "Wie Fader" targets are resolved against the current profile for every message (see <see cref="StripTargets"/>), so the
+/// executions always carry the fader's current programs; <see cref="ActionInvocation.Mapping"/> is the resolved mapping.
 /// </summary>
 public sealed class MappingDispatcher
 {
     public const byte PressThreshold = 64;
 
     private readonly HashSet<ControlId> _pressed = [];
+    private readonly FaderLookup? _faders;
     private Profile _profile;
 
-    public MappingDispatcher(Profile profile)
+    public MappingDispatcher(Profile profile, FaderLookup? faders = null)
     {
         _profile = profile;
+        _faders = faders;
     }
 
     public void SetProfile(Profile profile)
@@ -66,12 +70,12 @@ public sealed class MappingDispatcher
         bool isDown = message.Value >= PressThreshold;
         bool wasDown = isDown ? !_pressed.Add(control) : _pressed.Remove(control);
 
-        ControlMapping? mapping = _profile.Find(control);
-        if (mapping is null)
+        if (_profile.Find(control) is not { } stored)
         {
             return [];
         }
 
+        ControlMapping mapping = StripTargets.Resolve(_profile, stored, _faders);
         ActionPhase? edge = isDown == wasDown ? null : isDown ? ActionPhase.Pressed : ActionPhase.Released;
         return ActionInvocation.ForMapping(mapping, edge, mapping.EffectiveScaling.Apply(message.Value));
     }

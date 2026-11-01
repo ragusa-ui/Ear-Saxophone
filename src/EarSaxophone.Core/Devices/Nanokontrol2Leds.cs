@@ -31,6 +31,9 @@ public sealed record LedOptions
     /// (only matters if a driver loops output back to input; the device itself is not expected to). Zero switches the filter off.
     /// </summary>
     public TimeSpan EchoWindow { get; init; } = TimeSpan.FromMilliseconds(30);
+
+    /// <summary>How long a blinking (muted) key is on, and then off (see <see cref="LedController.Blink"/>). Zero or less: steady light.</summary>
+    public TimeSpan BlinkHalfPeriod { get; init; } = BlinkPhase.DefaultHalfPeriod;
 }
 
 /// <summary>The keys of the nanoKONTROL2 that have an LED, taken from <see cref="Nanokontrol2Layout"/>.</summary>

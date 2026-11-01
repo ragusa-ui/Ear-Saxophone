@@ -570,7 +570,12 @@ public class MainViewModelTests : IDisposable
         MainViewModel vm = Create();
         Assign(vm, "Fader 1", e => { e.Kind = ActionKind.SetVolume; e.AddApplication("Discord.exe"); });
         Assign(vm, "Fader 2", e => { e.Kind = ActionKind.SetVolume; e.AddTarget(AudioTarget.Speakers); });
-        Assign(vm, "M 1", e => { e.Kind = ActionKind.Mute; e.AddTarget(AudioTarget.Microphone); });
+        Assign(vm, "M 1", e =>
+        {
+            e.Kind = ActionKind.Mute; // preselects "Wie Fader 1" (Discord.exe); this key mutes only the microphone instead
+            e.RemoveTarget(e.Targets.Single(t => t.Target.IsStrip));
+            e.AddTarget(AudioTarget.Microphone);
+        });
         Assign(vm, "Play", e => { e.Kind = ActionKind.Media; e.Media = MediaCommand.PlayPause; });
         Assign(vm, "Cycle", e => { e.Kind = ActionKind.Hotkey; e.HotkeyText = "Ctrl+Alt+M"; });
         var shown = new List<OsdMessage>();

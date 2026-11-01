@@ -47,6 +47,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private ControllerElementViewModel? _pending;
     private ProgramPromptViewModel? _prompt;
     private DateTimeOffset _promptShownAt;
+    private DateTimeOffset _blinkStart;
+    private ITimer? _blinkTimer;
+    private bool _disposed;
 
     public MainViewModel(
         ProfileStore store,
@@ -104,7 +107,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (midiOutput is not null)
         {
             _leds = new LedController(new MidiOutputConnection(midiOutput, LedOptions.Default.OutputPortFragment), executor.Audio.ReadGroupMuted,
-                LedOptions.Default, _time) { Enabled = _settings.LedFeedback };
+                LedOptions.Default, _time) { Enabled = _settings.LedFeedback, Blink = _settings.LedBlink };
             _leds.SetProfile(Current);
             _leds.StatusChanged += OnLedStatus;
         }
@@ -223,6 +226,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         get => _settings.AskForNewPrograms;
         set => ChangeSettings(_settings with { AskForNewPrograms = value }, nameof(AskForNewPrograms));
+    }
+
+    /// <summary>Setting: a short system sound when the question for a new program appears (default on).</summary>
+    public bool PromptSound
+    {
+        get => _settings.PromptSound;
+        set => ChangeSettings(_settings with { PromptSound = value }, nameof(PromptSound));
     }
 
     /// <summary>Programs that are never asked about ("Nie fragen").</summary>
@@ -357,6 +367,25 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>
+    /// Setting "LEDs blinken bei Stumm" (default on): muted keys blink on the device and in the picture instead of a steady light.
+    /// </summary>
+    public bool LedBlink
+    {
+        get => _settings.LedBlink;
+        set
+        {
+            ChangeSettings(_settings with { LedBlink = value }, nameof(LedBlink));
+            if (_leds is not null)
+            {
+                _leds.Blink = _settings.LedBlink;
+            }
+
+            _blinkStart = _time.GetUtcNow();
+            UpdatePictureBlink();
+        }
+    }
+
     /// <summary>Shape of a control: from the device layout, for other controls what their values have shown so far.</summary>
     public ControlShape ShapeOf(ControlId control) => _shapes.ShapeOf(control);
 
@@ -381,6 +410,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public void RefreshMuteStates()
     {
         Profile profile = Current;
+        bool newlyLit = false;
         foreach (ControllerElementViewModel element in Elements)
         {
             if (!element.HasLed)
@@ -390,12 +420,61 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
             try
             {
-                element.IsMuteLit = LedController.IsLit(profile, element.Control, _executor.Audio.ReadGroupMuted);
+                bool lit = LedController.IsLit(profile, element.Control, _executor.Audio.ReadGroupMuted);
+                newlyLit |= lit && !element.IsMuteLit;
+                element.IsMuteLit = lit;
             }
             catch (Exception)
             {
                 // State unreadable right now (audio device busy or gone): keep what the picture shows.
             }
+        }
+
+        if (newlyLit)
+        {
+            _blinkStart = _time.GetUtcNow(); // like the device: the blinking restarts with the on phase, so a press shows at once
+        }
+
+        UpdatePictureBlink();
+    }
+
+    /// <summary>
+    /// Sets the blink phase of the lit LEDs in the picture (UI thread): with "LEDs blinken bei Stumm" all muted-lit keys are dark
+    /// together in every second phase of <see cref="BlinkPhase.DefaultHalfPeriod"/> (<see cref="ControllerElementViewModel.IsLedBlinkOff"/>).
+    /// A one-shot timer brings the next phase change; it only runs while something blinks.
+    /// </summary>
+    public void UpdatePictureBlink()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        DateTimeOffset now = _time.GetUtcNow();
+        TimeSpan half = BlinkPhase.DefaultHalfPeriod;
+        bool anyLit = Elements.Any(e => e.IsMuteLit);
+        bool blinking = LedBlink && anyLit;
+        bool dark = blinking && !BlinkPhase.IsOn(_blinkStart, now, half);
+        foreach (ControllerElementViewModel element in Elements)
+        {
+            element.IsLedBlinkOff = dark && element.IsMuteLit;
+        }
+
+        if (!blinking)
+        {
+            _blinkTimer?.Dispose();
+            _blinkTimer = null;
+            return;
+        }
+
+        TimeSpan due = BlinkPhase.UntilNextChange(_blinkStart, now, half);
+        if (_blinkTimer is null)
+        {
+            _blinkTimer = _time.CreateTimer(_ => _ui.Post(UpdatePictureBlink), null, due, Timeout.InfiniteTimeSpan);
+        }
+        else
+        {
+            _blinkTimer.Change(due, Timeout.InfiniteTimeSpan);
         }
     }
 
@@ -407,6 +486,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
+        _disposed = true;
+        _blinkTimer?.Dispose();
+        _blinkTimer = null;
         _midi.MessageReceived -= OnMidiMessage;
         if (_leds is not null)
         {
@@ -634,7 +716,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             .Where(e => _shapes.ShapeOf(e.Control) == ControlShape.Continuous)
             .ToList();
         _promptShownAt = _time.GetUtcNow();
-        ActivePrompt = new ProgramPromptViewModel(prompt, choices, OnPromptAnswered);
+        ActivePrompt = new ProgramPromptViewModel(prompt, choices, OnPromptAnswered) { PlaySound = _settings.PromptSound };
         ProgramPromptRequested?.Invoke(_prompt!);
     }
 
@@ -785,14 +867,19 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         foreach (ControllerElementViewModel element in _elements.Values)
         {
-            element.ShowMapping(Current.Find(element.Control));
+            element.ShowMapping(StripTargets.ResolveOrNull(Current, Current.Find(element.Control)));
         }
 
         RefreshMuteStates();
     }
 
     private void LoadEditor(ControllerElementViewModel element) =>
-        Editor.Load(element.Control, _shapes.ShapeOf(element.Control), Current.Find(element.Control));
+        Editor.Load(element.Control, _shapes.ShapeOf(element.Control), Current.Find(element.Control), StripContextOf(element.Control));
+
+    /// <summary>The strip of a key or knob for "Wie Fader" (its fader and the fader's current targets); null for faders and other controls.</summary>
+    private StripContext? StripContextOf(ControlId control) => StripTargets.SourceFader(control) is { } fader
+        ? new StripContext(fader, LabelOf(fader), StripTargets.FaderTargets(Current, control))
+        : null;
 
     private string LabelOf(ControlId control) =>
         _elements.TryGetValue(control, out ControllerElementViewModel? element) ? element.Label : control.ToString();
@@ -840,7 +927,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         LoadEditor(element);
         SetPending(null);
-        string summary = MappingDescriber.Describe(mapping);
+        string summary = MappingDescriber.Describe(Current, mapping);
         StatusMessage = mapping is null ? Texts.UiMappingRemoved(element.Label)
             : automatic ? Texts.UiAutoApplied(element.Label, summary)
             : Texts.UiMappingSaved(element.Label, summary);
@@ -987,7 +1074,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             element.Shape = _shapes.ShapeOf(control);
             ExtraElements.Add(element);
             OnPropertyChanged(nameof(HasExtraElements));
-            element.ShowMapping(Current.Find(control));
+            element.ShowMapping(StripTargets.ResolveOrNull(Current, Current.Find(control)));
         }
 
         if (element == _selected)
@@ -1040,7 +1127,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             element.Shape = _shapes.ShapeOf(control);
             ExtraElements.Add(element);
             OnPropertyChanged(nameof(HasExtraElements));
-            element.ShowMapping(Current.Find(control));
+            element.ShowMapping(StripTargets.ResolveOrNull(Current, Current.Find(control)));
         }
 
         Select(element);

@@ -55,6 +55,11 @@ public sealed class AudioController : IDisposable
 
     public ActionResult SetVolume(AudioTarget target, float level)
     {
+        if (target.IsStrip)
+        {
+            return Fail(Texts.StripTargetUnresolved); // "Wie Fader" is resolved before it gets here (see StripTargets)
+        }
+
         level = Math.Clamp(level, 0f, 1f);
         lock (_gate)
         {
@@ -67,6 +72,11 @@ public sealed class AudioController : IDisposable
     /// <summary>Mutes or unmutes the target (all sessions of an application; remembered for sessions that appear later).</summary>
     public ActionResult SetMute(AudioTarget target, bool muted)
     {
+        if (target.IsStrip)
+        {
+            return Fail(Texts.StripTargetUnresolved);
+        }
+
         lock (_gate)
         {
             return target.Kind == AudioTargetKind.Application
@@ -372,6 +382,11 @@ public sealed class AudioController : IDisposable
     /// </summary>
     private bool? ReadMuted(AudioTarget target, bool remember = true)
     {
+        if (target.IsStrip)
+        {
+            return null; // never the default device: an unresolved "Wie Fader" has no state
+        }
+
         if (target.Kind == AudioTargetKind.Application)
         {
             if (!target.IsValid)

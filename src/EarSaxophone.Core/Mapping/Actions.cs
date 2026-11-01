@@ -28,6 +28,13 @@ public enum AudioTargetKind
 
     /// <summary>All audio sessions of one application on <see cref="AudioTarget.Flow"/> devices.</summary>
     Application,
+
+    /// <summary>
+    /// "Wie Fader": the same targets as the volume actions of the fader in the strip (column 1-8) of the control that carries the
+    /// action. Resolved when it is used (see <see cref="StripTargets"/>), so a program added to the fader is muted by the strip's
+    /// keys at once. The fader itself never refers to itself (no cycles); outside a strip there is nothing to resolve.
+    /// </summary>
+    Strip,
 }
 
 /// <summary>Identifies an application by executable, not by volatile audio-session ids.</summary>
@@ -48,8 +55,12 @@ public sealed record AudioTarget(
         AudioTargetKind.DefaultDevice => true,
         AudioTargetKind.SpecificDevice => !string.IsNullOrWhiteSpace(DeviceId),
         AudioTargetKind.Application => App is { IsValid: true },
+        AudioTargetKind.Strip => true,
         _ => false,
     };
+
+    /// <summary>True for the "Wie Fader" target (<see cref="AudioTargetKind.Strip"/>), which stands for the targets of the strip's fader.</summary>
+    public bool IsStrip => Kind == AudioTargetKind.Strip;
 
     public static AudioTarget Speakers { get; } = new(AudioTargetKind.DefaultDevice, DeviceFlow.Render);
 
@@ -57,6 +68,9 @@ public sealed record AudioTarget(
 
     public static AudioTarget Application(string exeName) =>
         new(AudioTargetKind.Application, App: new AppSelector(exeName));
+
+    /// <summary>"Wie Fader": the volume targets of the fader in the same strip (see <see cref="AudioTargetKind.Strip"/>).</summary>
+    public static AudioTarget Strip { get; } = new(AudioTargetKind.Strip);
 }
 
 public enum MediaCommand

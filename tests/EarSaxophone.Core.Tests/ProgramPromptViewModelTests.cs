@@ -57,7 +57,10 @@ public class ProgramPromptViewModelTests : IDisposable
         Assert.Equal(Enumerable.Range(1, 8), prompt.Slots.Select(sl => sl.Number));
         Assert.All(prompt.Slots, sl => Assert.Equal(($"Fader {sl.Number}", $"Drehregler {sl.Number}"), (sl.Fader!.Label, sl.Knob!.Label)));
         Assert.Equal((Texts.PromptNotNow, Texts.PromptNeverAsk), (prompt.NotNowText, prompt.NeverAskText));
-        Assert.Equal(TimeSpan.FromSeconds(25), ProgramPromptViewModel.AutoDismissAfter);
+        Assert.Equal(TimeSpan.FromSeconds(40), ProgramPromptViewModel.AutoDismissAfter);
+        Assert.Equal(Texts.PromptHeader, prompt.Header);
+        Assert.Equal(TimeSpan.FromSeconds(40), prompt.AutoDismissDuration);
+        Assert.True(prompt.PlaySound);
     }
 
     [Fact]
@@ -208,6 +211,22 @@ public class ProgramPromptViewModelTests : IDisposable
     }
 
     [Fact]
+    public void PromptSound_IsOnByDefault_CanBeSwitchedOff_AndIsSaved()
+    {
+        MainViewModel vm = _h.Create();
+        Assert.True(vm.PromptSound);
+        vm.PromptSound = false;
+        StartGame();
+
+        ProgramPromptViewModel? prompt = TickUntilPrompt(vm);
+
+        Assert.NotNull(prompt);
+        Assert.False(prompt.PlaySound);
+        Assert.False(new SettingsStore(_h.SettingsPath).Load().PromptSound);
+        Assert.NotEqual(new AppSettings(), new AppSettings(PromptSound: false));
+    }
+
+    [Fact]
     public void AProgramThatIsAlreadyOnAControl_IsNotAsked()
     {
         _h.SaveProfile(new ControlMapping(Cc(48), new MuteAction(AudioTarget.Application("Game.exe"))));
@@ -226,6 +245,7 @@ public class ProgramPromptViewModelTests : IDisposable
 
         Assert.False(loaded.KeepInTray);
         Assert.True(loaded.AskForNewPrograms);
+        Assert.True(loaded.PromptSound);
         Assert.Null(loaded.IgnoredPrograms);
         Assert.Empty(loaded.IgnoredProgramList);
     }

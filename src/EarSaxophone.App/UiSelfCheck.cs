@@ -224,7 +224,69 @@ internal static class UiSelfCheck
                 $"gespeichert={saved}, leisteDanach={barAfter}, eingabeLeer={box.Text.Length == 0}, geschlossen={panelClosed}");
         });
 
-        Check("Geraetebild: Tasten mit LED haben eine LED-Flaeche, die bei 'stumm' leuchtet; Track/Marker ohne LED", () =>
+        Check("Streifen: 'Stumm' auf 'M 4' waehlt 'Wie Fader 4' vor; Kreuz entfernt es, 'Hinzufuegen' bietet es wieder an; Drehregler und Fader ohne Vorauswahl; 'R 4' zeigt die Ziele des Faders", () =>
+        {
+            // R 4 carries "Wie Fader 4" in the demo: summary and badge show the fader's programs (resolved), never "Wie Fader".
+            ControllerElementViewModel r4 = vm.Elements.First(e => e.Label == "R 4");
+            bool resolved = r4.Summary.Contains("Spotify.exe", StringComparison.Ordinal) && r4.ActionCount == 2;
+
+            Click(FindTile(window, "Fader 1"));
+            Flush(window);
+            bool faderWithout = !vm.Editor.CanAddStripTarget;
+            Click(FindTile(window, "Drehregler 4"));
+            Flush(window);
+            bool knobFree = vm.Editor.Kind == ActionKind.SetVolume && vm.Editor.Targets.Count == 0 && !vm.Editor.IsDirty;
+
+            ControllerElementViewModel m4 = vm.Elements.First(e => e.Label == "M 4");
+            Click(FindTile(window, "M 4"));
+            Flush(window);
+            ListBox picker = FindById<ListBox>(window, "KindPicker")!;
+            int index = picker.Items.OfType<Option<ActionKind>>().ToList().FindIndex(o => o.Value == ActionKind.Mute);
+            ((ListBoxItem)picker.ItemContainerGenerator.ContainerFromIndex(index)).IsSelected = true;
+            Flush(window);
+            ItemsControl list = FindById<ItemsControl>(window, "TargetList")!;
+            List<string> names = FindAll<TextBlock>(list).Where(t => t.IsVisible && AutomationProperties.GetAutomationId(t) == "TargetName").Select(t => t.Text).ToList();
+            bool preselected = vm.Editor.Targets.Count == 1 && vm.Editor.Targets[0].Symbol == TargetSymbol.Strip && names.Count == 1
+                && names[0].Contains("Fader 4", StringComparison.Ordinal) && names[0].Contains("Spotify.exe", StringComparison.Ordinal) && vm.Editor.IsDirty;
+            Click(FindAll<ButtonBase>(list).First(b => b.IsVisible && AutomationProperties.GetAutomationId(b) == "RemoveTargetButton"));
+            Flush(window);
+            bool removed = vm.Editor.Targets.Count == 0;
+
+            bool offered, readded, hiddenAfter;
+            Popup popup = main.AddTargetPopup;
+            popup.StaysOpen = true;
+            try
+            {
+                popup.IsOpen = true;
+                Flush(window);
+                ButtonBase? item = FindById<ButtonBase>(popup.Child, "AddStripItem");
+                offered = item is { IsVisible: true };
+                if (item is not null)
+                {
+                    Click(item);
+                }
+
+                Flush(window);
+                popup.IsOpen = true;
+                Flush(window);
+                readded = vm.Editor.Targets.Count == 1 && vm.Editor.Targets[0].Target.IsStrip;
+                hiddenAfter = FindById<ButtonBase>(popup.Child, "AddStripItem") is not { IsVisible: true };
+            }
+            finally
+            {
+                popup.IsOpen = false;
+                popup.StaysOpen = false;
+            }
+
+            vm.DiscardEditor();
+            Flush(window);
+            bool clean = !vm.Editor.IsDirty && vm.Current.Find(m4.Control) is null;
+            return (resolved && faderWithout && knobFree && preselected && removed && offered && readded && hiddenAfter && clean,
+                $"r4={r4.Summary}/{r4.ActionCount}, faderOhne={faderWithout}, drehreglerFrei={knobFree}, vorausgewaehlt={preselected} [{string.Join(",", names)}], " +
+                $"entfernt={removed}, angeboten={offered}, wieder={readded}, danachAusgeblendet={hiddenAfter}, sauber={clean}");
+        });
+
+        Check("Geraetebild: Tasten mit LED haben eine LED-Flaeche, die bei 'stumm' leuchtet (blinkend: dunkle Phase blendet nur aus); Track/Marker ohne LED", () =>
         {
             ControllerElementViewModel m1 = vm.Elements.First(e => e.Label == "M 1");
             Button tile = FindTile(window, "M 1");
@@ -236,13 +298,19 @@ internal static class UiSelfCheck
             {
                 // No flush in between: the next tick would show the real mute state again.
                 m1.IsMuteLit = true;
+                m1.IsLedBlinkOff = false;
                 window.UpdateLayout();
-                bool lit = FindById<Border>(tile, "KeyLedOn") is { IsVisible: true };
+                Border? on = FindById<Border>(tile, "KeyLedOn");
+                bool lit = on is { IsVisible: true, Opacity: > 0.5 };
+                m1.IsLedBlinkOff = true; // dark half of the blink rhythm: still "muted-lit", only faded out
+                window.UpdateLayout();
+                bool blinkDark = on is { IsVisible: true, Opacity: < 0.01 } && m1.IsMuteLit && !m1.IsLedShownOn;
+                m1.IsLedBlinkOff = false;
                 m1.IsMuteLit = false;
                 window.UpdateLayout();
                 bool dark = FindById<Border>(tile, "KeyLedOn") is not { IsVisible: true };
-                return (led && !trackLed && ledKeys == vm.Elements.Count(e => e.HasLed) && lit && dark,
-                    $"led={led}, trackLed={trackLed}, tastenMitLed={ledKeys}, leuchtet={lit}, aus={dark}");
+                return (led && !trackLed && ledKeys == vm.Elements.Count(e => e.HasLed) && lit && blinkDark && dark,
+                    $"led={led}, trackLed={trackLed}, tastenMitLed={ledKeys}, leuchtet={lit}, blinkDunkel={blinkDark}, aus={dark}");
             }
             finally
             {
@@ -318,7 +386,7 @@ internal static class UiSelfCheck
                 Flush(window);
                 bool open = popup.IsOpen;
                 string[] ids = ["ShowOsdToggle", "OsdPositionPicker", "TestOsdButton", "StartWithWindowsToggle", "KeepInTrayToggle",
-                    "StartMinimizedToggle", "AskForNewProgramsToggle", "ResetIgnoredButton"];
+                    "StartMinimizedToggle", "LedFeedbackToggle", "LedBlinkToggle", "AskForNewProgramsToggle", "ResetIgnoredButton"];
                 List<string> missing = ids.Where(id => FindById<FrameworkElement>(popup.Child, id) is not { IsVisible: true }).ToList();
 
                 var changes = new List<string>();
@@ -340,6 +408,7 @@ internal static class UiSelfCheck
                 Flip("KeepInTrayToggle", () => vm.KeepInTray);
                 Flip("StartMinimizedToggle", () => vm.StartMinimized);
                 Flip("AskForNewProgramsToggle", () => vm.AskForNewPrograms);
+                Flip("LedBlinkToggle", () => vm.LedBlink);
 
                 var positions = FindById<ListBox>(popup.Child, "OsdPositionPicker")!;
                 OsdPosition original = vm.OsdPosition;

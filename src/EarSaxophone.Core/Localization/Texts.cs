@@ -557,6 +557,43 @@ public static class Texts
 
     public static string LedSendFailed(string port, string reason) =>
         $"LED-Anzeige: Senden an {port} fehlgeschlagen ({reason}). Es wird erneut versucht.";
+
+    // Question for a new program with sound: header band and hint at the countdown bar
+    public const string PromptHeader = "Neues Programm mit Ton";
+
+    public const string PromptAutoCloseHint = "Schließt sich von selbst, wenn du nichts wählst.";
+
+    public const string UiPromptSound = "Ton beim Nachfragen";
+
+    // Streifen-Ziel "Wie Fader": Tasten und Drehregler eines Streifens nehmen die Ziele seines Faders
+    public static string UiStripTargetName(string fader, string targets) => $"Wie {fader} ({targets})";
+
+    public const string UiStripTargetNone = "noch ohne Ziel";
+
+    public const string UiAddStripItem = "Wie der Fader dieses Streifens";
+
+    public const string UiAddStripItemTip =
+        "Nimmt immer die Programme des Faders in derselben Spalte. Kommt am Fader ein Programm dazu, gilt es hier sofort mit.";
+
+    public const string UiStripTargetNotHere = "„Wie Fader“ geht nur bei Tasten und Drehreglern eines Streifens, nicht beim Fader selbst.";
+
+    public const string TargetStripEmptyShort = "wie Fader (ohne Ziel)";
+
+    public static string StripTargetEmpty(string fader) =>
+        $"{fader} steuert keine Lautstärke-Ziele, deshalb hat „Wie {fader}“ nichts zu schalten. Lege am Fader Programme fest oder wähle hier eigene Ziele.";
+
+    public const string StripTargetNoFader = "Dieses Element gehört zu keinem Streifen mit Fader, „Wie Fader“ hat hier kein Ziel.";
+
+    public static string StripTargetMisplaced(ControlLabel control) =>
+        $"{control}: „Wie Fader“ passt nur zu Tasten und Drehreglern eines Streifens (nicht zum Fader selbst) und bleibt hier ohne Wirkung.";
+
+    public const string StripTargetUnresolved = "„Wie Fader“ konnte nicht aufgelöst werden, es wurde nichts geändert.";
+
+    // LEDs blinken bei Stumm
+    public const string UiLedBlink = "LEDs blinken bei Stumm";
+
+    public const string UiLedBlinkTip =
+        "Stumm geschaltete Tasten blinken langsam (am Gerät und im Bild), statt dauerhaft zu leuchten. Aus: Dauerlicht.";
 }
 
 /// <summary>Display text of a control, used inside messages.</summary>

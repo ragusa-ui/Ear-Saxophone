@@ -22,6 +22,13 @@ public static class MappingDescriber
         return mapping.Actions.Count > 1 ? Texts.DescribeMore(text, mapping.Actions.Count - 1) : text;
     }
 
+    /// <summary>
+    /// Like <see cref="Describe(ControlMapping?)"/>, but with "Wie Fader" targets resolved in <paramref name="profile"/>, so a strip key
+    /// reads "Stumm schalten: opera.exe" and follows the fader's programs (see <see cref="StripTargets"/>).
+    /// </summary>
+    public static string Describe(Profile profile, ControlMapping? mapping, FaderLookup? faders = null) =>
+        Describe(StripTargets.ResolveOrNull(profile, mapping, faders));
+
     public static string Describe(ActionDefinition action) => action switch
     {
         SetVolumeAction a => Texts.DescribeVolume(Describe(a.Target)),
@@ -49,6 +56,7 @@ public static class MappingDescriber
     {
         AudioTargetKind.Application => target.App?.ExeName ?? "?",
         AudioTargetKind.SpecificDevice => Texts.TargetDeviceShort,
+        AudioTargetKind.Strip => Texts.TargetStripEmptyShort, // only left over when the strip's fader has no targets
         _ when target.Flow == DeviceFlow.Capture => Texts.TargetMicrophoneShort,
         _ => Texts.TargetSpeakersShort,
     };

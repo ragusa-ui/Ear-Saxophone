@@ -25,7 +25,7 @@ public enum ProgramPromptAnswer
 /// </summary>
 public sealed class ProgramPromptViewModel : ObservableObject
 {
-    public static readonly TimeSpan AutoDismissAfter = TimeSpan.FromSeconds(25);
+    public static readonly TimeSpan AutoDismissAfter = TimeSpan.FromSeconds(40);
 
     private readonly Action<ProgramPromptViewModel, ProgramPromptAnswer, ControlId?> _answer;
     private bool _isOpen = true;
@@ -60,10 +60,25 @@ public sealed class ProgramPromptViewModel : ObservableObject
     /// <summary>The program name on top of the miniature.</summary>
     public string ProgramName => Prompt.ExeName;
 
+    /// <summary>First letter of the program, shown when its icon cannot be read.</summary>
+    public string ProgramInitial => Prompt.ExeName.Length > 0 ? Prompt.ExeName[..1].ToUpperInvariant() : "?";
+
     /// <summary>"&lt;Programm&gt; spielt Ton. Auf welchen Regler legen?"</summary>
     public string MiniQuestion => Texts.PromptMiniQuestion(Prompt.ExeName);
 
     public string Question => Texts.PromptQuestion;
+
+    /// <summary>"Neues Programm mit Ton" in the header band.</summary>
+    public string Header => Texts.PromptHeader;
+
+    /// <summary>Tooltip of the countdown bar.</summary>
+    public string AutoCloseHint => Texts.PromptAutoCloseHint;
+
+    /// <summary>Time until the question closes itself as "Nicht jetzt" (drives the countdown bar).</summary>
+    public TimeSpan AutoDismissDuration => AutoDismissAfter;
+
+    /// <summary>Whether the window plays a short system sound when it appears (setting <c>PromptSound</c>).</summary>
+    public bool PlaySound { get; init; } = true;
 
     public string NotNowText => Texts.PromptNotNow;
 

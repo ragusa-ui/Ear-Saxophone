@@ -16,6 +16,7 @@ public sealed class ControllerElementViewModel : ObservableObject
     private bool _isContinuous;
     private bool _isSelected;
     private bool _isMuteLit;
+    private bool _isLedBlinkOff;
     private int _lastValue;
     private ControlShape _shape;
     private MappingBadge _badge = MappingBadge.Empty;
@@ -72,14 +73,40 @@ public sealed class ControllerElementViewModel : ObservableObject
     public bool HasLed { get; }
 
     /// <summary>
-    /// The LED of this key is lit in the picture: the key carries a mute action and its target (group) is muted right now, the same
-    /// rule as the LEDs on the device (<see cref="LedController.IsLit"/>). Set by <see cref="MainViewModel"/>.
+    /// The LED of this key is lit in the picture ("muted-lit", steady or blinking): the key carries a mute action and its target
+    /// (group) is muted right now, the same rule as the LEDs on the device (<see cref="LedController.IsLit"/>). Independent of the
+    /// blink phase (<see cref="IsLedBlinkOff"/>). Set by <see cref="MainViewModel"/>.
     /// </summary>
     public bool IsMuteLit
     {
         get => _isMuteLit;
-        set => SetField(ref _isMuteLit, value);
+        set
+        {
+            if (SetField(ref _isMuteLit, value))
+            {
+                OnPropertyChanged(nameof(IsLedShownOn));
+            }
+        }
     }
+
+    /// <summary>
+    /// The muted-lit LED is in the dark half of its blink rhythm right now (only while <see cref="IsMuteLit"/> and blinking is on).
+    /// The picture dims the lit LED then; <see cref="IsMuteLit"/> stays true. Set by <see cref="MainViewModel"/>.
+    /// </summary>
+    public bool IsLedBlinkOff
+    {
+        get => _isLedBlinkOff;
+        set
+        {
+            if (SetField(ref _isLedBlinkOff, value))
+            {
+                OnPropertyChanged(nameof(IsLedShownOn));
+            }
+        }
+    }
+
+    /// <summary>What the LED shows at this moment: muted-lit and not in the dark blink phase.</summary>
+    public bool IsLedShownOn => _isMuteLit && !_isLedBlinkOff;
 
     public string Summary
     {

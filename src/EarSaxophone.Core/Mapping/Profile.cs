@@ -111,8 +111,12 @@ public sealed record Profile(string Name, IReadOnlyList<ControlMapping> Mappings
     /// Moves or copies the mapping of <paramref name="from"/> to <paramref name="to"/> (drag and drop in the picture).
     /// Moving onto a mapped control swaps both mappings; copying replaces the target's mapping. When an action does not
     /// fit the shape of the control it would land on, nothing changes and the outcome is <see cref="TransferOutcome.Incompatible"/>.
+    /// A "Wie Fader" target (<see cref="AudioTarget.Strip"/>) is relative: on a key or knob of another strip it means that strip's
+    /// fader. Where it would mean nothing (a control outside the strips) or the fader itself, it is replaced by the targets it had
+    /// at its old place; when there were none, those actions are left out, and a mapping left without actions is
+    /// <see cref="TransferOutcome.Incompatible"/>.
     /// </summary>
-    public TransferResult TransferMapping(ControlId from, ControlId to, TransferMode mode, ShapeLookup shapes)
+    public TransferResult TransferMapping(ControlId from, ControlId to, TransferMode mode, ShapeLookup shapes, FaderLookup? faders = null)
     {
         ControlMapping? source = Find(from);
         if (from == to || source is null)
@@ -121,39 +125,56 @@ public sealed record Profile(string Name, IReadOnlyList<ControlMapping> Mappings
         }
 
         ControlMapping? target = Find(to);
-        if (!ActionRules.IsAllowed(source, shapes(to)))
+        if (!ActionRules.IsAllowed(source, shapes(to)) || Relocate(source, to, faders) is not { } arriving)
         {
             return new TransferResult(TransferOutcome.Incompatible, this);
         }
 
         if (mode == TransferMode.Copy)
         {
-            ControlMapping copy = source with { Control = to };
-            return new TransferResult(TransferOutcome.Copied, ReplaceOrAppend(to, copy));
+            return new TransferResult(TransferOutcome.Copied, ReplaceOrAppend(to, arriving));
         }
 
         if (target is null)
         {
-            return new TransferResult(TransferOutcome.Moved, ReplaceOrAppend(from, source with { Control = to }));
+            return new TransferResult(TransferOutcome.Moved, ReplaceOrAppend(from, arriving));
         }
 
-        if (!ActionRules.IsAllowed(target, shapes(from)))
+        if (!ActionRules.IsAllowed(target, shapes(from)) || Relocate(target, from, faders) is not { } returning)
         {
             return new TransferResult(TransferOutcome.Incompatible, this);
         }
 
         var swapped = Mappings.Select(m =>
-            m.Control == from ? target with { Control = from }
-            : m.Control == to ? source with { Control = to }
+            m.Control == from ? returning
+            : m.Control == to ? arriving
             : m).ToList();
         return new TransferResult(TransferOutcome.Swapped, this with { Mappings = swapped });
     }
 
     /// <summary>
+    /// The mapping as it lands on <paramref name="destination"/>: strip targets stay relative when the destination is a key or knob
+    /// of a strip, otherwise they are replaced by the fader targets of the old place (resolved in this profile, before the change).
+    /// Null when nothing would be left.
+    /// </summary>
+    private ControlMapping? Relocate(ControlMapping mapping, ControlId destination, FaderLookup? faders)
+    {
+        ControlMapping moved = mapping with { Control = destination };
+        if (!StripTargets.HasStripTarget(mapping) || StripTargets.SourceFader(destination, faders) is not null)
+        {
+            return moved;
+        }
+
+        ControlMapping concrete = StripTargets.Materialize(moved, StripTargets.FaderTargets(this, mapping.Control, faders));
+        return concrete.Actions.Count == 0 ? null : concrete;
+    }
+
+    /// <summary>
     /// Returns human-readable problems; an empty list means the profile is usable. Actions that do not fit the kind of
     /// control are reported too; <paramref name="shapes"/> defaults to the nanoKONTROL2 layout (unknown controls allow everything).
+    /// A "Wie Fader" target outside a strip or on the fader itself is reported (it can never do anything there).
     /// </summary>
-    public IReadOnlyList<string> Validate(ShapeLookup? shapes = null)
+    public IReadOnlyList<string> Validate(ShapeLookup? shapes = null, FaderLookup? faders = null)
     {
         shapes ??= Nanokontrol2Layout.ShapeOf;
         var problems = new List<string>();
@@ -185,6 +206,11 @@ public sealed record Profile(string Name, IReadOnlyList<ControlMapping> Mappings
             foreach (ActionDefinition action in mapping.Actions.Where(a => a is not null && !ActionRules.IsAllowed(a, shape)).DistinctBy(a => a.GetType()))
             {
                 problems.Add(Texts.ActionNotAllowed(label, MappingDescriber.KindName(action), shape));
+            }
+
+            if (StripTargets.HasStripTarget(mapping) && StripTargets.SourceFader(mapping.Control, faders) is null)
+            {
+                problems.Add(Texts.StripTargetMisplaced(label));
             }
 
             if (mapping.Scaling is { IsValid: false })

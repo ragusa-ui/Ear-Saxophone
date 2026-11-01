@@ -4,13 +4,18 @@
         Title="Ear Saxophone Nachfrage"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         ShowInTaskbar="False" ShowActivated="False" Topmost="True" Focusable="False"
-        ResizeMode="NoResize" SizeToContent="Manual" Width="380" Height="230">
+        ResizeMode="NoResize" SizeToContent="Manual" Width="484" Height="324">
     <Window.Resources>
         <SolidColorBrush x:Key="CardBrush" Color="#F2181B27" />
         <SolidColorBrush x:Key="RailBrush" Color="#2B3146" />
         <SolidColorBrush x:Key="AccentBrush" Color="#3FB6A8" />
         <SolidColorBrush x:Key="TextBrush" Color="#F2F4FA" />
         <SolidColorBrush x:Key="MutedBrush" Color="#8E97AE" />
+        <SolidColorBrush x:Key="SubtleTextBrush" Color="#C3C9DA" />
+        <LinearGradientBrush x:Key="HeaderBrush" StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="#3FB6A8" Offset="0" />
+            <GradientStop Color="#2E8F86" Offset="1" />
+        </LinearGradientBrush>
 
         <!-- Round knob (stepless control, shown as a small circle). -->
         <Style x:Key="KnobButton" TargetType="Button">
@@ -104,29 +109,59 @@
         </Style>
     </Window.Resources>
 
-    <Border Margin="10" CornerRadius="14" Padding="16,12,16,8" Background="{StaticResource CardBrush}"
-            BorderBrush="#3A4160" BorderThickness="1">
+    <!-- Outer border carries the teal glow (pulses for the first seconds, see code-behind); the card slides in. -->
+    <Border x:Name="Card" Margin="12" CornerRadius="16" Background="{StaticResource CardBrush}"
+            BorderBrush="{StaticResource AccentBrush}" BorderThickness="1.5" Opacity="0"
+            RenderTransformOrigin="0.5,0.5">
+        <Border.RenderTransform>
+            <TranslateTransform x:Name="SlideTransform" X="36" />
+        </Border.RenderTransform>
         <Border.Effect>
-            <DropShadowEffect BlurRadius="20" ShadowDepth="4" Opacity="0.5" Color="Black" />
+            <DropShadowEffect x:Name="Glow" BlurRadius="18" ShadowDepth="0" Opacity="0.55" Color="#3FB6A8" />
         </Border.Effect>
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <StackPanel Grid.Row="0">
+            <!-- Header band: "Neues Programm mit Ton". -->
+            <Border Grid.Row="0" CornerRadius="14.5,14.5,0,0" Background="{StaticResource HeaderBrush}" Padding="16,6,16,6">
                 <StackPanel Orientation="Horizontal">
-                    <Border Width="4" Height="16" CornerRadius="2" Background="{StaticResource AccentBrush}" Margin="0,0,8,0" />
-                    <TextBlock Text="{Binding ProgramName}" FontSize="15" FontWeight="SemiBold"
-                               Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis" />
+                    <!-- Small speaker with sound waves. -->
+                    <Path Width="16" Height="14" Stretch="Uniform" Fill="#0E1F22" VerticalAlignment="Center" Margin="0,0,8,0"
+                          Data="M0,5 L4,5 L9,0 L9,16 L4,11 L0,11 Z M11,4 C13,6 13,10 11,12 L12,13 C15,10 15,6 12,3 Z M13,1 C17,5 17,11 13,15 L14,16 C19,11 19,5 14,0 Z" />
+                    <TextBlock Text="{Binding Header}" FontSize="13" FontWeight="Bold" Foreground="#0E1F22"
+                               VerticalAlignment="Center" />
                 </StackPanel>
-                <TextBlock Text="{Binding MiniQuestion}" Margin="12,2,0,0" FontSize="11.5"
-                           Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis" />
-            </StackPanel>
+            </Border>
 
-            <ItemsControl Grid.Row="1" ItemsSource="{Binding Slots}" Focusable="False" Margin="0,8,0,0"
+            <!-- Program icon, name and question. -->
+            <Grid Grid.Row="1" Margin="18,12,18,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border Width="44" Height="44" CornerRadius="10" Background="#262B3D" Margin="0,0,12,0" VerticalAlignment="Center">
+                    <Grid>
+                        <TextBlock x:Name="IconFallback" Text="{Binding ProgramInitial}" FontSize="22" FontWeight="Bold"
+                                   Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <Image x:Name="ProgramIcon" Width="32" Height="32" Visibility="Collapsed"
+                               RenderOptions.BitmapScalingMode="HighQuality" />
+                    </Grid>
+                </Border>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding ProgramName}" FontSize="22" FontWeight="Bold"
+                               Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Question}" Margin="0,1,0,0" FontSize="13.5"
+                               Foreground="{StaticResource SubtleTextBrush}" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+            </Grid>
+
+            <ItemsControl Grid.Row="2" ItemsSource="{Binding Slots}" Focusable="False" Margin="22,10,22,0"
                           VerticalAlignment="Center">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -147,16 +182,27 @@
                                     Command="{Binding DataContext.AssignCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                     CommandParameter="{Binding}" />
                             <TextBlock Text="{Binding Number}" HorizontalAlignment="Center" Margin="0,4,0,0"
-                                       FontSize="11" Foreground="{StaticResource MutedBrush}" />
+                                       FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" />
                         </StackPanel>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
+            <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,2,12,6">
                 <Button Style="{StaticResource LinkButton}" Content="{Binding NotNowText}" Command="{Binding NotNowCommand}" />
                 <Button Style="{StaticResource LinkButton}" Content="{Binding NeverAskText}" Command="{Binding NeverAskCommand}" />
             </StackPanel>
+
+            <!-- Countdown until the question closes itself as "Nicht jetzt" (shrinks to the left, see code-behind). -->
+            <Border Grid.Row="4" Height="4" Margin="14,0,14,8" CornerRadius="2" Background="#262B3D"
+                    ToolTip="{Binding AutoCloseHint}">
+                <Border x:Name="CountdownBar" CornerRadius="2" Background="{StaticResource AccentBrush}"
+                        RenderTransformOrigin="0,0.5">
+                    <Border.RenderTransform>
+                        <ScaleTransform x:Name="CountdownScale" ScaleX="1" />
+                    </Border.RenderTransform>
+                </Border>
+            </Border>
         </Grid>
     </Border>
 </Window>

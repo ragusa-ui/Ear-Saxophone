@@ -141,7 +141,7 @@ public partial class App : Application
         _window = new MainWindow(_viewModel);
         _osd = new OsdWindow();
         _viewModel.OsdRequested += message => _osd.Present(message, _viewModel.OsdPosition, TimeSpan.FromSeconds(1.8));
-        _viewModel.ProgramPromptRequested += prompt => new ProgramPromptWindow(prompt).Present();
+        _viewModel.ProgramPromptRequested += prompt => new ProgramPromptWindow(prompt).Present(_viewModel.OsdPosition);
         _viewModel.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName == nameof(MainViewModel.ShowOsd) && !_viewModel.ShowOsd)

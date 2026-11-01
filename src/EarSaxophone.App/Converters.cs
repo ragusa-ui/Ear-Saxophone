@@ -34,6 +34,7 @@ public sealed class TargetSymbolConverter : IValueConverter
         TargetSymbol.Speakers => SymbolRegular.Speaker220,
         TargetSymbol.Microphone => SymbolRegular.Mic20,
         TargetSymbol.Device => SymbolRegular.DeviceEq20,
+        TargetSymbol.Strip => SymbolRegular.Link20,
         _ => SymbolRegular.AppGeneric20,
     };
 

@@ -26,6 +26,9 @@ public enum TargetSymbol
     Microphone,
     Application,
     Device,
+
+    /// <summary>"Wie Fader n": the targets of the fader in the same strip (<see cref="AudioTarget.Strip"/>).</summary>
+    Strip,
 }
 
 public sealed record Option<T>(string Text, T Value);
@@ -39,6 +42,12 @@ public sealed record ProgramInfo(string ExeName, string? ExePath = null);
 /// has an audio session (for its icon).
 /// </summary>
 public sealed record TargetEntry(AudioTarget Target, string Name, TargetSymbol Symbol, string? ExePath = null);
+
+/// <summary>
+/// What the editor needs to know about the strip of the edited control for "Wie Fader": the strip's fader, its label and its current
+/// volume targets. Null for the fader itself and for controls outside the strips.
+/// </summary>
+public sealed record StripContext(ControlId Fader, string FaderLabel, IReadOnlyList<AudioTarget> FaderTargets);
 
 /// <summary>One device in the list of devices that take part in the rotation of a "switch device" key.</summary>
 public sealed class DeviceChoice(string id, string name, DeviceFlow flow) : ObservableObject
@@ -65,6 +74,9 @@ public sealed class DeviceChoice(string id, string name, DeviceFlow flow) : Obse
 /// (<see cref="IsDirty"/>) and whether it can be applied (<see cref="CanApply"/>); nothing is saved by the editor itself.
 /// Actions of a loaded mapping that this editor cannot show (for example a media action next to mute targets) are kept
 /// unchanged (<see cref="KeptActions"/>) until they are dropped explicitly.
+/// On a key of a strip whose fader has volume targets, choosing "Stumm" preselects the target "Wie Fader n" (<see cref="AudioTarget.Strip"/>):
+/// the key then mutes whatever the fader controls, also programs added to the fader later. It can be removed like any target and
+/// added again from the add menu (<see cref="AddStripTargetCommand"/>). Knobs get no automatic target.
 /// </summary>
 public sealed class MappingEditorViewModel : ObservableObject
 {
@@ -96,6 +108,7 @@ public sealed class MappingEditorViewModel : ObservableObject
     private bool _isDirty;
     private bool _isValid = true;
     private bool _isChoosingProgram;
+    private StripContext? _strip;
 
     public MappingEditorViewModel()
     {
@@ -103,11 +116,13 @@ public sealed class MappingEditorViewModel : ObservableObject
         Targets.CollectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(HasTargets));
+            OnPropertyChanged(nameof(CanAddStripTarget));
             RebuildProgramChoices();
             Changed();
         };
         AddSpeakersCommand = new RelayCommand(_ => AddTarget(AudioTarget.Speakers));
         AddMicrophoneCommand = new RelayCommand(_ => AddTarget(AudioTarget.Microphone));
+        AddStripTargetCommand = new RelayCommand(_ => AddTarget(AudioTarget.Strip));
         AddAppCommand = new RelayCommand(p => AddApplication(p as string ?? _newAppName));
         ShowProgramChoiceCommand = new RelayCommand(_ => IsChoosingProgram = true);
         HideProgramChoiceCommand = new RelayCommand(_ => IsChoosingProgram = false);
@@ -178,6 +193,18 @@ public sealed class MappingEditorViewModel : ObservableObject
 
     public RelayCommand AddMicrophoneCommand { get; }
 
+    /// <summary>Adds "Wie Fader n" (entry of the add menu, shown while <see cref="CanAddStripTarget"/>).</summary>
+    public RelayCommand AddStripTargetCommand { get; }
+
+    /// <summary>The strip of the edited control (fader, label, its targets); null for faders and controls outside the strips.</summary>
+    public StripContext? Strip => _strip;
+
+    /// <summary>"Wie Fader n" can be added now: the control is a key or knob of a strip, the kind uses targets and it is not listed yet.</summary>
+    public bool CanAddStripTarget => _strip is not null && IsAudio && !Targets.Any(t => t.Target.IsStrip);
+
+    /// <summary>Text of the entry "Wie Fader n" with what the fader controls, for example "Wie Fader 1 (opera.exe + 2)".</summary>
+    public string StripTargetText => _strip is null ? Texts.TargetStripEmptyShort : Texts.UiStripTargetName(_strip.FaderLabel, DescribeTargets(_strip.FaderTargets));
+
     /// <summary>Adds the program given as parameter (a string), or else the typed <see cref="NewAppName"/>.</summary>
     public RelayCommand AddAppCommand { get; }
 
@@ -214,6 +241,11 @@ public sealed class MappingEditorViewModel : ObservableObject
             if (SetField(ref _kind, value))
             {
                 RaiseVisibility();
+                if (value == ActionKind.Mute)
+                {
+                    PreselectStripTarget();
+                }
+
                 Changed();
             }
         }
@@ -384,8 +416,11 @@ public sealed class MappingEditorViewModel : ObservableObject
         Reevaluate();
     }
 
-    /// <summary>Shows the mapping of a control (null = unmapped). The editor is clean afterwards.</summary>
-    public void Load(ControlId control, ControlShape shape, ControlMapping? mapping)
+    /// <summary>
+    /// Shows the mapping of a control (null = unmapped). The editor is clean afterwards. <paramref name="strip"/> tells about the
+    /// strip of the control ("Wie Fader"); null for the fader itself and for controls outside the strips.
+    /// </summary>
+    public void Load(ControlId control, ControlShape shape, ControlMapping? mapping, StripContext? strip = null)
     {
         _loading = true;
         try
@@ -393,6 +428,9 @@ public sealed class MappingEditorViewModel : ObservableObject
             Control = control;
             _shape = shape;
             _loaded = mapping;
+            _strip = strip;
+            OnPropertyChanged(nameof(Strip));
+            OnPropertyChanged(nameof(StripTargetText));
             IsChoosingProgram = false;
             OnPropertyChanged(nameof(Control));
             OnPropertyChanged(nameof(Shape));
@@ -414,7 +452,7 @@ public sealed class MappingEditorViewModel : ObservableObject
     }
 
     /// <summary>Throws away all changes and shows the loaded mapping again.</summary>
-    public void Revert() => Load(Control, _shape, _loaded);
+    public void Revert() => Load(Control, _shape, _loaded, _strip);
 
     /// <summary>Adds a target. Returns false (and says why) when it is invalid or already in the list.</summary>
     public bool AddTarget(AudioTarget target)
@@ -422,6 +460,12 @@ public sealed class MappingEditorViewModel : ObservableObject
         if (target is null || !target.IsValid)
         {
             ValidationMessage = Texts.UiEditorAppRequired;
+            return false;
+        }
+
+        if (target.IsStrip && _strip is null)
+        {
+            ValidationMessage = Texts.UiStripTargetNotHere;
             return false;
         }
 
@@ -571,7 +615,8 @@ public sealed class MappingEditorViewModel : ObservableObject
     };
 
     private static bool SameTarget(AudioTarget a, AudioTarget b) =>
-        a.Kind == AudioTargetKind.Application && b.Kind == AudioTargetKind.Application
+        a.IsStrip || b.IsStrip ? a.IsStrip && b.IsStrip
+        : a.Kind == AudioTargetKind.Application && b.Kind == AudioTargetKind.Application
             ? a.Flow == b.Flow && a.App is { } x && b.App is { } y && AppMatcher.NormalizeName(x.ExeName) == AppMatcher.NormalizeName(y.ExeName)
             : a == b;
 
@@ -696,6 +741,12 @@ public sealed class MappingEditorViewModel : ObservableObject
         }
 
         actions.AddRange(_kept);
+        if (_strip is null && _kind is ActionKind.SetVolume or ActionKind.Mute && Targets.Any(t => t.Target.IsStrip))
+        {
+            error = Texts.UiStripTargetNotHere;
+            return false;
+        }
+
         if (actions.FirstOrDefault(a => !a.IsValid) is not null)
         {
             error = Texts.UiEditorActionIncomplete;
@@ -776,6 +827,8 @@ public sealed class MappingEditorViewModel : ObservableObject
             case AudioTargetKind.SpecificDevice:
                 string? device = _devices.FirstOrDefault(d => d.Id == target.DeviceId).Name;
                 return new TargetEntry(target, device ?? Texts.TargetDeviceShort, TargetSymbol.Device);
+            case AudioTargetKind.Strip:
+                return new TargetEntry(target, StripTargetText, TargetSymbol.Strip);
             default:
                 return target.Flow == DeviceFlow.Capture
                     ? new TargetEntry(target, Texts.TargetMicrophoneShort, TargetSymbol.Microphone)
@@ -834,6 +887,25 @@ public sealed class MappingEditorViewModel : ObservableObject
         OnPropertyChanged(nameof(HasProgramChoices));
     }
 
+    /// <summary>
+    /// "Stumm" chosen on a key of a strip: when nothing is listed yet and the strip's fader has volume targets, "Wie Fader n" is the
+    /// target, so the key mutes what the fader controls without choosing every program again.
+    /// </summary>
+    private void PreselectStripTarget()
+    {
+        if (_strip is { FaderTargets.Count: > 0 } && _shape == ControlShape.Button && Targets.Count == 0)
+        {
+            Targets.Add(EntryFor(AudioTarget.Strip));
+        }
+    }
+
+    private static string DescribeTargets(IReadOnlyList<AudioTarget> targets) => targets.Count switch
+    {
+        0 => Texts.UiStripTargetNone,
+        1 => MappingDescriber.Describe(targets[0]),
+        _ => Texts.OsdMoreTargets(MappingDescriber.Describe(targets[0]), targets.Count - 1),
+    };
+
     private void RaiseKept()
     {
         OnPropertyChanged(nameof(KeptActions));
@@ -849,6 +921,7 @@ public sealed class MappingEditorViewModel : ObservableObject
         OnPropertyChanged(nameof(IsMedia));
         OnPropertyChanged(nameof(IsHotkey));
         OnPropertyChanged(nameof(IsSwitchDevice));
+        OnPropertyChanged(nameof(CanAddStripTarget));
     }
 
     private void RebuildDeviceChoices()

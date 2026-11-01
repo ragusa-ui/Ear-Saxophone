@@ -24,6 +24,12 @@ public sealed class ActionExecutor(AudioController audio, IKeyboardSender keyboa
                 return new ActionResult(ActionOutcome.Applied, Texts.ActionNotTriggered);
             }
 
+            if (StripTargets.IsStripAction(invocation.Action))
+            {
+                // Still "Wie Fader" after resolving: the strip's fader has no volume targets (or there is no such fader). Nothing to do.
+                return new ActionResult(ActionOutcome.Failed, UnresolvedStripMessage(invocation.Mapping.Control));
+            }
+
             return invocation.Action switch
             {
                 SetVolumeAction or MuteAction or SwitchDeviceAction => audio.Execute(invocation)
@@ -42,7 +48,8 @@ public sealed class ActionExecutor(AudioController audio, IKeyboardSender keyboa
     /// <summary>
     /// Runs several executions (normally all executions of one control message) and returns one result per execution,
     /// in the same order. Toggle mute actions pressed together on the same mapping switch as one group
-    /// (<see cref="AudioController.ToggleMute(IReadOnlyList{AudioTarget})"/>); everything else runs one by one.
+    /// (<see cref="AudioController.ToggleMute(IReadOnlyList{AudioTarget})"/>); everything else runs one by one. "Wie Fader" targets
+    /// must be resolved before (the dispatcher does, see <see cref="StripTargets"/>); one that is left does nothing and says why.
     /// </summary>
     public IReadOnlyList<ActionResult> ExecuteAll(IReadOnlyList<ActionInvocation> invocations)
     {
@@ -83,7 +90,12 @@ public sealed class ActionExecutor(AudioController audio, IKeyboardSender keyboa
         ExecuteAll(ActionInvocation.ForMapping(mapping, keyPhase, level));
 
     private static bool IsGroupToggle(ActionInvocation invocation) =>
-        invocation is { Phase: ActionPhase.Pressed, Action: MuteAction { Mode: MuteMode.Toggle } };
+        invocation is { Phase: ActionPhase.Pressed, Action: MuteAction { Mode: MuteMode.Toggle, Target.IsStrip: false } };
+
+    private static string UnresolvedStripMessage(Midi.ControlId control) =>
+        StripTargets.SourceFader(control) is { } fader && Devices.Nanokontrol2Layout.Find(fader) is { } layout
+            ? Texts.StripTargetEmpty(layout.Label)
+            : StripTargets.DefaultFaderOf(control) == control ? Texts.UiStripTargetNotHere : Texts.StripTargetNoFader;
 
     private IReadOnlyList<ActionResult> ToggleGroup(IReadOnlyList<AudioTarget> targets)
     {

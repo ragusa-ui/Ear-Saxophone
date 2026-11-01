@@ -18,6 +18,8 @@ public enum OsdPosition
 /// <param name="CheckForUpdates">Look for a new version in the background at start (at most once per 24 h, see <c>UpdateService</c>).</param>
 /// <param name="LastUpdateCheck">When the last automatic or manual update check ran (UTC); null = never.</param>
 /// <param name="LedFeedback">Show mute states on the key LEDs of the device (see <c>LedController</c>).</param>
+/// <param name="PromptSound">Play a short, quiet system sound when the question for a new program with sound appears.</param>
+/// <param name="LedBlink">Muted keys blink (device LEDs and picture) instead of being lit steadily (see <c>LedController.Blink</c>).</param>
 public sealed record AppSettings(
     bool StartWithWindows = false,
     bool KeepInTray = true,
@@ -28,7 +30,9 @@ public sealed record AppSettings(
     IReadOnlyList<string>? IgnoredPrograms = null,
     bool CheckForUpdates = true,
     DateTimeOffset? LastUpdateCheck = null,
-    bool LedFeedback = true)
+    bool LedFeedback = true,
+    bool PromptSound = true,
+    bool LedBlink = true)
 {
     /// <summary>The ignored programs, never null.</summary>
     [System.Text.Json.Serialization.JsonIgnore]
@@ -46,11 +50,13 @@ public sealed record AppSettings(
         && CheckForUpdates == other.CheckForUpdates
         && LastUpdateCheck == other.LastUpdateCheck
         && LedFeedback == other.LedFeedback
+        && PromptSound == other.PromptSound
+        && LedBlink == other.LedBlink
         && IgnoredProgramList.SequenceEqual(other.IgnoredProgramList);
 
     public override int GetHashCode() =>
         HashCode.Combine(StartWithWindows, KeepInTray, StartMinimized, ShowOsd, OsdPosition, AskForNewPrograms, IgnoredProgramList.Count,
-            HashCode.Combine(CheckForUpdates, LastUpdateCheck, LedFeedback));
+            HashCode.Combine(CheckForUpdates, LastUpdateCheck, LedFeedback, PromptSound, LedBlink));
 }
 
 public sealed class SettingsStore(string path)

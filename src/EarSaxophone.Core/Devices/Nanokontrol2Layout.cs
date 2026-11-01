@@ -13,6 +13,7 @@ public enum ElementKind
 /// <summary>
 /// One control of the device with its control number and its place in the schematic picture of the device
 /// (design units; the picture is <see cref="Nanokontrol2Layout.DeviceWidth"/> x <see cref="Nanokontrol2Layout.DeviceHeight"/>).
+/// <see cref="Strip"/> is the channel strip (column 1-8) of knob, S, M, R and fader; null for the transport keys.
 /// </summary>
 public sealed record LayoutElement(
     string Label,
@@ -24,7 +25,8 @@ public sealed record LayoutElement(
     double Height,
     string Glyph = "",
     string Caption = "",
-    string GlyphColor = "#DDE1EE")
+    string GlyphColor = "#DDE1EE",
+    int? Strip = null)
 {
     /// <summary>Knobs and faders are stepless, every key is a button.</summary>
     public ControlShape Shape => Kind == ElementKind.Button ? ControlShape.Button : ControlShape.Continuous;
@@ -57,6 +59,19 @@ public static class Nanokontrol2Layout
     /// <summary>Shape of a layout control; <see cref="ControlShape.Unknown"/> for controls outside the layout. Usable as <see cref="ShapeLookup"/>.</summary>
     public static ControlShape ShapeOf(ControlId control) => Find(control)?.Shape ?? ControlShape.Unknown;
 
+    /// <summary>The channel strip (1-8) of a control, null for the transport keys and for controls outside the layout.</summary>
+    public static int? StripOf(ControlId control) => Find(control)?.Strip;
+
+    /// <summary>The fader of a channel strip (1-8), null for other numbers.</summary>
+    public static ControlId? FaderOfStrip(int strip) =>
+        Elements.FirstOrDefault(e => e.Strip == strip && e.Kind == ElementKind.Fader)?.Control;
+
+    /// <summary>
+    /// The fader of the strip the control belongs to (also for the fader itself), null outside the strips. Usable as
+    /// <see cref="FaderLookup"/>.
+    /// </summary>
+    public static ControlId? StripFaderOf(ControlId control) => StripOf(control) is { } strip ? FaderOfStrip(strip) : null;
+
     private static ControlId Cc(int number) => new(ControlKind.ControlChange, 0, (byte)number);
 
     private static IReadOnlyList<LayoutElement> Build()
@@ -87,11 +102,11 @@ public static class Nanokontrol2Layout
         {
             double centre = 350 + i * 80;
             int n = i + 1;
-            elements.Add(new LayoutElement($"Drehregler {n}", Cc(16 + i), ElementKind.Knob, centre - KnobSize / 2, 36, KnobSize, KnobSize));
-            elements.Add(new LayoutElement($"S {n}", Cc(32 + i), ElementKind.Button, centre - ButtonWidth / 2, 120, ButtonWidth, ButtonHeight, "S", GlyphColor: "#E8CB55"));
-            elements.Add(new LayoutElement($"M {n}", Cc(48 + i), ElementKind.Button, centre - ButtonWidth / 2, 160, ButtonWidth, ButtonHeight, "M", GlyphColor: "#F29A4B"));
-            elements.Add(new LayoutElement($"R {n}", Cc(64 + i), ElementKind.Button, centre - ButtonWidth / 2, 200, ButtonWidth, ButtonHeight, "R", GlyphColor: "#F0605A"));
-            elements.Add(new LayoutElement($"Fader {n}", Cc(i), ElementKind.Fader, centre - FaderWidth / 2, 252, FaderWidth, FaderHeight, Caption: n.ToString()));
+            elements.Add(new LayoutElement($"Drehregler {n}", Cc(16 + i), ElementKind.Knob, centre - KnobSize / 2, 36, KnobSize, KnobSize, Strip: n));
+            elements.Add(new LayoutElement($"S {n}", Cc(32 + i), ElementKind.Button, centre - ButtonWidth / 2, 120, ButtonWidth, ButtonHeight, "S", GlyphColor: "#E8CB55", Strip: n));
+            elements.Add(new LayoutElement($"M {n}", Cc(48 + i), ElementKind.Button, centre - ButtonWidth / 2, 160, ButtonWidth, ButtonHeight, "M", GlyphColor: "#F29A4B", Strip: n));
+            elements.Add(new LayoutElement($"R {n}", Cc(64 + i), ElementKind.Button, centre - ButtonWidth / 2, 200, ButtonWidth, ButtonHeight, "R", GlyphColor: "#F0605A", Strip: n));
+            elements.Add(new LayoutElement($"Fader {n}", Cc(i), ElementKind.Fader, centre - FaderWidth / 2, 252, FaderWidth, FaderHeight, Caption: n.ToString(), Strip: n));
         }
 
         return elements;

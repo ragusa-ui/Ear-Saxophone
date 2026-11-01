@@ -14,7 +14,8 @@ internal static class DemoData
 
     /// <summary>
     /// A profile with several targets on one control (fader 1 "Spiele" with three games, fader 4 and M 3 with two programs),
-    /// all action kinds and a push-to-talk key. Fader 8 stays free (the self-check drags onto it).
+    /// all action kinds, a push-to-talk key and R 4 with "Wie Fader 4". Fader 8 stays free (the self-check drags onto it); S 4 and M 4
+    /// stay free (the self-check chooses "Stumm" there and expects "Wie Fader 4" preselected).
     /// </summary>
     public static ProfileDocument Create() => new(ProfileDocument.CurrentSchemaVersion, "Streaming",
     [
@@ -33,6 +34,7 @@ internal static class DemoData
             new ControlMapping(Cc(49), new MuteAction(App("Discord.exe"))),
             new ControlMapping(Cc(50), [new MuteAction(App("Spotify.exe")), new MuteAction(App("chrome.exe"))]),
             new ControlMapping(Cc(64), new SwitchDeviceAction(DeviceFlow.Render)),
+            new ControlMapping(Cc(67), new MuteAction(AudioTarget.Strip)), // R 4: "Wie Fader 4" (Spotify + chrome)
             new ControlMapping(Cc(41), new MediaAction(MediaCommand.PlayPause)),
             new ControlMapping(Cc(59), new MediaAction(MediaCommand.Next)),
             new ControlMapping(Cc(58), new MediaAction(MediaCommand.Previous)),

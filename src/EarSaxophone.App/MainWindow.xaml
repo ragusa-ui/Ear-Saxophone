@@ -460,6 +460,10 @@
                 <DataTrigger Binding="{Binding HasLed}" Value="False">
                     <Setter TargetName="LedOn" Property="Visibility" Value="Collapsed" />
                 </DataTrigger>
+                <!-- Blinken bei Stumm: in der dunklen Phase bleibt KeyLedOn sichtbar (IsMuteLit), wird aber ausgeblendet (Opacity). -->
+                <DataTrigger Binding="{Binding IsLedBlinkOff}" Value="True">
+                    <Setter TargetName="LedOn" Property="Opacity" Value="0" />
+                </DataTrigger>
                 <DataTrigger Binding="{Binding IsActive}" Value="True">
                     <Setter TargetName="Key" Property="Background" Value="{StaticResource KeyActiveBrush}" />
                     <Setter TargetName="Key" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
@@ -636,11 +640,17 @@
                             <ui:ToggleSwitch x:Name="LedFeedbackToggle" Content="{x:Static loc:Texts.UiLedFeedback}" ToolTip="{x:Static loc:Texts.UiLedFeedbackTip}"
                                              IsChecked="{Binding LedFeedback, Mode=TwoWay}" Margin="0,10,0,0"
                                              AutomationProperties.AutomationId="LedFeedbackToggle" />
+                            <ui:ToggleSwitch x:Name="LedBlinkToggle" Content="{x:Static loc:Texts.UiLedBlink}" ToolTip="{x:Static loc:Texts.UiLedBlinkTip}"
+                                             IsChecked="{Binding LedBlink, Mode=TwoWay}" Margin="0,10,0,0"
+                                             AutomationProperties.AutomationId="LedBlinkToggle" />
 
                             <Separator Margin="0,14,0,6" Opacity="0.4" />
                             <ui:ToggleSwitch x:Name="AskForNewProgramsToggle" Content="{x:Static loc:Texts.UiAskForNewPrograms}"
                                              IsChecked="{Binding AskForNewPrograms, Mode=TwoWay}" Margin="0,6,0,0"
                                              AutomationProperties.AutomationId="AskForNewProgramsToggle" />
+                            <ui:ToggleSwitch x:Name="PromptSoundToggle" Content="{x:Static loc:Texts.UiPromptSound}"
+                                             IsChecked="{Binding PromptSound, Mode=TwoWay}" Margin="0,6,0,0"
+                                             AutomationProperties.AutomationId="PromptSoundToggle" />
                             <ui:Button x:Name="ResetIgnoredButton" Content="{x:Static loc:Texts.UiResetIgnoredPrograms}" Icon="{ui:SymbolIcon ArrowReset20}"
                                        Margin="0,10,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
                                        Command="{Binding ResetIgnoredProgramsCommand}" IsEnabled="{Binding HasIgnoredPrograms}"
@@ -967,6 +977,16 @@
                                        IsOpen="{Binding IsChecked, ElementName=AddTargetButton, Mode=TwoWay}">
                                     <Border Style="{StaticResource PopupCard}" Padding="6" Width="316" AutomationProperties.AutomationId="AddTargetMenu">
                                         <StackPanel>
+                                            <Button x:Name="AddStripItem" Style="{StaticResource MenuItemButton}" Click="AddTargetItem_Click"
+                                                    Command="{Binding Editor.AddStripTargetCommand}" AutomationProperties.AutomationId="AddStripItem"
+                                                    AutomationProperties.Name="{x:Static loc:Texts.UiAddStripItem}" ToolTip="{x:Static loc:Texts.UiAddStripItemTip}"
+                                                    Visibility="{Binding Editor.CanAddStripTarget, Converter={StaticResource BoolToVis}}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <ui:SymbolIcon Symbol="Link20" FontSize="18" Foreground="{StaticResource AccentStrongBrush}" />
+                                                    <TextBlock Text="{Binding Editor.StripTargetText}" Margin="12,0,0,0" VerticalAlignment="Center"
+                                                               TextTrimming="CharacterEllipsis" MaxWidth="250" />
+                                                </StackPanel>
+                                            </Button>
                                             <Button x:Name="AddProgramItem" Style="{StaticResource MenuItemButton}" Click="AddTargetItem_Click"
                                                     Command="{Binding Editor.ShowProgramChoiceCommand}" AutomationProperties.AutomationId="AddProgramItem"
                                                     AutomationProperties.Name="{x:Static loc:Texts.UiAddProgramItem}">

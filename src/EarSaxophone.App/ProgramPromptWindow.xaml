@@ -1,0 +1,37 @@
+<Window x:Class="EarSaxophone.App.ProgramPromptWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Ear Saxophone Nachfrage"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ShowInTaskbar="False" ShowActivated="False" Topmost="True" Focusable="False"
+        ResizeMode="NoResize" SizeToContent="WidthAndHeight">
+    <Border Margin="16" CornerRadius="14" Padding="18,14,18,14" MinWidth="300" MaxWidth="420"
+            Background="#F0171A26" BorderBrush="#4A546E" BorderThickness="1">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="24" ShadowDepth="5" Opacity="0.55" Color="Black" />
+        </Border.Effect>
+        <StackPanel>
+            <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="SemiBold" Foreground="#F2F4FA" TextTrimming="CharacterEllipsis" />
+            <TextBlock Text="{Binding Question}" Margin="0,4,0,8" FontSize="13" Foreground="#A4ACC2" />
+            <ItemsControl ItemsSource="{Binding Choices}" Focusable="False">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button Content="{Binding Label}" ToolTip="{Binding TooltipText}" Margin="0,0,6,6" Padding="10,4"
+                                Focusable="False"
+                                Command="{Binding DataContext.AssignCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                CommandParameter="{Binding}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0">
+                <Button Content="{Binding NotNowText}" Command="{Binding NotNowCommand}" Focusable="False" Margin="0,0,8,0" Padding="12,4" />
+                <Button Content="{Binding NeverAskText}" Command="{Binding NeverAskCommand}" Focusable="False" Padding="12,4" />
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

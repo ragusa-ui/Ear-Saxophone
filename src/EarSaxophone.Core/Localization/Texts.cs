@@ -334,6 +334,8 @@ public static class Texts
 
     public const string PromptNeverAsk = "Nie fragen";
 
+    public const string PromptWindowTitle = "Ear Saxophone Nachfrage";
+
     public static string UiProgramAssigned(string program, string control) => $"{program} liegt jetzt auf {control}.";
 
     public static string OsdProgramAssigned(string control) => $"jetzt auf {control}";
@@ -345,6 +347,109 @@ public static class Texts
     public const string UiResetIgnoredPrograms = "Ignorierte Programme zurücksetzen";
 
     public const string UiIgnoredProgramsReset = "Ignorierte Programme zurückgesetzt.";
+
+    // Main window V2 (labels and tooltips of the window; bound with x:Static)
+    public const string UiReconnect = "Neu verbinden";
+
+    public const string UiReconnectTip = "Gerät neu öffnen, falls es nach Ruhezustand oder kurzem Abziehen nicht mehr reagiert";
+
+    public const string UiLearn = "MIDI-Learn";
+
+    public const string UiLearnTip = "Danach einen Regler oder eine Taste am Gerät bewegen oder drücken (auch weitere Regler, die nicht im Bild sind)";
+
+    public const string UiCancel = "Abbrechen";
+
+    public const string UiClose = "Schließen";
+
+    public const string UiSettings = "Einstellungen";
+
+    public const string UiOsdPosition = "Position der Anzeige";
+
+    public const string UiStartWithWindows = "Mit Windows starten";
+
+    public const string UiKeepInTray = "Im Infobereich bleiben";
+
+    public const string UiStartMinimized = "Minimiert starten";
+
+    public const string UiProfile = "Profil";
+
+    public const string UiProfileMenu = "Profil verwalten";
+
+    public const string UiProfileRename = "Name des Profils";
+
+    public const string UiProfileRenameTip = "Neuen Namen eingeben und mit Enter bestätigen";
+
+    public const string UiNewProfile = "Neues Profil";
+
+    public const string UiDeleteProfile = "Profil löschen";
+
+    public const string UiSelectPrompt = "Ein Element im Bild anklicken oder am Gerät bedienen.";
+
+    public const string UiDragHint = "Belegung auf ein anderes Element ziehen = verschieben oder tauschen, mit Strg = kopieren";
+
+    public const string UiPendingHint = "Am Gerät bedient:";
+
+    public const string UiSelectPending = "Wechseln";
+
+    public const string UiExtraControls = "Weitere Regler";
+
+    public const string UiActionKind = "Aktion";
+
+    public const string UiTargets = "Ziele";
+
+    public const string UiNoTargets = "Noch kein Ziel. Unten hinzufügen.";
+
+    public const string UiAddSpeakers = "Lautsprecher hinzufügen";
+
+    public const string UiAddMicrophone = "Mikrofon hinzufügen";
+
+    public const string UiAddProgram = "Programm hinzufügen";
+
+    public const string UiProgramPlaceholder = "Programm, z. B. Discord.exe";
+
+    public const string UiProgramTip = "Programme, die gerade Ton nutzen, stehen in der Liste. Der Name kann auch eingetippt werden.";
+
+    public const string UiRefreshLists = "Liste aktualisieren";
+
+    public const string UiMoveUp = "Nach oben (das erste Ziel zeigt die Anzeige)";
+
+    public const string UiMoveDown = "Nach unten";
+
+    public const string UiRemoveTarget = "Ziel entfernen";
+
+    public const string UiMuteModeLabel = "Verhalten der Taste";
+
+    public const string UiInvert = "Umkehren (oben = leise)";
+
+    public const string UiMinVolume = "Kleinste Lautstärke";
+
+    public const string UiMaxVolume = "Größte Lautstärke";
+
+    public const string UiMediaCommandLabel = "Medienbefehl";
+
+    public const string UiHotkeyPlaceholder = "z. B. Strg+Alt+M";
+
+    public const string UiHotkeyTip = "Wirkt auf das Programm im Vordergrund, z. B. Strg+Alt+M, Win+D";
+
+    public const string UiSwitchFlowLabel = "Gerätetyp";
+
+    public const string UiSwitchDevicesLabel = "Geräte im Wechsel";
+
+    public const string UiMappingNamePlaceholder = "Eigener Name (optional)";
+
+    public const string UiMappingNameTip = "Titel für Bild und Anzeige, z. B. Spiele";
+
+    public const string UiDropKeptActions = "Weitere Aktionen entfernen";
+
+    public const string UiApply = "Übernehmen";
+
+    public const string UiApplyTip = "Änderungen speichern (Enter)";
+
+    public const string UiDiscard = "Verwerfen";
+
+    public const string UiDiscardTip = "Änderungen verwerfen";
+
+    public const string UiRemoveMapping = "Belegung entfernen";
 }
 
 /// <summary>Display text of a control, used inside messages.</summary>

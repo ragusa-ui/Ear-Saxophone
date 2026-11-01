@@ -522,6 +522,23 @@ public sealed class NAudioAudioSystem : IAudioSystem, IDisposable
             set => Guarded(owner, ref _disposed, () => control.SimpleAudioVolume.Mute = value);
         }
 
+        public AudioSessionActivity Activity
+        {
+            get
+            {
+                try
+                {
+                    return Guarded(owner, ref _disposed, () => control.State) == NAudio.CoreAudioApi.Interfaces.AudioSessionState.AudioSessionStateActive
+                        ? AudioSessionActivity.Active
+                        : AudioSessionActivity.Inactive;
+                }
+                catch (Exception)
+                {
+                    return AudioSessionActivity.Unknown;
+                }
+            }
+        }
+
         /// <summary>Called by the owner while it holds the system lock.</summary>
         public void Dispose()
         {

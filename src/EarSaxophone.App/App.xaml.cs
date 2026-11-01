@@ -103,6 +103,7 @@ public partial class App : Application
         _window = new MainWindow(_viewModel);
         _osd = new OsdWindow();
         _viewModel.OsdRequested += message => _osd.Present(message, _viewModel.OsdPosition, TimeSpan.FromSeconds(1.8));
+        _viewModel.ProgramPromptRequested += prompt => new ProgramPromptWindow(prompt).Present();
         _viewModel.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName == nameof(MainViewModel.ShowOsd) && !_viewModel.ShowOsd)
@@ -305,8 +306,7 @@ public partial class App : Application
         window.Width = 1280;
         window.Height = 860;
         window.Show();
-        var element = _viewModel!.Elements.First(el => el.Label == "Fader 1");
-        _viewModel.Select(element);
+        DemoData.PrepareScreenshot(_viewModel!);
         var wait = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
         wait.Tick += (_, _) =>
         {

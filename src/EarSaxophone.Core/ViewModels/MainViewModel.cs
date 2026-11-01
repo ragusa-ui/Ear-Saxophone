@@ -25,6 +25,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly IAutostart _autostart;
     private readonly ControlRouter _router;
     private readonly MidiMessagePump _pump;
+    private readonly ControlShapeTracker _shapes = new(Nanokontrol2Layout.ShapeOf);
     private readonly List<Profile> _profiles;
     private readonly Dictionary<ControlId, ControllerElementViewModel> _elements = [];
     private int _active;
@@ -89,7 +90,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _midi.StateChanged += OnConnectionChanged;
         _midi.Warning += OnMidiWarning;
         _router.MessageObserved += OnMessageObserved;
-        _router.ActionRequested += OnActionRequested;
+        _router.ActionsRequested += OnActionsRequested;
         _router.ControlLearned += OnControlLearned;
 
         LearnCommand = new RelayCommand(_ => StartLearning());
@@ -256,6 +257,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         set => ChangeSettings(_settings with { StartMinimized = value }, nameof(StartMinimized));
     }
 
+    /// <summary>Shape of a control: from the device layout, for other controls what their values have shown so far.</summary>
+    public ControlShape ShapeOf(ControlId control) => _shapes.ShapeOf(control);
+
     /// <summary>Called about once per second: finds, reconnects and checks the MIDI device.</summary>
     public void Tick() => _midi.Poll();
 
@@ -272,7 +276,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _midi.Warning -= OnMidiWarning;
         _pump.Dispose();
         _router.MessageObserved -= OnMessageObserved;
-        _router.ActionRequested -= OnActionRequested;
+        _router.ActionsRequested -= OnActionsRequested;
         _router.ControlLearned -= OnControlLearned;
     }
 
@@ -399,8 +403,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             return;
         }
 
-        ActionResult result = _executor.Execute(new ActionInvocation(mapping, 0.5f));
-        ShowResult(_selected.Label, mapping, result);
+        IReadOnlyList<ActionInvocation> invocations = ActionInvocation.ForMapping(mapping, ActionPhase.Pressed, 0.5f);
+        ShowResults(_selected.Label, invocations, _executor.ExecuteAll(invocations));
     }
 
     public void NewProfile()
@@ -501,7 +505,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             ControlMapping? mapping = Current.Find(element.Control);
             element.HasMapping = mapping is not null;
-            element.IsContinuous = mapping?.Action.IsContinuous ?? false;
+            element.IsContinuous = mapping?.HasContinuousAction ?? false;
             element.Summary = MappingDescriber.Describe(mapping);
         }
 
@@ -535,13 +539,20 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private void OnMidiWarning(string text) => _ui.Post(() => StatusMessage = text);
 
-    private void OnMessageObserved(MidiMessage message) => _ui.Post(() =>
+    // Runs on the MIDI worker thread (the shape tracker is thread-safe); the picture is updated on the UI thread.
+    private void OnMessageObserved(MidiMessage message)
+    {
+        _shapes.Observe(message);
+        _ui.Post(() => ShowValue(message));
+    }
+
+    private void ShowValue(MidiMessage message)
     {
         if (_elements.TryGetValue(message.Control, out ControllerElementViewModel? element))
         {
             element.LastValue = message.Value;
         }
-    });
+    }
 
     private void OnControlLearned(ControlId control) => _ui.Post(() =>
     {
@@ -553,7 +564,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             OnPropertyChanged(nameof(HasExtraElements));
             ControlMapping? existing = Current.Find(control);
             element.HasMapping = existing is not null;
-            element.IsContinuous = existing?.Action.IsContinuous ?? false;
+            element.IsContinuous = existing?.HasContinuousAction ?? false;
             element.Summary = MappingDescriber.Describe(existing);
         }
 
@@ -561,25 +572,34 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         StatusMessage = Texts.UiLearned(element.Label);
     });
 
-    // Runs on the MIDI driver thread; only the result is passed on to the UI thread.
-    private void OnActionRequested(ActionInvocation invocation)
+    // Runs on the MIDI worker thread; only the results are passed on to the UI thread.
+    private void OnActionsRequested(IReadOnlyList<ActionInvocation> invocations)
     {
-        ActionResult result = _executor.Execute(invocation);
+        IReadOnlyList<ActionResult> results = _executor.ExecuteAll(invocations);
         _ui.Post(() =>
         {
-            string label = _elements.TryGetValue(invocation.Mapping.Control, out ControllerElementViewModel? element)
+            ControlId control = invocations[0].Mapping.Control;
+            string label = _elements.TryGetValue(control, out ControllerElementViewModel? element)
                 ? element.Label
-                : invocation.Mapping.Control.ToString();
-            ShowResult(label, invocation.Mapping, result);
+                : control.ToString();
+            ShowResults(label, invocations, results);
         });
     }
 
-    private void ShowResult(string label, ControlMapping mapping, ActionResult result)
+    /// <summary>Shows the outcome of one control message: the display for the first execution, the first failure (if any) or else the first message.</summary>
+    private void ShowResults(string label, IReadOnlyList<ActionInvocation> invocations, IReadOnlyList<ActionResult> results)
     {
-        if (ShowOsd && OsdMessageFactory.Create(mapping, result) is { } osd)
+        if (results.Count == 0)
+        {
+            return;
+        }
+
+        if (ShowOsd && OsdMessageFactory.Create(invocations, results) is { } osd)
         {
             OsdRequested?.Invoke(osd);
         }
+
+        ActionResult result = results.FirstOrDefault(r => r.IsFailure) ?? results[0];
 
         if (result.IsFailure)
         {

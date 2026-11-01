@@ -67,10 +67,27 @@ public enum MediaCommand
     Stop,
 }
 
-/// <summary>What a mapped control does. Continuous actions use the scaled control value, trigger actions fire on button press.</summary>
+/// <summary>How a <see cref="MuteAction"/> reacts to a key.</summary>
+public enum MuteMode
+{
+    /// <summary>Each press switches between muted and audible.</summary>
+    Toggle,
+
+    /// <summary>Muted while the key is held, audible again on release.</summary>
+    MuteWhileHeld,
+
+    /// <summary>Push-to-talk: audible while the key is held, muted again on release.</summary>
+    UnmuteWhileHeld,
+}
+
+/// <summary>
+/// What a mapped control does. Continuous actions use the scaled control value, the others fire on button press
+/// (and <see cref="MuteAction"/> in a "while held" mode also on release). The JSON type name of the old
+/// "toggleMute" action is migrated to "mute" when a file is loaded (see <c>ProfileSerializer</c>).
+/// </summary>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
 [JsonDerivedType(typeof(SetVolumeAction), "setVolume")]
-[JsonDerivedType(typeof(ToggleMuteAction), "toggleMute")]
+[JsonDerivedType(typeof(MuteAction), "mute")]
 [JsonDerivedType(typeof(MediaAction), "media")]
 [JsonDerivedType(typeof(HotkeyAction), "hotkey")]
 [JsonDerivedType(typeof(SwitchDeviceAction), "switchDevice")]
@@ -90,11 +107,16 @@ public sealed record SetVolumeAction(AudioTarget Target) : ActionDefinition
     public override bool IsValid => Target.IsValid;
 }
 
-public sealed record ToggleMuteAction(AudioTarget Target) : ActionDefinition
+/// <summary>Mutes or unmutes a target; see <see cref="MuteMode"/>. Several toggles in one mapping switch together.</summary>
+public sealed record MuteAction(AudioTarget Target, MuteMode Mode = MuteMode.Toggle) : ActionDefinition
 {
     public override bool IsContinuous => false;
 
-    public override bool IsValid => Target.IsValid;
+    public override bool IsValid => Target.IsValid && Enum.IsDefined(Mode);
+
+    /// <summary>True for the modes that also react when the key is released.</summary>
+    [JsonIgnore]
+    public bool IsWhileHeld => Mode is MuteMode.MuteWhileHeld or MuteMode.UnmuteWhileHeld;
 }
 
 public sealed record MediaAction(MediaCommand Command) : ActionDefinition

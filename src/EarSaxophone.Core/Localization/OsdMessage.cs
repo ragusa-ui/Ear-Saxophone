@@ -12,8 +12,15 @@ public sealed record OsdMessage(string Title, string? Detail = null, double? Lev
 
 public static class OsdMessageFactory
 {
-    /// <summary>Returns what to display for an executed mapping, or null when nothing should be shown (failures, shortcuts).</summary>
-    public static OsdMessage? Create(ControlMapping mapping, ActionResult result)
+    /// <summary>
+    /// Returns what to display for the executions of one control message, or null when nothing should be shown. For now
+    /// this is the display of the first execution (results in the same order as the executions).
+    /// </summary>
+    public static OsdMessage? Create(IReadOnlyList<ActionInvocation> invocations, IReadOnlyList<ActionResult> results) =>
+        invocations.Count > 0 && results.Count > 0 ? Create(invocations[0].Action, results[0]) : null;
+
+    /// <summary>Returns what to display for an executed action, or null when nothing should be shown (failures, shortcuts).</summary>
+    public static OsdMessage? Create(ActionDefinition action, ActionResult result)
     {
         if (result.IsFailure)
         {
@@ -21,11 +28,11 @@ public static class OsdMessageFactory
         }
 
         bool inactive = result.Outcome == ActionOutcome.Deferred;
-        switch (mapping.Action)
+        switch (action)
         {
             case SetVolumeAction volume:
                 return new OsdMessage(MappingDescriber.Describe(volume.Target), inactive ? Texts.OsdInactive : null, result.Level, result.Muted == true);
-            case ToggleMuteAction mute:
+            case MuteAction mute:
                 bool muted = result.Muted == true;
                 return new OsdMessage(MappingDescriber.Describe(mute.Target), inactive ? Texts.OsdInactive : muted ? Texts.OsdMuted : Texts.OsdUnmuted, null, muted);
             case SwitchDeviceAction switchDevice:

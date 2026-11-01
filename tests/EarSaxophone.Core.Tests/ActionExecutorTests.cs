@@ -38,7 +38,8 @@ public class ActionExecutorTests
     }
 
     private static ActionInvocation Invocation(ActionDefinition action, float level = 1f) =>
-        new(new ControlMapping(new ControlId(ControlKind.ControlChange, 0, 1), action), level);
+        new(new ControlMapping(new ControlId(ControlKind.ControlChange, 0, 1), action), action, level,
+            action.IsContinuous ? ActionPhase.Changed : ActionPhase.Pressed);
 
     private static (ActionExecutor Executor, FakeKeyboard Keyboard, FakeAudioSystem System) Create()
     {
@@ -109,7 +110,7 @@ public class ActionExecutorTests
         (ActionExecutor executor, FakeKeyboard keyboard, FakeAudioSystem system) = Create();
 
         ActionResult volume = executor.Execute(Invocation(new SetVolumeAction(AudioTarget.Speakers), 0.4f));
-        ActionResult mute = executor.Execute(Invocation(new ToggleMuteAction(AudioTarget.Speakers)));
+        ActionResult mute = executor.Execute(Invocation(new MuteAction(AudioTarget.Speakers)));
 
         Assert.Equal(ActionOutcome.Applied, volume.Outcome);
         Assert.Equal(ActionOutcome.Applied, mute.Outcome);
@@ -133,7 +134,7 @@ public class ActionExecutorTests
         (ActionExecutor executor, FakeKeyboard keyboard, _) = Create();
         var button = new ControlId(ControlKind.ControlChange, 0, 41);
         var router = new ControlRouter(new Profile("p", [new ControlMapping(button, new MediaAction(MediaCommand.PlayPause))]));
-        router.ActionRequested += i => executor.Execute(i);
+        router.ActionsRequested += i => executor.ExecuteAll(i);
 
         router.Handle(new MidiMessage(MidiMessageKind.ControlChange, 0, 41, 127));
         router.Handle(new MidiMessage(MidiMessageKind.ControlChange, 0, 41, 0));

@@ -39,11 +39,16 @@ public sealed class AudioController : IDisposable
 
     public void Dispose() => _system.Changed -= Reconcile;
 
-    /// <summary>Runs audio actions; returns null for actions that are not audio actions.</summary>
-    public ActionResult? Execute(ActionInvocation invocation) => invocation.Mapping.Action switch
+    /// <summary>
+    /// Runs one audio action; returns null for actions that are not audio actions. A toggle mute action toggles only its
+    /// own target here; use <see cref="ToggleMute(IReadOnlyList{AudioTarget})"/> to switch several targets together.
+    /// The phase decides what a "while held" mute action does (pressed: its mode's state, released: the opposite).
+    /// </summary>
+    public ActionResult? Execute(ActionInvocation invocation) => invocation.Action switch
     {
         SetVolumeAction a => SetVolume(a.Target, invocation.Level),
-        ToggleMuteAction a => ToggleMute(a.Target),
+        MuteAction { Mode: MuteMode.Toggle } a => ToggleMute(a.Target),
+        MuteAction a => SetMute(a.Target, MutedWhile(a.Mode, invocation.Phase)),
         SwitchDeviceAction a => SwitchDevice(a),
         _ => null,
     };
@@ -59,26 +64,32 @@ public sealed class AudioController : IDisposable
         }
     }
 
-    public ActionResult ToggleMute(AudioTarget target)
+    /// <summary>Mutes or unmutes the target (all sessions of an application; remembered for sessions that appear later).</summary>
+    public ActionResult SetMute(AudioTarget target, bool muted)
     {
         lock (_gate)
         {
-            if (target.Kind != AudioTargetKind.Application)
-            {
-                return SetEndpoint(target, e => e.Muted = !e.Muted, Texts.WhatMute, readMute: true);
-            }
+            return target.Kind == AudioTargetKind.Application
+                ? SetApplication(target, volume: null, muted: muted)
+                : SetEndpoint(target, e => e.Muted = muted, Texts.WhatMute, readMute: true);
+        }
+    }
 
-            if (!target.IsValid)
-            {
-                return Fail(Texts.AppNotSet);
-            }
+    public ActionResult ToggleMute(AudioTarget target) => ToggleMute([target])[0];
 
-            Desired desired = GetDesired(target);
-            List<IAudioSession> sessions = FindSessions(desired);
-            bool currentlyAllMuted = sessions.Count > 0
-                ? sessions.All(s => SafeMuted(s) == true)
-                : desired.Muted == true;
-            return SetApplication(target, volume: null, muted: !currentlyAllMuted);
+    /// <summary>
+    /// Toggles several targets as one group so they never drift apart: when any target is audible, all are muted;
+    /// otherwise all are unmuted. Targets whose state cannot be read (missing device) do not take part in the decision.
+    /// An application without sessions counts with its remembered state (audible when nothing was set yet).
+    /// Returns one result per target, in the same order.
+    /// </summary>
+    public IReadOnlyList<ActionResult> ToggleMute(IReadOnlyList<AudioTarget> targets)
+    {
+        lock (_gate)
+        {
+            List<bool> known = targets.Select(ReadMuted).OfType<bool>().ToList();
+            bool mute = known.Count == 0 || known.Any(m => !m);
+            return targets.Select(t => SetMute(t, mute)).ToList();
         }
     }
 
@@ -330,6 +341,41 @@ public sealed class AudioController : IDisposable
         _ when target.Flow == DeviceFlow.Capture => Texts.TargetDefaultRecording,
         _ => Texts.TargetDefaultPlayback,
     };
+
+    /// <summary>The mute state a "while held" mode wants in this phase: the mode's state while pressed, the opposite after release.</summary>
+    private static bool MutedWhile(MuteMode mode, ActionPhase phase)
+    {
+        bool held = phase != ActionPhase.Released;
+        return mode == MuteMode.MuteWhileHeld ? held : !held;
+    }
+
+    /// <summary>Current mute state of a target, or null when it cannot be read. Call under the lock.</summary>
+    private bool? ReadMuted(AudioTarget target)
+    {
+        if (target.Kind == AudioTargetKind.Application)
+        {
+            if (!target.IsValid)
+            {
+                return null;
+            }
+
+            Desired desired = GetDesired(target);
+            List<IAudioSession> sessions = FindSessions(desired);
+            return sessions.Count > 0 ? sessions.All(s => SafeMuted(s) == true) : desired.Muted == true;
+        }
+
+        try
+        {
+            IAudioEndpoint? endpoint = target.Kind == AudioTargetKind.SpecificDevice
+                ? (string.IsNullOrWhiteSpace(target.DeviceId) ? null : _system.GetEndpoint(target.DeviceId))
+                : _system.GetDefaultEndpoint(target.Flow, target.Role);
+            return endpoint?.Muted;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
 
     private static ActionResult Fail(string message) => new(ActionOutcome.Failed, message);
 }

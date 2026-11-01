@@ -246,14 +246,14 @@ public class MainViewModelTests : IDisposable
         // A new program start reads the saved profile.
         ProfileLoadResult reloaded = new ProfileStore(ProfilePath).Load();
         Assert.Null(reloaded.Warning);
-        Assert.IsType<SetVolumeAction>(reloaded.Document.Profiles[0].Find(tile.Control)!.Action);
+        Assert.IsType<SetVolumeAction>(reloaded.Document.Profiles[0].Find(tile.Control)!.Actions[0]);
     }
 
     [Fact]
     public void MicrophoneMuteButton_TogglesTheRecordingDevice_NotTheSpeakers()
     {
         MainViewModel vm = Create();
-        Assign(vm, "M 1", e => { e.Kind = ActionKind.ToggleMute; e.Target = TargetKind.Microphone; });
+        Assign(vm, "M 1", e => { e.Kind = ActionKind.Mute; e.Target = TargetKind.Microphone; });
 
         Send(vm, 48, 127);
         Send(vm, 48, 0);
@@ -524,7 +524,7 @@ public class MainViewModelTests : IDisposable
         Assert.Equal(["Headset-Mikrofon", "Mikrofon"], vm.Editor.DeviceChoices.Select(c => c.Name));
         vm.ApplyEditor();
 
-        var action = Assert.IsType<SwitchDeviceAction>(vm.Current.Find(Element(vm, "Track ►").Control)!.Action);
+        var action = Assert.IsType<SwitchDeviceAction>(vm.Current.Find(Element(vm, "Track ►").Control)!.Actions[0]);
         Assert.Equal(DeviceFlow.Capture, action.Flow);
         Assert.Empty(action.SelectedIds);
         Assert.Equal("Aufnahmegerät wechseln", Element(vm, "Track ►").Summary);
@@ -554,7 +554,7 @@ public class MainViewModelTests : IDisposable
         Assert.DoesNotContain(vm.Editor.DeviceChoices, c => c.Id == "hs");
         vm.ApplyEditor();
 
-        var action = Assert.IsType<SwitchDeviceAction>(vm.Current.Find(Element(vm, "Cycle").Control)!.Action);
+        var action = Assert.IsType<SwitchDeviceAction>(vm.Current.Find(Element(vm, "Cycle").Control)!.Actions[0]);
         Assert.Contains("hs", action.SelectedIds);
     }
 
@@ -564,7 +564,7 @@ public class MainViewModelTests : IDisposable
         MainViewModel vm = Create();
         Assign(vm, "Fader 1", e => { e.Kind = ActionKind.SetVolume; e.Target = TargetKind.Application; e.AppName = "Discord.exe"; });
         Assign(vm, "Fader 2", e => { e.Kind = ActionKind.SetVolume; e.Target = TargetKind.Speakers; });
-        Assign(vm, "M 1", e => { e.Kind = ActionKind.ToggleMute; e.Target = TargetKind.Microphone; });
+        Assign(vm, "M 1", e => { e.Kind = ActionKind.Mute; e.Target = TargetKind.Microphone; });
         Assign(vm, "Play", e => { e.Kind = ActionKind.Media; e.Media = MediaCommand.PlayPause; });
         Assign(vm, "Cycle", e => { e.Kind = ActionKind.Hotkey; e.HotkeyText = "Ctrl+Alt+M"; });
         var shown = new List<OsdMessage>();
@@ -680,5 +680,128 @@ public class MainViewModelTests : IDisposable
         MainViewModel vm = Create(); // FakeAutostart says: not enabled
 
         Assert.False(vm.StartWithWindows);
+    }
+
+    [Fact]
+    public void Version1ProfileFile_IsMigratedAtStartup_WorksAtOnce_AndIsBackedUpOnFirstSave()
+    {
+        File.WriteAllText(ProfilePath, ProfileMigrationTests.RealV1File);
+        MainViewModel vm = Create();
+
+        Assert.False(vm.HasError);
+        Assert.Equal("Streaming", vm.ActiveProfileName);
+        Assert.Equal("Lautstärke: Discord.exe", Element(vm, "Fader 1").Summary);
+        Assert.Equal("Stumm schalten: Discord.exe", Element(vm, "M 2").Summary);
+        Send(vm, 0, 127);
+        Assert.Equal(1f, _discord.Volume, 5);
+        Send(vm, 49, 127);
+        Assert.True(_discord.Muted);
+
+        Assign(vm, "Fader 2", e => { e.Kind = ActionKind.SetVolume; e.Target = TargetKind.Speakers; });
+
+        Assert.Equal(ProfileMigrationTests.RealV1File, File.ReadAllText(ProfilePath + ".v1.bak"));
+        Assert.Equal(2, ProfileSerializer.PeekSchemaVersion(File.ReadAllText(ProfilePath)));
+    }
+
+    [Fact]
+    public void SeveralProgramsOnOneFader_FromTheFile_AllFollowTheFader_AndTheEditorKeepsThem()
+    {
+        var fader4 = new ControlId(ControlKind.ControlChange, 0, 3);
+        var games = new ControlMapping(fader4,
+            [new SetVolumeAction(AudioTarget.Application("game1.exe")), new SetVolumeAction(AudioTarget.Application("game2.exe"))]);
+        new ProfileStore(ProfilePath).Save(new ProfileDocument(ProfileDocument.CurrentSchemaVersion, "p", [new Profile("p", [games])]));
+        MainViewModel vm = Create();
+        FakeSession game1 = _audio.AddSession(@"C:\Games\game1.exe", "spk");
+        FakeSession game2 = _audio.AddSession(@"C:\Games\game2.exe", "spk");
+        var shown = new List<OsdMessage>();
+        vm.OsdRequested += shown.Add;
+
+        Send(vm, 3, 0);
+
+        Assert.Equal(0f, game1.Volume, 5);
+        Assert.Equal(0f, game2.Volume, 5);
+        Assert.Equal(1f, _discord.Volume, 5);
+        Assert.Equal("Lautstärke: game1.exe (+1)", Element(vm, "Fader 4").Summary);
+        Assert.True(Element(vm, "Fader 4").IsContinuous);
+        Assert.Equal("game1.exe", shown.Last().Title);              // first execution for now
+
+        // The editor of this stage edits the first program and keeps the second.
+        vm.Select(Element(vm, "Fader 4"));
+        Assert.Equal("game1.exe", vm.Editor.AppName);
+        vm.Editor.AppName = "game3.exe";
+        vm.Editor.MaxPercent = 50;
+        vm.ApplyEditor();
+
+        ControlMapping saved = new ProfileStore(ProfilePath).Load().Document.Profiles[0].Find(fader4)!;
+        Assert.Equal(
+            [new SetVolumeAction(AudioTarget.Application("game3.exe")), new SetVolumeAction(AudioTarget.Application("game2.exe"))],
+            saved.Actions);
+        Assert.Equal(new ValueScaling(0f, 0.5f, false), saved.Scaling);
+
+        // Switching the fader to a key action does not keep volume actions next to it.
+        vm.Select(Element(vm, "Fader 4"));
+        vm.Editor.Kind = ActionKind.Media;
+        vm.ApplyEditor();
+        Assert.Equal([new MediaAction(MediaCommand.PlayPause)], vm.Current.Find(fader4)!.Actions);
+    }
+
+    [Fact]
+    public void NamedPushToTalkKey_FromTheFile_WorksWhileHeld_AndTheEditorKeepsModeAndName()
+    {
+        var r1 = new ControlId(ControlKind.ControlChange, 0, 64);
+        new ProfileStore(ProfilePath).Save(new ProfileDocument(ProfileDocument.CurrentSchemaVersion, "p",
+            [new Profile("p", [new ControlMapping(r1, new MuteAction(AudioTarget.Microphone, MuteMode.UnmuteWhileHeld), Name: "Funk")])]));
+        MainViewModel vm = Create();
+        FakeEndpoint mic = _audio.Endpoints.Single(e => e.Flow == DeviceFlow.Capture);
+        mic.Muted = true;
+
+        Send(vm, 64, 127);
+        Assert.False(mic.Muted);
+        Send(vm, 64, 0);
+        Assert.True(mic.Muted);
+        Assert.Equal("Funk", Element(vm, "R 1").Summary);
+
+        vm.Select(Element(vm, "R 1"));
+        Assert.Equal(ActionKind.Mute, vm.Editor.Kind);
+        Assert.Equal(MuteMode.UnmuteWhileHeld, vm.Editor.MuteMode);
+        vm.ApplyEditor();
+        Assert.Equal(new ControlMapping(r1, new MuteAction(AudioTarget.Microphone, MuteMode.UnmuteWhileHeld), Name: "Funk"), vm.Current.Find(r1));
+    }
+
+    [Fact]
+    public void GroupMuteKey_FromTheFile_SwitchesAllTargetsTogether()
+    {
+        var m1 = new ControlId(ControlKind.ControlChange, 0, 48);
+        new ProfileStore(ProfilePath).Save(new ProfileDocument(ProfileDocument.CurrentSchemaVersion, "p",
+            [new Profile("p", [new ControlMapping(m1, [new MuteAction(AudioTarget.Speakers), new MuteAction(AudioTarget.Application("Discord.exe"))])])]));
+        MainViewModel vm = Create();
+        _speakers.Muted = true;
+
+        Send(vm, 48, 127);
+        Send(vm, 48, 0);
+        Assert.True(_speakers.Muted);
+        Assert.True(_discord.Muted);
+
+        Send(vm, 48, 127);
+        Send(vm, 48, 0);
+        Assert.False(_speakers.Muted);
+        Assert.False(_discord.Muted);
+    }
+
+    [Fact]
+    public void ShapeOf_KnowsTheLayout_AndLearnsExtraControls()
+    {
+        MainViewModel vm = Create();
+        var extra = new ControlId(ControlKind.ControlChange, 0, 100);
+
+        Assert.Equal(ControlShape.Continuous, vm.ShapeOf(new ControlId(ControlKind.ControlChange, 0, 0)));
+        Assert.Equal(ControlShape.Button, vm.ShapeOf(new ControlId(ControlKind.ControlChange, 0, 41)));
+        Assert.Equal(ControlShape.Unknown, vm.ShapeOf(extra));
+
+        Send(vm, 100, 127);
+        Send(vm, 100, 0);
+        Assert.Equal(ControlShape.Button, vm.ShapeOf(extra));
+        Send(vm, 100, 33);
+        Assert.Equal(ControlShape.Continuous, vm.ShapeOf(extra));
     }
 }

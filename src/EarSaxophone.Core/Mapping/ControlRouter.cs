@@ -18,8 +18,11 @@ public sealed class ControlRouter
         _dispatcher = new MappingDispatcher(profile);
     }
 
-    /// <summary>A mapped control produced an action. Raised on the thread that delivered the message.</summary>
-    public event Action<ActionInvocation>? ActionRequested;
+    /// <summary>
+    /// A mapped control produced actions: all executions of one message (one mapping, never empty), so they can run
+    /// together (group mute). Raised on the thread that delivered the message.
+    /// </summary>
+    public event Action<IReadOnlyList<ActionInvocation>>? ActionsRequested;
 
     /// <summary>MIDI-Learn identified a control.</summary>
     public event Action<ControlId>? ControlLearned;
@@ -65,7 +68,7 @@ public sealed class ControlRouter
     public void Handle(MidiMessage message)
     {
         ControlId? learned;
-        ActionInvocation? invocation = null;
+        IReadOnlyList<ActionInvocation> invocations = [];
         bool wasLearning;
         lock (_gate)
         {
@@ -73,7 +76,7 @@ public sealed class ControlRouter
             learned = _learn.TryCapture(message);
             if (!wasLearning)
             {
-                invocation = _dispatcher.Dispatch(message);
+                invocations = _dispatcher.Dispatch(message);
             }
         }
 
@@ -83,9 +86,9 @@ public sealed class ControlRouter
             ControlLearned?.Invoke(control);
         }
 
-        if (invocation is not null)
+        if (invocations.Count > 0)
         {
-            ActionRequested?.Invoke(invocation);
+            ActionsRequested?.Invoke(invocations);
         }
     }
 }

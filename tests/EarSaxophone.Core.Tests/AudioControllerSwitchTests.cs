@@ -136,7 +136,7 @@ public class AudioControllerSwitchTests
         ProfileDocument copy = ProfileSerializer.Deserialize(json);
 
         Assert.Contains("\"type\": \"switchDevice\"", json);
-        Assert.Equal(original, copy.Profiles[0].Mappings[0].Action);
+        Assert.Equal(original, copy.Profiles[0].Mappings[0].Actions[0]);
         Assert.Empty(copy.Profiles.SelectMany(p => p.Validate()));
     }
 
@@ -171,5 +171,5 @@ public class AudioControllerSwitchTests
     }
 
     private static ActionInvocation Invocation(ActionDefinition action) =>
-        new(new ControlMapping(new ControlId(ControlKind.ControlChange, 0, 58), action), 1f);
+        new(new ControlMapping(new ControlId(ControlKind.ControlChange, 0, 58), action), action, 1f, ActionPhase.Pressed);
 }

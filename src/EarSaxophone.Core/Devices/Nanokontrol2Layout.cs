@@ -1,3 +1,4 @@
+using EarSaxophone.Core.Mapping;
 using EarSaxophone.Core.Midi;
 
 namespace EarSaxophone.Core.Devices;
@@ -23,7 +24,11 @@ public sealed record LayoutElement(
     double Height,
     string Glyph = "",
     string Caption = "",
-    string GlyphColor = "#DDE1EE");
+    string GlyphColor = "#DDE1EE")
+{
+    /// <summary>Knobs and faders are stepless, every key is a button.</summary>
+    public ControlShape Shape => Kind == ElementKind.Button ? ControlShape.Button : ControlShape.Continuous;
+}
 
 /// <summary>
 /// Schematic layout of a Korg nanoKONTROL2 (transport block on the left, eight channel strips with knob, S, M, R and fader)
@@ -43,6 +48,14 @@ public static class Nanokontrol2Layout
     public const double FaderHeight = 175;
 
     public static IReadOnlyList<LayoutElement> Elements { get; } = Build();
+
+    private static readonly Dictionary<ControlId, LayoutElement> ByControl = Elements.ToDictionary(e => e.Control);
+
+    /// <summary>The element with this control number, or null for a control that is not part of the layout.</summary>
+    public static LayoutElement? Find(ControlId control) => ByControl.GetValueOrDefault(control);
+
+    /// <summary>Shape of a layout control; <see cref="ControlShape.Unknown"/> for controls outside the layout. Usable as <see cref="ShapeLookup"/>.</summary>
+    public static ControlShape ShapeOf(ControlId control) => Find(control)?.Shape ?? ControlShape.Unknown;
 
     private static ControlId Cc(int number) => new(ControlKind.ControlChange, 0, (byte)number);
 

@@ -10,7 +10,7 @@ public enum ActionKind
 {
     None,
     SetVolume,
-    ToggleMute,
+    Mute,
     Media,
     Hotkey,
     SwitchDevice,
@@ -58,12 +58,15 @@ public sealed class MappingEditorViewModel : ObservableObject
     private DeviceFlow _switchFlow = DeviceFlow.Render;
     private List<string> _selectedDeviceIds = [];
     private List<(string Id, string Name, DeviceFlow Flow)> _devices = [];
+    private MuteMode _muteMode = MuteMode.Toggle;
+    private string? _name;
+    private IReadOnlyList<ActionDefinition> _otherActions = [];
 
     public IReadOnlyList<Option<ActionKind>> KindOptions { get; } =
     [
         new(Texts.UiKindNone, ActionKind.None),
         new(Texts.UiKindVolume, ActionKind.SetVolume),
-        new(Texts.UiKindMute, ActionKind.ToggleMute),
+        new(Texts.UiKindMute, ActionKind.Mute),
         new(Texts.UiKindMedia, ActionKind.Media),
         new(Texts.UiKindHotkey, ActionKind.Hotkey),
         new(Texts.UiKindSwitch, ActionKind.SwitchDevice),
@@ -171,7 +174,14 @@ public sealed class MappingEditorViewModel : ObservableObject
 
     public bool HasValidationMessage => _validationMessage is not null;
 
-    public bool IsAudio => _kind is ActionKind.SetVolume or ActionKind.ToggleMute;
+    public bool IsAudio => _kind is ActionKind.SetVolume or ActionKind.Mute;
+
+    /// <summary>Mode of a mute action (kept from the loaded mapping; the editor of this stage offers no choice).</summary>
+    public MuteMode MuteMode
+    {
+        get => _muteMode;
+        set => SetField(ref _muteMode, value);
+    }
 
     public bool IsVolume => _kind == ActionKind.SetVolume;
 
@@ -222,8 +232,13 @@ public sealed class MappingEditorViewModel : ObservableObject
         MaxPercent = 100;
         _selectedDeviceIds = [];
         _switchFlow = DeviceFlow.Render;
+        MuteMode = MuteMode.Toggle;
 
-        switch (mapping?.Action)
+        // This editor edits the first action; further actions and the own name are kept as they are.
+        _name = mapping?.Name;
+        _otherActions = mapping is null ? [] : mapping.Actions.Skip(1).ToList();
+
+        switch (mapping?.FirstAction)
         {
             case SetVolumeAction volume:
                 LoadAudio(volume.Target);
@@ -232,9 +247,10 @@ public sealed class MappingEditorViewModel : ObservableObject
                 MaxPercent = Math.Round(mapping.EffectiveScaling.Max * 100);
                 Kind = ActionKind.SetVolume;
                 break;
-            case ToggleMuteAction mute:
+            case MuteAction mute:
                 LoadAudio(mute.Target);
-                Kind = ActionKind.ToggleMute;
+                MuteMode = mute.Mode;
+                Kind = ActionKind.Mute;
                 break;
             case MediaAction media:
                 Media = media.Command;
@@ -265,6 +281,23 @@ public sealed class MappingEditorViewModel : ObservableObject
     /// </summary>
     public bool TryBuild(out ControlMapping? mapping, out string? error)
     {
+        bool ok = TryBuildFirst(out mapping, out error);
+        if (ok && mapping is not null && (_otherActions.Count > 0 || _name is not null))
+        {
+            // Further actions stay only while they are of the same family (stepless or key) as the edited one.
+            ActionDefinition first = mapping.Actions[0];
+            mapping = mapping with
+            {
+                Actions = [first, .. _otherActions.Where(a => a.IsContinuous == first.IsContinuous)],
+                Name = _name,
+            };
+        }
+
+        return ok;
+    }
+
+    private bool TryBuildFirst(out ControlMapping? mapping, out string? error)
+    {
         mapping = null;
         error = null;
         switch (_kind)
@@ -272,15 +305,15 @@ public sealed class MappingEditorViewModel : ObservableObject
             case ActionKind.None:
                 break;
             case ActionKind.SetVolume:
-            case ActionKind.ToggleMute:
+            case ActionKind.Mute:
                 if (!TryBuildTarget(out AudioTarget? target, out error))
                 {
                     break;
                 }
 
-                if (_kind == ActionKind.ToggleMute)
+                if (_kind == ActionKind.Mute)
                 {
-                    mapping = new ControlMapping(Control, new ToggleMuteAction(target!));
+                    mapping = new ControlMapping(Control, new MuteAction(target!, _muteMode));
                     break;
                 }
 

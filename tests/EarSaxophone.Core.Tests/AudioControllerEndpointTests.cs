@@ -122,8 +122,8 @@ public class AudioControllerEndpointTests
         var fader = new ControlMapping(new Core.Midi.ControlId(Core.Midi.ControlKind.ControlChange, 0, 0), new SetVolumeAction(AudioTarget.Speakers));
         var media = new ControlMapping(new Core.Midi.ControlId(Core.Midi.ControlKind.ControlChange, 0, 1), new MediaAction(MediaCommand.Next));
 
-        Assert.NotNull(controller.Execute(new ActionInvocation(fader, 0.2f)));
+        Assert.NotNull(controller.Execute(new ActionInvocation(fader, fader.Actions[0], 0.2f, ActionPhase.Changed)));
         Assert.Equal(0.2f, speakers.Volume, 5);
-        Assert.Null(controller.Execute(new ActionInvocation(media, 1f)));
+        Assert.Null(controller.Execute(new ActionInvocation(media, media.Actions[0], 1f, ActionPhase.Pressed)));
     }
 }

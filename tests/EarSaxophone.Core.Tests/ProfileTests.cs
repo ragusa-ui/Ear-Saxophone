@@ -23,7 +23,7 @@ public class ProfileTests : IDisposable
             new ControlMapping(new ControlId(ControlKind.ControlChange, 0, 0), new SetVolumeAction(AudioTarget.Speakers)),
             new ControlMapping(new ControlId(ControlKind.ControlChange, 0, 1), new SetVolumeAction(AudioTarget.Microphone), new ValueScaling(0.1f, 0.9f, true)),
             new ControlMapping(new ControlId(ControlKind.ControlChange, 0, 2), new SetVolumeAction(AudioTarget.Application("Discord.exe"))),
-            new ControlMapping(new ControlId(ControlKind.ControlChange, 0, 32), new ToggleMuteAction(new AudioTarget(AudioTargetKind.DefaultDevice, DeviceFlow.Capture, DeviceRole.Communications))),
+            new ControlMapping(new ControlId(ControlKind.ControlChange, 0, 32), new MuteAction(new AudioTarget(AudioTargetKind.DefaultDevice, DeviceFlow.Capture, DeviceRole.Communications))),
             new ControlMapping(new ControlId(ControlKind.ControlChange, 0, 41), new MediaAction(MediaCommand.PlayPause)),
             new ControlMapping(new ControlId(ControlKind.Note, 1, 60), new HotkeyAction("Ctrl+Alt+M")),
         ]),
@@ -68,7 +68,7 @@ public class ProfileTests : IDisposable
     [Fact]
     public void Validate_ReportsDuplicateIncompleteAndBadScaling()
     {
-        var id = new ControlId(ControlKind.ControlChange, 0, 3);
+        var id = new ControlId(ControlKind.ControlChange, 0, 100); // not in the layout: every action fits
         var profile = new Profile("x",
         [
             new ControlMapping(id, new MediaAction(MediaCommand.Next)),
@@ -77,6 +77,92 @@ public class ProfileTests : IDisposable
         ]);
 
         Assert.Equal(3, profile.Validate().Count);
+    }
+
+    [Fact]
+    public void Validate_ReportsActionsThatDoNotFitTheControl_InGerman()
+    {
+        var profile = new Profile("x",
+        [
+            new ControlMapping(new ControlId(ControlKind.ControlChange, 0, 3), new HotkeyAction("Ctrl+M")),          // Fader 4
+            new ControlMapping(new ControlId(ControlKind.ControlChange, 0, 16), new MuteAction(AudioTarget.Speakers)), // Drehregler 1
+            new ControlMapping(new ControlId(ControlKind.ControlChange, 0, 45), new SetVolumeAction(AudioTarget.Speakers)), // Aufnahme
+        ]);
+
+        IReadOnlyList<string> problems = profile.Validate();
+
+        Assert.Equal(3, problems.Count);
+        Assert.Contains("CC 3 (Kanal 1): Tastenkombination passt nicht zu einem stufenlosen Regler (Fader oder Drehregler).", problems);
+        Assert.Contains("CC 16 (Kanal 1): Stummschaltung passt nicht zu einem stufenlosen Regler (Fader oder Drehregler).", problems);
+        Assert.Contains("CC 45 (Kanal 1): Lautstärke passt nicht zu einer Taste.", problems);
+    }
+
+    [Fact]
+    public void Validate_AcceptsEveryKeyActionOnKeys_AndVolumeOnFadersAndKnobs()
+    {
+        var key = new ControlId(ControlKind.ControlChange, 0, 41);
+        var profile = new Profile("x",
+        [
+            new ControlMapping(new ControlId(ControlKind.ControlChange, 0, 0),
+                [new SetVolumeAction(AudioTarget.Application("a.exe")), new SetVolumeAction(AudioTarget.Application("b.exe"))]),
+            new ControlMapping(new ControlId(ControlKind.ControlChange, 0, 16), new SetVolumeAction(AudioTarget.Microphone)),
+            new ControlMapping(key,
+            [
+                new MuteAction(AudioTarget.Speakers, MuteMode.MuteWhileHeld),
+                new MuteAction(AudioTarget.Microphone, MuteMode.UnmuteWhileHeld),
+                new MediaAction(MediaCommand.Stop),
+                new HotkeyAction("Ctrl+Alt+M"),
+                new SwitchDeviceAction(DeviceFlow.Capture),
+            ]),
+        ]);
+
+        Assert.Empty(profile.Validate());
+    }
+
+    [Fact]
+    public void Validate_UsesTheGivenShapes_AndReportsEachUnfitKindOnce()
+    {
+        var learned = new ControlId(ControlKind.ControlChange, 5, 7);
+        var profile = new Profile("x",
+            [new ControlMapping(learned, [new MediaAction(MediaCommand.Next), new MediaAction(MediaCommand.Stop), new SetVolumeAction(AudioTarget.Speakers)])]);
+
+        Assert.Empty(profile.Validate());                                        // unknown control: everything allowed
+        Assert.Single(profile.Validate(_ => ControlShape.Continuous));           // media twice, reported once
+        Assert.Single(profile.Validate(_ => ControlShape.Button));               // the volume action
+    }
+
+    [Fact]
+    public void Validate_ReportsEmptyMappingAndOneIncompleteActionAmongSeveral()
+    {
+        var profile = new Profile("x",
+        [
+            new ControlMapping(new ControlId(ControlKind.ControlChange, 0, 41), Array.Empty<ActionDefinition>()),
+            new ControlMapping(new ControlId(ControlKind.ControlChange, 0, 0),
+                [new SetVolumeAction(AudioTarget.Speakers), new SetVolumeAction(new AudioTarget(AudioTargetKind.Application))]),
+            new ControlMapping(new ControlId(ControlKind.ControlChange, 0, 42), new MuteAction(AudioTarget.Speakers, (MuteMode)42)),
+        ]);
+
+        IReadOnlyList<string> problems = profile.Validate();
+
+        Assert.Equal(3, problems.Count);
+        Assert.Contains("CC 41 (Kanal 1): Die Belegung enthält keine Aktion.", problems);
+        Assert.Contains(problems, p => p.StartsWith("CC 0 (Kanal 1): Die Aktion ist unvollständig", StringComparison.Ordinal));
+        Assert.Contains(problems, p => p.StartsWith("CC 42 (Kanal 1): Die Aktion ist unvollständig", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ControlMapping_ComparesActionsByContent()
+    {
+        var id = new ControlId(ControlKind.ControlChange, 0, 0);
+        var a = new ControlMapping(id, [new SetVolumeAction(AudioTarget.Speakers), new SetVolumeAction(AudioTarget.Microphone)], null, "Alles");
+        var b = new ControlMapping(id, new List<ActionDefinition> { new SetVolumeAction(AudioTarget.Speakers), new SetVolumeAction(AudioTarget.Microphone) }, null, "Alles");
+
+        Assert.Equal(a, b);
+        Assert.Equal(a.GetHashCode(), b.GetHashCode());
+        Assert.NotEqual(a, b with { Name = null });
+        Assert.NotEqual(a, b with { Actions = [new SetVolumeAction(AudioTarget.Microphone), new SetVolumeAction(AudioTarget.Speakers)] });
+        Assert.NotEqual(a, b with { Scaling = new ValueScaling(Invert: true) });
+        Assert.Equal(new ControlMapping(id, new MediaAction(MediaCommand.Next)), new ControlMapping(id, [new MediaAction(MediaCommand.Next)]));
     }
 
     [Fact]

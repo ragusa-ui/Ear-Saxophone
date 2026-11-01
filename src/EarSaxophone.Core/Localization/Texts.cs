@@ -70,6 +70,8 @@ public static class Texts
 
     public static string ActionFailed(string reason) => $"Die Aktion ist fehlgeschlagen: {reason}";
 
+    public const string ActionNotTriggered = "Diese Aktion reagiert nicht auf diese Bedienung (zum Beispiel auf das Loslassen einer Taste).";
+
     public static string MediaSent(MediaCommand command) => $"Medientaste gesendet: {MediaCommandName(command)}.";
 
     public static string HotkeySent(string hotkey) => $"Tastenkombination gesendet: {hotkey}.";
@@ -106,6 +108,24 @@ public static class Texts
 
     public static string ActionIncomplete(ControlLabel control) =>
         $"{control}: Die Aktion ist unvollständig (Ziel, Gerät oder Tasten fehlen).";
+
+    public static string MappingWithoutAction(ControlLabel control) => $"{control}: Die Belegung enthält keine Aktion.";
+
+    public static string ActionNotAllowed(ControlLabel control, string action, ControlShape shape) => shape == ControlShape.Button
+        ? $"{control}: {action} passt nicht zu einer Taste."
+        : $"{control}: {action} passt nicht zu einem stufenlosen Regler (Fader oder Drehregler).";
+
+    public const string KindNameVolume = "Lautstärke";
+
+    public const string KindNameMute = "Stummschaltung";
+
+    public const string KindNameMedia = "Medienbefehl";
+
+    public const string KindNameHotkey = "Tastenkombination";
+
+    public const string KindNameSwitch = "Gerätewechsel";
+
+    public const string KindNameUnknown = "Diese Aktion";
 
     public static string ScalingInvalid(ControlLabel control) =>
         $"{control}: Der Wertebereich muss 0 ≤ Minimum ≤ Maximum ≤ 1 erfüllen.";
@@ -162,6 +182,13 @@ public static class Texts
     public static string DescribeVolume(string target) => $"Lautstärke: {target}";
 
     public static string DescribeMute(string target) => $"Stumm schalten: {target}";
+
+    public static string DescribeMuteWhileHeld(string target) => $"Stumm solange gedrückt: {target}";
+
+    public static string DescribeUnmuteWhileHeld(string target) => $"Ton solange gedrückt: {target}";
+
+    /// <summary>Short description of a mapping with several actions: the first one plus how many more.</summary>
+    public static string DescribeMore(string first, int more) => $"{first} (+{more})";
 
     public static string DescribeMedia(MediaCommand command) => $"Medien: {MediaCommandName(command)}";
 

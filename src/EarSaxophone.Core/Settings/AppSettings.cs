@@ -13,6 +13,20 @@ public enum OsdPosition
     BottomRight,
 }
 
+/// <summary>Visual style of the whole window (colours, shapes, fonts, look of the device picture).</summary>
+public enum AppStyle
+{
+    Studio,
+    Papier,
+    Minimal,
+    Amber,
+    Blueprint,
+    Sunset,
+    Rack,
+    Messing,
+}
+
+/// <param name="Style">Visual style of the main window, chosen in the gear menu.</param>
 /// <param name="AskForNewPrograms">Ask on which control a program goes when it plays sound for the first time (see <c>ProgramPromptService</c>).</param>
 /// <param name="IgnoredPrograms">Programs the user never wants to be asked about ("Nie fragen"), as executable names; null means none.</param>
 /// <param name="CheckForUpdates">Look for a new version in the background at start (at most once per 24 h, see <c>UpdateService</c>).</param>
@@ -32,7 +46,8 @@ public sealed record AppSettings(
     DateTimeOffset? LastUpdateCheck = null,
     bool LedFeedback = true,
     bool PromptSound = true,
-    bool LedBlink = true)
+    bool LedBlink = true,
+    AppStyle Style = AppStyle.Studio)
 {
     /// <summary>The ignored programs, never null.</summary>
     [System.Text.Json.Serialization.JsonIgnore]
@@ -52,11 +67,12 @@ public sealed record AppSettings(
         && LedFeedback == other.LedFeedback
         && PromptSound == other.PromptSound
         && LedBlink == other.LedBlink
+        && Style == other.Style
         && IgnoredProgramList.SequenceEqual(other.IgnoredProgramList);
 
     public override int GetHashCode() =>
         HashCode.Combine(StartWithWindows, KeepInTray, StartMinimized, ShowOsd, OsdPosition, AskForNewPrograms, IgnoredProgramList.Count,
-            HashCode.Combine(CheckForUpdates, LastUpdateCheck, LedFeedback, PromptSound, LedBlink));
+            HashCode.Combine(CheckForUpdates, LastUpdateCheck, LedFeedback, PromptSound, LedBlink, Style));
 }
 
 public sealed class SettingsStore(string path)

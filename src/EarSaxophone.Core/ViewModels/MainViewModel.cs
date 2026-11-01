@@ -243,6 +243,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public IReadOnlyList<Option<OsdPosition>> OsdPositionOptions { get; } =
         Enum.GetValues<OsdPosition>().Select(p => new Option<OsdPosition>(Texts.OsdPositionName(p), p)).ToList();
 
+    public IReadOnlyList<Option<AppStyle>> StyleOptions { get; } =
+        Enum.GetValues<AppStyle>().Select(s => new Option<AppStyle>(Texts.StyleName(s), s)).ToList();
+
+    /// <summary>Setting: visual style of the window (switchable in the gear menu).</summary>
+    public AppStyle Style
+    {
+        get => _settings.Style;
+        set => ChangeSettings(_settings with { Style = value }, nameof(Style));
+    }
+
     public bool ShowOsd
     {
         get => _settings.ShowOsd;

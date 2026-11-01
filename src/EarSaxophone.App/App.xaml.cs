@@ -138,6 +138,19 @@ public partial class App : Application
             _viewModel.ShowError(audioProblem);
         }
 
+        if (demo && Enum.TryParse(ArgumentValue(e.Args, "--demo-style"), ignoreCase: true, out AppStyle demoStyle))
+        {
+            _viewModel.Style = demoStyle;
+        }
+
+        StyleManager.Apply(_viewModel.Style);
+        _viewModel.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(MainViewModel.Style))
+            {
+                StyleManager.Apply(_viewModel.Style);
+            }
+        };
         _window = new MainWindow(_viewModel);
         _osd = new OsdWindow();
         _viewModel.OsdRequested += message => _osd.Present(message, _viewModel.OsdPosition, TimeSpan.FromSeconds(1.8));

@@ -265,6 +265,20 @@ public static class Texts
 
     public const string UiOsdTest = "Anzeige testen";
 
+    public const string UiStyle = "Stil";
+
+    public static string StyleName(Settings.AppStyle style) => style switch
+    {
+        Settings.AppStyle.Studio => "Studio dunkel",
+        Settings.AppStyle.Papier => "Papier und Hardware",
+        Settings.AppStyle.Minimal => "Weiß minimal",
+        Settings.AppStyle.Amber => "Retro Amber",
+        Settings.AppStyle.Blueprint => "Blueprint",
+        Settings.AppStyle.Sunset => "Sunset",
+        Settings.AppStyle.Rack => "Rack Silber",
+        _ => "Messing und Holz",
+    };
+
     public static string OsdPositionName(Settings.OsdPosition position) => position switch
     {
         Settings.OsdPosition.TopLeft => "Oben links",

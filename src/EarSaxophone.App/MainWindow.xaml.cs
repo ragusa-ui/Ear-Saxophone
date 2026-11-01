@@ -25,7 +25,6 @@ public partial class MainWindow : FluentWindow
     public MainWindow(MainViewModel viewModel)
     {
         _viewModel = viewModel;
-        ApplicationAccentColorManager.Apply(Accent, ApplicationTheme.Dark, false, false);
         DataContext = viewModel;
         InitializeComponent();
         Title = $"Ear Saxophone {AppInfo.Version}";

@@ -204,7 +204,7 @@ public static class Texts
 
     public const string UiKindVolume = "Lautstärke regeln";
 
-    public const string UiKindMute = "Stummschaltung umschalten";
+    public const string UiKindMute = "Stumm schalten";
 
     public const string UiKindMedia = "Medienbefehl";
 
@@ -276,6 +276,75 @@ public static class Texts
     };
 
     public const string SwitchInterfaceMissing = "Die Windows-Schnittstelle zum Umschalten ist auf diesem System nicht verfügbar";
+
+    // Editor V2: several targets, mute modes, apply / discard
+    public const string UiMuteModeToggle = "Umschalten";
+
+    public const string UiMuteModeMuteWhileHeld = "Gedrückt halten = stumm";
+
+    public const string UiMuteModeUnmuteWhileHeld = "Gedrückt halten = Ton an";
+
+    public static string UiTargetAlreadyListed(string target) => $"{target} steht bereits in der Liste.";
+
+    public const string UiEditorActionIncomplete = "Eine Aktion ist unvollständig (Ziel, Gerät oder Tasten fehlen).";
+
+    public static string UiEditorNotAllowed(string action, ControlShape shape) => shape == ControlShape.Button
+        ? $"{action} passt nicht zu einer Taste."
+        : $"{action} passt nicht zu einem stufenlosen Regler (Fader oder Drehregler).";
+
+    public static string UiKeptActions(int count) => count == 1
+        ? "1 weitere Aktion bleibt unverändert erhalten."
+        : $"{count} weitere Aktionen bleiben unverändert erhalten.";
+
+    public static string UiAutoApplied(string control, string summary) => $"Änderungen an {control} automatisch übernommen: {summary}.";
+
+    public static string UiChangesDiscardedInvalid(string control, string reason) =>
+        $"Änderungen an {control} verworfen, weil sie unvollständig waren: {reason}";
+
+    public static string UiChangesReverted(string control) => $"Änderungen an {control} verworfen.";
+
+    public static string UiPendingSelection(string touched, string editing) =>
+        $"{touched} wurde am Gerät bedient. Erst die Änderungen an {editing} übernehmen oder verwerfen.";
+
+    public const string UiFollowDevice = "Auswahl folgt dem Gerät";
+
+    public const string UiPinSelection = "Auswahl anpinnen";
+
+    // Drag and drop in the picture
+    public static string UiTransferMoved(string from, string to) => $"Belegung von {from} nach {to} verschoben.";
+
+    public static string UiTransferSwapped(string from, string to) => $"Belegungen von {from} und {to} getauscht.";
+
+    public static string UiTransferCopied(string from, string to) => $"Belegung von {from} nach {to} kopiert.";
+
+    public static string UiTransferIncompatible(string from, string to) =>
+        $"Die Belegung passt nicht zur Art des anderen Reglers ({from} → {to}). Nichts geändert.";
+
+    public static string UiTransferNothing(string from) => $"{from}: nichts zu verschieben.";
+
+    // On-screen display with several targets
+    public static string OsdMoreTargets(string first, int more) => $"{first} + {more}";
+
+    // Question for a new program with sound
+    public static string PromptPlaysSound(string program) => $"{program} spielt Ton";
+
+    public const string PromptQuestion = "Auf welchen Regler legen?";
+
+    public const string PromptNotNow = "Nicht jetzt";
+
+    public const string PromptNeverAsk = "Nie fragen";
+
+    public static string UiProgramAssigned(string program, string control) => $"{program} liegt jetzt auf {control}.";
+
+    public static string OsdProgramAssigned(string control) => $"jetzt auf {control}";
+
+    public static string UiProgramIgnored(string program) => $"{program}: Es wird nicht mehr nachgefragt.";
+
+    public const string UiAskForNewPrograms = "Bei neuem Programm mit Ton fragen";
+
+    public const string UiResetIgnoredPrograms = "Ignorierte Programme zurücksetzen";
+
+    public const string UiIgnoredProgramsReset = "Ignorierte Programme zurückgesetzt.";
 }
 
 /// <summary>Display text of a control, used inside messages.</summary>

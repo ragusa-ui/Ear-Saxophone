@@ -21,6 +21,8 @@ public class MainViewModelTests : IDisposable
     private FakeSession _discord = null!;
     private FakeEndpoint _speakers = null!;
 
+    internal ManualClock Clock { get; } = new();
+
     public MainViewModelTests() => Directory.CreateDirectory(_dir);
 
     public void Dispose()
@@ -57,7 +59,7 @@ public class MainViewModelTests : IDisposable
         var midi = new MidiConnectionManager(_provider);
         var executor = new ActionExecutor(new AudioController(_audio), _keyboard);
         var vm = new MainViewModel(new ProfileStore(ProfilePath), midi, executor, _audio, new ImmediateUi(),
-            new SettingsStore(SettingsPath), _autostart);
+            new SettingsStore(SettingsPath), _autostart, Clock);
         _disposables.Add(midi);
         _disposables.Add(vm);
         vm.Tick();
@@ -88,7 +90,8 @@ public class MainViewModelTests : IDisposable
 
         Assert.Equal(51, vm.Elements.Count);
         Assert.All(vm.Elements, e => Assert.False(e.HasMapping));
-        Assert.Empty(vm.MappedElements);
+        Assert.All(vm.Elements, e => Assert.False(e.Badge.HasBadge));
+        Assert.True(vm.FollowDevice);
         Assert.Equal("Default", vm.ActiveProfileName);
         Assert.False(vm.HasSelection);
         Assert.False(vm.HasError);
@@ -121,19 +124,22 @@ public class MainViewModelTests : IDisposable
     }
 
     [Fact]
-    public void MappedElements_ListsExactlyTheAssignedControls_InPictureOrder()
+    public void Badges_ShowTheKindOfAction_AndTheNumberOfActions()
     {
         MainViewModel vm = Create();
-        Assign(vm, "Fader 2", e => { e.Kind = ActionKind.SetVolume; e.Target = TargetKind.Speakers; });
+        Assign(vm, "Fader 2", e => { e.AddTarget(AudioTarget.Speakers); e.AddApplication("Discord.exe"); e.AddApplication("Spotify.exe"); });
         Assign(vm, "Play", e => { e.Kind = ActionKind.Media; e.Media = MediaCommand.PlayPause; });
 
-        Assert.Equal(["Play", "Fader 2"], vm.MappedElements.Select(e => e.Label));
-        Assert.Contains("Lautstärke", Element(vm, "Fader 2").TooltipText);
-        Assert.Equal("Fader 2 · Lautstärke: Lautsprecher", Element(vm, "Fader 2").ListText);
+        ControllerElementViewModel fader = Element(vm, "Fader 2");
+        Assert.Equal((ActionKind.SetVolume, 3, true), (fader.BadgeKind, fader.ActionCount, fader.ShowsActionCount));
+        ControllerElementViewModel play = Element(vm, "Play");
+        Assert.Equal((ActionKind.Media, 1, false), (play.BadgeKind, play.ActionCount, play.ShowsActionCount));
+        Assert.Contains("Lautstärke", fader.TooltipText);
+        Assert.Equal(["Fader 2", "Play"], vm.Elements.Where(e => e.HasMapping).Select(e => e.Label).Order());
 
-        vm.Select(Element(vm, "Play"));
+        vm.Select(play);
         vm.RemoveSelectedMapping();
-        Assert.Equal(["Fader 2"], vm.MappedElements.Select(e => e.Label));
+        Assert.Equal((ActionKind.None, 0, false), (play.BadgeKind, play.ActionCount, play.Badge.HasBadge));
     }
 
     [Fact]
@@ -158,7 +164,7 @@ public class MainViewModelTests : IDisposable
     {
         MainViewModel vm = Create();
         FakeMidiPort stale = _provider.Ports[0];
-        Assign(vm, "Fader 1", e => { e.Kind = ActionKind.SetVolume; e.Target = TargetKind.Speakers; });
+        Assign(vm, "Fader 1", e => { e.Kind = ActionKind.SetVolume; e.AddTarget(AudioTarget.Speakers); });
 
         vm.ReconnectCommand.Execute(null);
         stale.Send(cc: 0, value: 127);
@@ -187,7 +193,7 @@ public class MainViewModelTests : IDisposable
     public void MidiLearn_SelectsTheTouchedStandardElement_WithoutRunningAnyAction()
     {
         MainViewModel vm = Create();
-        Assign(vm, "Fader 1", e => { e.Kind = ActionKind.SetVolume; e.Target = TargetKind.Speakers; });
+        Assign(vm, "Fader 1", e => { e.Kind = ActionKind.SetVolume; e.AddTarget(AudioTarget.Speakers); });
         vm.Select(null);
         _speakers.Volume = 0.5f;
 
@@ -218,6 +224,7 @@ public class MainViewModelTests : IDisposable
     public void CancelLearning_StopsLearning()
     {
         MainViewModel vm = Create();
+        vm.FollowDevice = false; // otherwise moving the fader selects it anyway
         vm.StartLearning();
         vm.CancelLearning();
         Send(vm, 0, 100);
@@ -232,7 +239,7 @@ public class MainViewModelTests : IDisposable
         MainViewModel vm = Create();
         Assert.Contains("Discord.exe", vm.Editor.AvailableApps);
 
-        Assign(vm, "Fader 1", e => { e.Kind = ActionKind.SetVolume; e.Target = TargetKind.Application; e.AppName = "Discord.exe"; });
+        Assign(vm, "Fader 1", e => { e.Kind = ActionKind.SetVolume; e.AddApplication("Discord.exe"); });
 
         ControllerElementViewModel tile = Element(vm, "Fader 1");
         Assert.Equal("Lautstärke: Discord.exe", tile.Summary);
@@ -253,7 +260,7 @@ public class MainViewModelTests : IDisposable
     public void MicrophoneMuteButton_TogglesTheRecordingDevice_NotTheSpeakers()
     {
         MainViewModel vm = Create();
-        Assign(vm, "M 1", e => { e.Kind = ActionKind.Mute; e.Target = TargetKind.Microphone; });
+        Assign(vm, "M 1", e => { e.Kind = ActionKind.Mute; e.AddTarget(AudioTarget.Microphone); });
 
         Send(vm, 48, 127);
         Send(vm, 48, 0);
@@ -302,12 +309,12 @@ public class MainViewModelTests : IDisposable
     {
         MainViewModel vm = Create();
         vm.Select(Element(vm, "Fader 2"));
-        vm.Editor.Kind = ActionKind.SetVolume;
-        vm.Editor.Target = TargetKind.Application;
 
-        vm.ApplyEditor();
+        Assert.False(vm.Editor.AddApplication("   "));
 
         Assert.Contains("Anwendung", vm.Editor.ValidationMessage);
+        Assert.False(vm.Editor.IsDirty);
+        vm.ApplyEditor();
         Assert.False(Element(vm, "Fader 2").HasMapping);
     }
 
@@ -317,8 +324,7 @@ public class MainViewModelTests : IDisposable
         MainViewModel vm = Create();
         Assign(vm, "Fader 3", e =>
         {
-            e.Kind = ActionKind.SetVolume;
-            e.Target = TargetKind.Speakers;
+            e.AddTarget(AudioTarget.Speakers);
             e.Invert = true;
             e.MinPercent = 20;
             e.MaxPercent = 80;
@@ -343,7 +349,7 @@ public class MainViewModelTests : IDisposable
     public void RemoveMapping_ClearsTileAndStopsTheAction()
     {
         MainViewModel vm = Create();
-        Assign(vm, "Fader 1", e => { e.Kind = ActionKind.SetVolume; e.Target = TargetKind.Speakers; });
+        Assign(vm, "Fader 1", e => { e.Kind = ActionKind.SetVolume; e.AddTarget(AudioTarget.Speakers); });
 
         vm.Select(Element(vm, "Fader 1"));
         vm.RemoveSelectedMapping();
@@ -367,16 +373,16 @@ public class MainViewModelTests : IDisposable
     }
 
     [Fact]
-    public void TestButton_RunsTheActionOnce_WithoutSaving()
+    public void TheTestCommandIsGone_AndNothingRunsBeforeApplying()
     {
         MainViewModel vm = Create();
+        Assert.Null(typeof(MainViewModel).GetProperty("TestCommand"));
+        Assert.Null(typeof(MainViewModel).GetMethod("TestEditor"));
         vm.Select(Element(vm, "Marker ►"));
         vm.Editor.Kind = ActionKind.Media;
         vm.Editor.Media = MediaCommand.Next;
 
-        vm.TestEditor();
-
-        Assert.Equal([MediaCommand.Next], _keyboard.Media);
+        Assert.Empty(_keyboard.Media);
         Assert.False(Element(vm, "Marker ►").HasMapping);
         Assert.False(File.Exists(ProfilePath));
     }
@@ -385,8 +391,8 @@ public class MainViewModelTests : IDisposable
     public void FailingAction_ShowsReadableError_UntilDismissedOrReplacedBySuccess()
     {
         MainViewModel vm = Create(withMic: false);
-        Assign(vm, "Fader 4", e => { e.Kind = ActionKind.SetVolume; e.Target = TargetKind.Microphone; });
-        Assign(vm, "Fader 5", e => { e.Kind = ActionKind.SetVolume; e.Target = TargetKind.Speakers; });
+        Assign(vm, "Fader 4", e => { e.Kind = ActionKind.SetVolume; e.AddTarget(AudioTarget.Microphone); });
+        Assign(vm, "Fader 5", e => { e.Kind = ActionKind.SetVolume; e.AddTarget(AudioTarget.Speakers); });
 
         Send(vm, 3, 100);
         Assert.True(vm.HasError);
@@ -406,7 +412,7 @@ public class MainViewModelTests : IDisposable
     public void Profiles_CanBeCreated_Switched_Renamed_AndDeleted()
     {
         MainViewModel vm = Create();
-        Assign(vm, "Fader 1", e => { e.Kind = ActionKind.SetVolume; e.Target = TargetKind.Speakers; });
+        Assign(vm, "Fader 1", e => { e.Kind = ActionKind.SetVolume; e.AddTarget(AudioTarget.Speakers); });
 
         vm.NewProfile();
         Assert.Equal("Profil 2", vm.ActiveProfileName);
@@ -472,7 +478,7 @@ public class MainViewModelTests : IDisposable
         Directory.CreateDirectory(ProfilePath); // a folder where the file should be
         MainViewModel vm = Create();
 
-        Assign(vm, "Fader 1", e => { e.Kind = ActionKind.SetVolume; e.Target = TargetKind.Speakers; });
+        Assign(vm, "Fader 1", e => { e.Kind = ActionKind.SetVolume; e.AddTarget(AudioTarget.Speakers); });
 
         Assert.Contains("nicht gespeichert", vm.ErrorMessage);
     }
@@ -562,9 +568,9 @@ public class MainViewModelTests : IDisposable
     public void OnScreenDisplay_ShowsLevelTargetAndMuteState_ForVolumeKeys()
     {
         MainViewModel vm = Create();
-        Assign(vm, "Fader 1", e => { e.Kind = ActionKind.SetVolume; e.Target = TargetKind.Application; e.AppName = "Discord.exe"; });
-        Assign(vm, "Fader 2", e => { e.Kind = ActionKind.SetVolume; e.Target = TargetKind.Speakers; });
-        Assign(vm, "M 1", e => { e.Kind = ActionKind.Mute; e.Target = TargetKind.Microphone; });
+        Assign(vm, "Fader 1", e => { e.Kind = ActionKind.SetVolume; e.AddApplication("Discord.exe"); });
+        Assign(vm, "Fader 2", e => { e.Kind = ActionKind.SetVolume; e.AddTarget(AudioTarget.Speakers); });
+        Assign(vm, "M 1", e => { e.Kind = ActionKind.Mute; e.AddTarget(AudioTarget.Microphone); });
         Assign(vm, "Play", e => { e.Kind = ActionKind.Media; e.Media = MediaCommand.PlayPause; });
         Assign(vm, "Cycle", e => { e.Kind = ActionKind.Hotkey; e.HotkeyText = "Ctrl+Alt+M"; });
         var shown = new List<OsdMessage>();
@@ -591,8 +597,8 @@ public class MainViewModelTests : IDisposable
     public void OnScreenDisplay_IsSilentWhenSwitchedOff_OrWhenTheActionFailed_AndMarksInactiveApps()
     {
         MainViewModel vm = Create(withMic: false);
-        Assign(vm, "Fader 3", e => { e.Kind = ActionKind.SetVolume; e.Target = TargetKind.Microphone; });
-        Assign(vm, "Fader 4", e => { e.Kind = ActionKind.SetVolume; e.Target = TargetKind.Application; e.AppName = "Spotify.exe"; });
+        Assign(vm, "Fader 3", e => { e.Kind = ActionKind.SetVolume; e.AddTarget(AudioTarget.Microphone); });
+        Assign(vm, "Fader 4", e => { e.Kind = ActionKind.SetVolume; e.AddApplication("Spotify.exe"); });
         var shown = new List<OsdMessage>();
         vm.OsdRequested += shown.Add;
 
@@ -697,7 +703,7 @@ public class MainViewModelTests : IDisposable
         Send(vm, 49, 127);
         Assert.True(_discord.Muted);
 
-        Assign(vm, "Fader 2", e => { e.Kind = ActionKind.SetVolume; e.Target = TargetKind.Speakers; });
+        Assign(vm, "Fader 2", e => { e.Kind = ActionKind.SetVolume; e.AddTarget(AudioTarget.Speakers); });
 
         Assert.Equal(ProfileMigrationTests.RealV1File, File.ReadAllText(ProfilePath + ".v1.bak"));
         Assert.Equal(2, ProfileSerializer.PeekSchemaVersion(File.ReadAllText(ProfilePath)));
@@ -723,26 +729,31 @@ public class MainViewModelTests : IDisposable
         Assert.Equal(1f, _discord.Volume, 5);
         Assert.Equal("Lautstärke: game1.exe (+1)", Element(vm, "Fader 4").Summary);
         Assert.True(Element(vm, "Fader 4").IsContinuous);
-        Assert.Equal("game1.exe", shown.Last().Title);              // first execution for now
+        Assert.Equal("game1.exe + 1", shown.Last().Title);          // first target plus the number of further ones
 
-        // The editor of this stage edits the first program and keeps the second.
+        // The editor lists both programs; one is replaced, a third one added, the range changed.
         vm.Select(Element(vm, "Fader 4"));
-        Assert.Equal("game1.exe", vm.Editor.AppName);
-        vm.Editor.AppName = "game3.exe";
+        Assert.Equal(["game1.exe", "game2.exe"], vm.Editor.Targets.Select(t => t.Name));
+        Assert.True(vm.Editor.ReplaceTarget(0, AudioTarget.Application("game3.exe")));
+        Assert.True(vm.Editor.AddApplication("game4.exe"));
         vm.Editor.MaxPercent = 50;
         vm.ApplyEditor();
 
         ControlMapping saved = new ProfileStore(ProfilePath).Load().Document.Profiles[0].Find(fader4)!;
         Assert.Equal(
-            [new SetVolumeAction(AudioTarget.Application("game3.exe")), new SetVolumeAction(AudioTarget.Application("game2.exe"))],
+            [
+                new SetVolumeAction(AudioTarget.Application("game3.exe")),
+                new SetVolumeAction(AudioTarget.Application("game2.exe")),
+                new SetVolumeAction(AudioTarget.Application("game4.exe")),
+            ],
             saved.Actions);
         Assert.Equal(new ValueScaling(0f, 0.5f, false), saved.Scaling);
 
-        // Switching the fader to a key action does not keep volume actions next to it.
-        vm.Select(Element(vm, "Fader 4"));
+        // A fader only takes volume: key kinds are neither offered nor accepted.
+        Assert.Equal([ActionKind.SetVolume], vm.Editor.KindOptions.Select(o => o.Value));
         vm.Editor.Kind = ActionKind.Media;
-        vm.ApplyEditor();
-        Assert.Equal([new MediaAction(MediaCommand.PlayPause)], vm.Current.Find(fader4)!.Actions);
+        Assert.Equal(ActionKind.SetVolume, vm.Editor.Kind);
+        Assert.False(vm.Editor.IsDirty);
     }
 
     [Fact]

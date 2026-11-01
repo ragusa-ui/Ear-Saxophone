@@ -13,12 +13,35 @@ public enum OsdPosition
     BottomRight,
 }
 
+/// <param name="AskForNewPrograms">Ask on which control a program goes when it plays sound for the first time (see <c>ProgramPromptService</c>).</param>
+/// <param name="IgnoredPrograms">Programs the user never wants to be asked about ("Nie fragen"), as executable names; null means none.</param>
 public sealed record AppSettings(
     bool StartWithWindows = false,
     bool KeepInTray = true,
     bool StartMinimized = false,
     bool ShowOsd = true,
-    OsdPosition OsdPosition = OsdPosition.BottomRight);
+    OsdPosition OsdPosition = OsdPosition.BottomRight,
+    bool AskForNewPrograms = true,
+    IReadOnlyList<string>? IgnoredPrograms = null)
+{
+    /// <summary>The ignored programs, never null.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public IReadOnlyList<string> IgnoredProgramList => IgnoredPrograms ?? [];
+
+    // Lists compare by content (an empty list equals null), so an unchanged setting is not saved again.
+    public bool Equals(AppSettings? other) =>
+        other is not null
+        && StartWithWindows == other.StartWithWindows
+        && KeepInTray == other.KeepInTray
+        && StartMinimized == other.StartMinimized
+        && ShowOsd == other.ShowOsd
+        && OsdPosition == other.OsdPosition
+        && AskForNewPrograms == other.AskForNewPrograms
+        && IgnoredProgramList.SequenceEqual(other.IgnoredProgramList);
+
+    public override int GetHashCode() =>
+        HashCode.Combine(StartWithWindows, KeepInTray, StartMinimized, ShowOsd, OsdPosition, AskForNewPrograms, IgnoredProgramList.Count);
+}
 
 public sealed class SettingsStore(string path)
 {

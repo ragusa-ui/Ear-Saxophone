@@ -42,6 +42,9 @@ internal sealed class FakeSession(AudioSessionInfo info) : IAudioSession
 
     public int VolumeWrites { get; private set; }
 
+    /// <summary>Whether the session plays right now (Windows: AudioSessionState).</summary>
+    public AudioSessionActivity Activity { get; set; } = AudioSessionActivity.Unknown;
+
     public float Volume
     {
         get => _volume;

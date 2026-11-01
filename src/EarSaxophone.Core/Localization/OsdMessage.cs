@@ -13,11 +13,45 @@ public sealed record OsdMessage(string Title, string? Detail = null, double? Lev
 public static class OsdMessageFactory
 {
     /// <summary>
-    /// Returns what to display for the executions of one control message, or null when nothing should be shown. For now
-    /// this is the display of the first execution (results in the same order as the executions).
+    /// Returns what to display for the executions of one control message (results in the same order as the executions),
+    /// or null when nothing should be shown. The display of the first execution that has one leads (its level and mute
+    /// state). With several executions the title is the own name of the mapping, otherwise the leading title plus the
+    /// number of further executions ("Discord.exe + 2"); a single execution of a named mapping shows the name too.
+    /// "nicht aktiv" is only shown when no volume or mute target was reached (none of them plays right now).
     /// </summary>
-    public static OsdMessage? Create(IReadOnlyList<ActionInvocation> invocations, IReadOnlyList<ActionResult> results) =>
-        invocations.Count > 0 && results.Count > 0 ? Create(invocations[0].Action, results[0]) : null;
+    public static OsdMessage? Create(IReadOnlyList<ActionInvocation> invocations, IReadOnlyList<ActionResult> results)
+    {
+        int count = Math.Min(invocations.Count, results.Count);
+        int lead = -1;
+        OsdMessage? message = null;
+        for (int i = 0; i < count && message is null; i++)
+        {
+            message = Create(invocations[i].Action, results[i]);
+            lead = i;
+        }
+
+        if (message is null)
+        {
+            return null;
+        }
+
+        string? name = invocations[lead].Mapping.Name;
+        string title = !string.IsNullOrWhiteSpace(name) ? name.Trim()
+            : count > 1 ? Texts.OsdMoreTargets(message.Title, count - 1)
+            : message.Title;
+        if (count > 1 && message.Detail == Texts.OsdInactive)
+        {
+            // The leading program does not play right now, but another target was reached: show what that one reports.
+            int reached = Enumerable.Range(0, count).FirstOrDefault(
+                i => invocations[i].Action is SetVolumeAction or MuteAction && results[i].Outcome == ActionOutcome.Applied, -1);
+            if (reached >= 0 && Create(invocations[reached].Action, results[reached]) is { } other)
+            {
+                message = other;
+            }
+        }
+
+        return message with { Title = title };
+    }
 
     /// <summary>Returns what to display for an executed action, or null when nothing should be shown (failures, shortcuts).</summary>
     public static OsdMessage? Create(ActionDefinition action, ActionResult result)

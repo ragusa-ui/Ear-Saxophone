@@ -26,6 +26,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly ControlRouter _router;
     private readonly MidiMessagePump _pump;
     private readonly ControlShapeTracker _shapes = new(Nanokontrol2Layout.ShapeOf);
+    private readonly DeviceGestureDetector _gestures = new();
+    private readonly TimeProvider _time;
+    private readonly ProgramPromptService _programs;
     private readonly List<Profile> _profiles;
     private readonly Dictionary<ControlId, ControllerElementViewModel> _elements = [];
     private int _active;
@@ -38,6 +41,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private string? _errorMessage;
     private bool _errorFromAction;
     private string _profileNameEdit;
+    private bool _followDevice = true;
+    private ControllerElementViewModel? _pending;
+    private ProgramPromptViewModel? _prompt;
+    private DateTimeOffset _promptShownAt;
 
     public MainViewModel(
         ProfileStore store,
@@ -46,7 +53,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         IAudioSystem audio,
         IUiThread ui,
         SettingsStore settingsStore,
-        IAutostart autostart)
+        IAutostart autostart,
+        TimeProvider? time = null,
+        ProgramPromptService? programs = null)
     {
         _store = store;
         _midi = midi;
@@ -55,6 +64,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _ui = ui;
         _settingsStore = settingsStore;
         _autostart = autostart;
+        _time = time ?? TimeProvider.System;
+        _programs = programs ?? new ProgramPromptService(audio, _time,
+            Path.GetFileName(Environment.ProcessPath) ?? "EarSaxophone.exe", Environment.ProcessId);
 
         ProfileLoadResult loaded = store.Load();
         _profiles = loaded.Document.Profiles.Count > 0 ? loaded.Document.Profiles.ToList() : [new Profile("Default", [])];
@@ -96,9 +108,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         LearnCommand = new RelayCommand(_ => StartLearning());
         CancelLearnCommand = new RelayCommand(_ => CancelLearning());
         SelectCommand = new RelayCommand(p => Select(p as ControllerElementViewModel));
-        ApplyCommand = new RelayCommand(_ => ApplyEditor(), _ => _selected is not null);
+        ApplyCommand = new RelayCommand(_ => ApplyEditor(), _ => _selected is not null && Editor.CanApply);
+        DiscardCommand = new RelayCommand(_ => DiscardEditor(), _ => _selected is not null && Editor.IsDirty);
         RemoveCommand = new RelayCommand(_ => RemoveSelectedMapping(), _ => _selected is { HasMapping: true });
-        TestCommand = new RelayCommand(_ => TestEditor(), _ => _selected is not null);
+        SelectPendingCommand = new RelayCommand(_ => Select(_pending), _ => _pending is not null);
+        ResetIgnoredProgramsCommand = new RelayCommand(_ => ResetIgnoredPrograms());
+        Editor.PropertyChanged += OnEditorChanged;
         NewProfileCommand = new RelayCommand(_ => NewProfile());
         DeleteProfileCommand = new RelayCommand(_ => DeleteProfile());
         DismissErrorCommand = new RelayCommand(_ => ErrorMessage = null);
@@ -115,9 +130,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     /// <summary>All controls of the device in the order of the layout (the picture binds to this).</summary>
     public ObservableCollection<ControllerElementViewModel> Elements { get; } = [];
 
-    /// <summary>Controls that currently have an action, for the compact list below the picture.</summary>
-    public ObservableCollection<ControllerElementViewModel> MappedElements { get; } = [];
-
     /// <summary>Controls found by MIDI-Learn that are not part of the standard layout.</summary>
     public ObservableCollection<ControllerElementViewModel> ExtraElements { get; } = [];
 
@@ -131,9 +143,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public RelayCommand ApplyCommand { get; }
 
+    /// <summary>Throws the unsaved changes of the editor away.</summary>
+    public RelayCommand DiscardCommand { get; }
+
     public RelayCommand RemoveCommand { get; }
 
-    public RelayCommand TestCommand { get; }
+    /// <summary>Selects the control that was operated at the device while the editor had unsaved changes.</summary>
+    public RelayCommand SelectPendingCommand { get; }
+
+    public RelayCommand ResetIgnoredProgramsCommand { get; }
 
     public RelayCommand NewProfileCommand { get; }
 
@@ -149,6 +167,49 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     /// <summary>Raised on the UI thread when the on-screen display should show something (only when the display is switched on).</summary>
     public event Action<OsdMessage>? OsdRequested;
+
+    /// <summary>Raised on the UI thread when a new program plays sound and should be put on a control (design V2, section 6).</summary>
+    public event Action<ProgramPromptViewModel>? ProgramPromptRequested;
+
+    /// <summary>
+    /// The selection follows the device (default): operating a control at the device selects it. Off = the selection is
+    /// pinned and only changes by click.
+    /// </summary>
+    public bool FollowDevice
+    {
+        get => _followDevice;
+        set
+        {
+            if (SetField(ref _followDevice, value))
+            {
+                SetPending(null);
+            }
+        }
+    }
+
+    /// <summary>A control that was operated at the device while the editor had unsaved changes (the selection did not jump).</summary>
+    public ControllerElementViewModel? PendingElement => _pending;
+
+    public bool HasPendingSelection => _pending is not null;
+
+    /// <summary>The open question for a new program, if any.</summary>
+    public ProgramPromptViewModel? ActivePrompt
+    {
+        get => _prompt;
+        private set => SetField(ref _prompt, value);
+    }
+
+    /// <summary>Setting "Bei neuem Programm mit Ton fragen".</summary>
+    public bool AskForNewPrograms
+    {
+        get => _settings.AskForNewPrograms;
+        set => ChangeSettings(_settings with { AskForNewPrograms = value }, nameof(AskForNewPrograms));
+    }
+
+    /// <summary>Programs that are never asked about ("Nie fragen").</summary>
+    public IReadOnlyList<string> IgnoredPrograms => _settings.IgnoredProgramList;
+
+    public bool HasIgnoredPrograms => _settings.IgnoredProgramList.Count > 0;
 
     public IReadOnlyList<Option<OsdPosition>> OsdPositionOptions { get; } =
         Enum.GetValues<OsdPosition>().Select(p => new Option<OsdPosition>(Texts.OsdPositionName(p), p)).ToList();
@@ -227,6 +288,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             int index = _profiles.FindIndex(p => p.Name == value);
             if (index >= 0 && index != _active)
             {
+                if (!LeaveEditor())
+                {
+                    OnPropertyChanged();
+                    return;
+                }
+
                 SwitchProfile(index);
             }
         }
@@ -260,8 +327,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     /// <summary>Shape of a control: from the device layout, for other controls what their values have shown so far.</summary>
     public ControlShape ShapeOf(ControlId control) => _shapes.ShapeOf(control);
 
-    /// <summary>Called about once per second: finds, reconnects and checks the MIDI device.</summary>
-    public void Tick() => _midi.Poll();
+    /// <summary>Called about once per second (any thread): finds, reconnects and checks the MIDI device and looks for new programs with sound.</summary>
+    public void Tick()
+    {
+        _midi.Poll();
+        _ui.Post(CheckForNewPrograms);
+    }
 
     /// <summary>Opens the MIDI device again (button, or return from sleep).</summary>
     public void ReconnectDevice() => _midi.Reconnect();
@@ -278,6 +349,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _router.MessageObserved -= OnMessageObserved;
         _router.ActionsRequested -= OnActionsRequested;
         _router.ControlLearned -= OnControlLearned;
+        Editor.PropertyChanged -= OnEditorChanged;
     }
 
     /// <summary>Shows a problem that was detected outside the view model (for example during startup).</summary>
@@ -299,7 +371,28 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         IsLearning = false;
     }
 
+    /// <summary>
+    /// Selects a control (click, or the device when it is followed). Unsaved valid changes of the editor are applied first;
+    /// unsaved invalid ones are thrown away with a note in the status line, so nothing is lost silently. Selecting the
+    /// control that is already selected changes nothing (the editor keeps its input).
+    /// </summary>
     public void Select(ControllerElementViewModel? element)
+    {
+        if (element == _selected)
+        {
+            SetPending(null);
+            return;
+        }
+
+        if (!LeaveEditor())
+        {
+            return;
+        }
+
+        ShowSelection(element);
+    }
+
+    private void ShowSelection(ControllerElementViewModel? element)
     {
         if (_selected is not null)
         {
@@ -307,30 +400,29 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
 
         _selected = element;
+        SetPending(null);
         if (element is not null)
         {
             element.IsSelected = true;
-            Editor.Load(element.Control, Current.Find(element.Control));
+            LoadEditor(element);
             RefreshApps();
         }
 
         OnPropertyChanged(nameof(SelectedElement));
         OnPropertyChanged(nameof(HasSelection));
-        ApplyCommand.RaiseCanExecuteChanged();
-        RemoveCommand.RaiseCanExecuteChanged();
-        TestCommand.RaiseCanExecuteChanged();
+        RaiseEditorCommands();
     }
 
     public void RefreshApps()
     {
-        IEnumerable<string> names;
+        List<ProgramInfo> programs;
         try
         {
-            names = _audio.GetSessions()
+            programs = _audio.GetSessions()
                 .Where(s => !s.Info.IsSystemSounds && !string.IsNullOrWhiteSpace(s.Info.ExePath))
-                .Select(s => AppMatcher.FileNameOf(s.Info.ExePath!))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                .Select(s => new ProgramInfo(AppMatcher.FileNameOf(s.Info.ExePath!), s.Info.ExePath))
+                .DistinctBy(p => p.ExeName, StringComparer.OrdinalIgnoreCase)
+                .OrderBy(p => p.ExeName, StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }
         catch (Exception)
@@ -338,11 +430,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             return;
         }
 
-        Editor.AvailableApps.Clear();
-        foreach (string name in names)
-        {
-            Editor.AvailableApps.Add(name);
-        }
+        Editor.SetAvailablePrograms(programs);
 
         try
         {
@@ -356,24 +444,21 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    public void ApplyEditor()
+    /// <summary>Saves the editor input for the selected control ("Übernehmen", also Enter). Invalid input stays with its message.</summary>
+    public void ApplyEditor() => ApplyEditor(automatic: false);
+
+    /// <summary>Throws the unsaved changes away and shows the saved mapping again ("Verwerfen").</summary>
+    public void DiscardEditor()
     {
-        if (_selected is null || !Editor.TryBuild(out ControlMapping? mapping, out _))
+        if (_selected is null || !Editor.IsDirty)
         {
             return;
         }
 
-        ControllerElementViewModel element = _selected;
-        _profiles[_active] = mapping is null ? Current.WithoutMapping(element.Control) : Current.WithMapping(mapping);
-        if (Save())
-        {
-            _router.SetProfile(Current);
-            RefreshSummaries();
-            StatusMessage = mapping is null
-                ? Texts.UiMappingRemoved(element.Label)
-                : Texts.UiMappingSaved(element.Label, MappingDescriber.Describe(mapping));
-            RemoveCommand.RaiseCanExecuteChanged();
-        }
+        Editor.Revert();
+        SetPending(null);
+        StatusMessage = Texts.UiChangesReverted(_selected.Label);
+        RaiseEditorCommands();
     }
 
     public void RemoveSelectedMapping()
@@ -384,31 +469,155 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
 
         ControllerElementViewModel element = _selected;
-        _profiles[_active] = Current.WithoutMapping(element.Control);
-        if (Save())
+        if (ChangeProfile(Current.WithoutMapping(element.Control)))
         {
-            _router.SetProfile(Current);
-            RefreshSummaries();
-            Editor.Load(element.Control, null);
+            LoadEditor(element);
+            SetPending(null);
             StatusMessage = Texts.UiMappingRemoved(element.Label);
-            RemoveCommand.RaiseCanExecuteChanged();
+            RaiseEditorCommands();
         }
     }
 
-    /// <summary>Runs the action as currently entered once (volume actions at 50 %), without saving it.</summary>
-    public void TestEditor()
+    /// <summary>
+    /// Drag and drop in the picture: moves the mapping of one control onto another (a mapped target swaps), or copies it
+    /// (<paramref name="copy"/>, Ctrl held). Mappings that do not fit the kind of control are refused without change.
+    /// Unsaved editor changes are applied (or, when invalid, thrown away) first. Returns the text for the status line,
+    /// which is also shown there.
+    /// </summary>
+    public string TransferMapping(ControlId from, ControlId to, bool copy)
     {
-        if (_selected is null || !Editor.TryBuild(out ControlMapping? mapping, out _) || mapping is null)
+        string fromLabel = LabelOf(from);
+        string toLabel = LabelOf(to);
+        if (!LeaveEditor())
+        {
+            return ErrorMessage ?? string.Empty;
+        }
+
+        TransferResult result = Current.TransferMapping(from, to, copy ? TransferMode.Copy : TransferMode.Move, _shapes.ShapeOf);
+        string message = result.Outcome switch
+        {
+            TransferOutcome.Moved => Texts.UiTransferMoved(fromLabel, toLabel),
+            TransferOutcome.Swapped => Texts.UiTransferSwapped(fromLabel, toLabel),
+            TransferOutcome.Copied => Texts.UiTransferCopied(fromLabel, toLabel),
+            TransferOutcome.Incompatible => Texts.UiTransferIncompatible(fromLabel, toLabel),
+            _ => Texts.UiTransferNothing(fromLabel),
+        };
+
+        if (result.Changed && !ChangeProfile(result.Profile))
+        {
+            return ErrorMessage ?? string.Empty;
+        }
+
+        if (result.Changed)
+        {
+            // The dropped mapping is selected at its new place, so it can be checked at once.
+            if (_elements.TryGetValue(to, out ControllerElementViewModel? target) && target != _selected)
+            {
+                ShowSelection(target);
+            }
+            else if (_selected is { } selected)
+            {
+                LoadEditor(selected);
+            }
+        }
+
+        StatusMessage = message;
+        return message;
+    }
+
+    public string TransferMapping(ControllerElementViewModel from, ControllerElementViewModel to, bool copy) =>
+        TransferMapping(from.Control, to.Control, copy);
+
+    /// <summary>Whether dropping <paramref name="from"/> onto <paramref name="to"/> would change something (drag feedback).</summary>
+    public bool CanTransfer(ControlId from, ControlId to, bool copy) =>
+        Current.TransferMapping(from, to, copy ? TransferMode.Copy : TransferMode.Move, _shapes.ShapeOf).Changed;
+
+    /// <summary>
+    /// Looks for a new program with sound and raises <see cref="ProgramPromptRequested"/> (UI thread; called by <see cref="Tick"/>).
+    /// Nobody is asked while no window listens to the event. An open question without answer counts as "Nicht jetzt"
+    /// after <see cref="ProgramPromptViewModel.AutoDismissAfter"/>.
+    /// </summary>
+    public void CheckForNewPrograms()
+    {
+        if (_prompt is { } open)
+        {
+            if (_time.GetUtcNow() - _promptShownAt >= ProgramPromptViewModel.AutoDismissAfter)
+            {
+                open.NotNow();
+            }
+
+            return;
+        }
+
+        if (!AskForNewPrograms || ProgramPromptRequested is null)
         {
             return;
         }
 
-        IReadOnlyList<ActionInvocation> invocations = ActionInvocation.ForMapping(mapping, ActionPhase.Pressed, 0.5f);
-        ShowResults(_selected.Label, invocations, _executor.ExecuteAll(invocations));
+        if (_programs.Check(Current, _settings.IgnoredProgramList) is not { } prompt)
+        {
+            return;
+        }
+
+        List<ControllerElementViewModel> choices = Elements.Concat(ExtraElements)
+            .Where(e => _shapes.ShapeOf(e.Control) == ControlShape.Continuous)
+            .ToList();
+        _promptShownAt = _time.GetUtcNow();
+        ActivePrompt = new ProgramPromptViewModel(prompt, choices, OnPromptAnswered);
+        ProgramPromptRequested?.Invoke(_prompt!);
+    }
+
+    /// <summary>Puts a program's volume on a control as a further target (an unmapped control gets a new mapping).</summary>
+    public bool AssignProgram(string exeName, ControlId control)
+    {
+        Profile updated = ProgramPromptService.AddProgram(Current, control, exeName);
+        if (updated != Current && !ChangeProfile(updated))
+        {
+            return false;
+        }
+
+        string label = LabelOf(control);
+        if (_selected is { } selected && selected.Control == control)
+        {
+            if (Editor.IsDirty)
+            {
+                Editor.AddApplication(exeName); // the open edit keeps the new program when it is applied
+            }
+            else
+            {
+                LoadEditor(selected);
+            }
+        }
+
+        StatusMessage = Texts.UiProgramAssigned(AppMatcher.FileNameOf(exeName), label);
+        if (ShowOsd)
+        {
+            OsdRequested?.Invoke(new OsdMessage(AppMatcher.FileNameOf(exeName), Texts.OsdProgramAssigned(label)));
+        }
+
+        return true;
+    }
+
+    /// <summary>Empties the list of programs that are never asked about.</summary>
+    public void ResetIgnoredPrograms()
+    {
+        if (_settings.IgnoredProgramList.Count == 0)
+        {
+            return;
+        }
+
+        ChangeSettings(_settings with { IgnoredPrograms = null }, nameof(IgnoredPrograms));
+        OnPropertyChanged(nameof(HasIgnoredPrograms));
+        StatusMessage = Texts.UiIgnoredProgramsReset;
     }
 
     public void NewProfile()
     {
+        if (!LeaveEditor())
+        {
+            return;
+        }
+
         int number = _profiles.Count + 1;
         while (_profiles.Any(p => p.Name == Texts.UiNewProfileName(number)))
         {
@@ -490,12 +699,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RefreshSummaries();
         if (_selected is not null)
         {
-            Editor.Load(_selected.Control, Current.Find(_selected.Control));
+            LoadEditor(_selected);
         }
 
+        SetPending(null);
         OnPropertyChanged(nameof(ActiveProfileName));
         OnPropertyChanged(nameof(ProfileNameEdit));
-        RemoveCommand.RaiseCanExecuteChanged();
+        RaiseEditorCommands();
         Save();
     }
 
@@ -503,16 +713,108 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         foreach (ControllerElementViewModel element in _elements.Values)
         {
-            ControlMapping? mapping = Current.Find(element.Control);
-            element.HasMapping = mapping is not null;
-            element.IsContinuous = mapping?.HasContinuousAction ?? false;
-            element.Summary = MappingDescriber.Describe(mapping);
+            element.ShowMapping(Current.Find(element.Control));
+        }
+    }
+
+    private void LoadEditor(ControllerElementViewModel element) =>
+        Editor.Load(element.Control, _shapes.ShapeOf(element.Control), Current.Find(element.Control));
+
+    private string LabelOf(ControlId control) =>
+        _elements.TryGetValue(control, out ControllerElementViewModel? element) ? element.Label : control.ToString();
+
+    /// <summary>
+    /// Before the selection (or the profile) changes: applies unsaved valid editor changes, throws unsaved invalid ones
+    /// away with a note. Returns false only when applying failed (save error); then everything stays as it is.
+    /// </summary>
+    private bool LeaveEditor()
+    {
+        if (_selected is null || !Editor.IsDirty)
+        {
+            return true;
         }
 
-        MappedElements.Clear();
-        foreach (ControllerElementViewModel element in Elements.Concat(ExtraElements).Where(e => e.HasMapping))
+        if (Editor.IsValid)
         {
-            MappedElements.Add(element);
+            return ApplyEditor(automatic: true);
+        }
+
+        string reason = Editor.ValidationMessage ?? string.Empty;
+        string label = _selected.Label;
+        Editor.Revert();
+        StatusMessage = Texts.UiChangesDiscardedInvalid(label, reason);
+        return true;
+    }
+
+    private bool ApplyEditor(bool automatic)
+    {
+        if (_selected is null || !Editor.TryBuild(out ControlMapping? mapping, out _))
+        {
+            return false;
+        }
+
+        if (!Editor.IsDirty)
+        {
+            return true;
+        }
+
+        ControllerElementViewModel element = _selected;
+        if (!ChangeProfile(mapping is null ? Current.WithoutMapping(element.Control) : Current.WithMapping(mapping)))
+        {
+            return false;
+        }
+
+        LoadEditor(element);
+        SetPending(null);
+        string summary = MappingDescriber.Describe(mapping);
+        StatusMessage = mapping is null ? Texts.UiMappingRemoved(element.Label)
+            : automatic ? Texts.UiAutoApplied(element.Label, summary)
+            : Texts.UiMappingSaved(element.Label, summary);
+        RaiseEditorCommands();
+        return true;
+    }
+
+    /// <summary>Makes <paramref name="updated"/> the active profile when it could be saved; otherwise nothing changes.</summary>
+    private bool ChangeProfile(Profile updated)
+    {
+        Profile previous = Current;
+        _profiles[_active] = updated;
+        if (!Save())
+        {
+            _profiles[_active] = previous;
+            return false;
+        }
+
+        _router.SetProfile(Current);
+        RefreshSummaries();
+        return true;
+    }
+
+    private void SetPending(ControllerElementViewModel? element)
+    {
+        if (_pending == element)
+        {
+            return;
+        }
+
+        _pending = element;
+        OnPropertyChanged(nameof(PendingElement));
+        OnPropertyChanged(nameof(HasPendingSelection));
+        SelectPendingCommand.RaiseCanExecuteChanged();
+    }
+
+    private void RaiseEditorCommands()
+    {
+        ApplyCommand.RaiseCanExecuteChanged();
+        DiscardCommand.RaiseCanExecuteChanged();
+        RemoveCommand.RaiseCanExecuteChanged();
+    }
+
+    private void OnEditorChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(MappingEditorViewModel.IsDirty) or nameof(MappingEditorViewModel.CanApply))
+        {
+            RaiseEditorCommands();
         }
     }
 
@@ -542,15 +844,85 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     // Runs on the MIDI worker thread (the shape tracker is thread-safe); the picture is updated on the UI thread.
     private void OnMessageObserved(MidiMessage message)
     {
-        _shapes.Observe(message);
-        _ui.Post(() => ShowValue(message));
+        ControlShape shape = _shapes.Observe(message);
+        DateTimeOffset now = _time.GetUtcNow();
+        _ui.Post(() => ShowValue(message, shape, now));
     }
 
-    private void ShowValue(MidiMessage message)
+    private void ShowValue(MidiMessage message, ControlShape shape, DateTimeOffset now)
     {
         if (_elements.TryGetValue(message.Control, out ControllerElementViewModel? element))
         {
             element.LastValue = message.Value;
+            element.Shape = shape;
+        }
+
+        if (_gestures.Observe(message, shape, now) is { } control)
+        {
+            OnDeviceGesture(control);
+        }
+    }
+
+    /// <summary>A control was deliberately operated at the device (see <see cref="DeviceGestureDetector"/>).</summary>
+    private void OnDeviceGesture(ControlId control)
+    {
+        if (_prompt is { } prompt && prompt.Assign(control))
+        {
+            return; // moving a fader or knob answers the open question for a new program
+        }
+
+        if (!_followDevice || _isLearning)
+        {
+            return;
+        }
+
+        if (!_elements.TryGetValue(control, out ControllerElementViewModel? element))
+        {
+            element = AddExtraElement(control, Texts.UiExtraControl(control.ToString()));
+            element.Shape = _shapes.ShapeOf(control);
+            ExtraElements.Add(element);
+            OnPropertyChanged(nameof(HasExtraElements));
+            element.ShowMapping(Current.Find(control));
+        }
+
+        if (element == _selected)
+        {
+            return; // moving the selected fader changes nothing
+        }
+
+        if (_selected is not null && Editor.IsDirty)
+        {
+            // Touching the device must not commit or lose a half-done edit: only point at the control.
+            SetPending(element);
+            StatusMessage = Texts.UiPendingSelection(element.Label, _selected.Label);
+            return;
+        }
+
+        ShowSelection(element);
+    }
+
+    private void OnPromptAnswered(ProgramPromptViewModel prompt, ProgramPromptAnswer answer, ControlId? control)
+    {
+        _programs.Close();
+        if (_prompt == prompt)
+        {
+            ActivePrompt = null;
+        }
+
+        switch (answer)
+        {
+            case ProgramPromptAnswer.Assigned when control is { } chosen:
+                AssignProgram(prompt.ExeName, chosen);
+                break;
+            case ProgramPromptAnswer.NeverAsk:
+                if (!_settings.IgnoredProgramList.Any(p => AppMatcher.NormalizeName(p) == AppMatcher.NormalizeName(prompt.ExeName)))
+                {
+                    ChangeSettings(_settings with { IgnoredPrograms = [.. _settings.IgnoredProgramList, prompt.ExeName] }, nameof(IgnoredPrograms));
+                    OnPropertyChanged(nameof(HasIgnoredPrograms));
+                }
+
+                StatusMessage = Texts.UiProgramIgnored(prompt.ExeName);
+                break;
         }
     }
 
@@ -560,12 +932,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (!_elements.TryGetValue(control, out ControllerElementViewModel? element))
         {
             element = AddExtraElement(control, Texts.UiExtraControl(control.ToString()));
+            element.Shape = _shapes.ShapeOf(control);
             ExtraElements.Add(element);
             OnPropertyChanged(nameof(HasExtraElements));
-            ControlMapping? existing = Current.Find(control);
-            element.HasMapping = existing is not null;
-            element.IsContinuous = existing?.HasContinuousAction ?? false;
-            element.Summary = MappingDescriber.Describe(existing);
+            element.ShowMapping(Current.Find(control));
         }
 
         Select(element);
@@ -586,7 +956,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         });
     }
 
-    /// <summary>Shows the outcome of one control message: the display for the first execution, the first failure (if any) or else the first message.</summary>
+    /// <summary>Shows the outcome of one control message: the display summary (see <see cref="OsdMessageFactory"/>), the first failure (if any) or else the first message.</summary>
     private void ShowResults(string label, IReadOnlyList<ActionInvocation> invocations, IReadOnlyList<ActionResult> results)
     {
         if (results.Count == 0)

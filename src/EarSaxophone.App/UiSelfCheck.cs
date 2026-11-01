@@ -103,6 +103,8 @@ internal static class UiSelfCheck
 
         Check("Aktion 'Audiogerät wechseln' zeigt Gerätetyp und Geräteliste", () =>
         {
+            vm.Select(vm.Elements.First(e => e.Label == "Cycle")); // only keys offer this action (a fader is selected before)
+            Flush(window);
             ActionKind before = vm.Editor.Kind;
             vm.Editor.Kind = ActionKind.SwitchDevice;
             Flush(window);

@@ -1,4 +1,6 @@
 using EarSaxophone.Core.Devices;
+using EarSaxophone.Core.Localization;
+using EarSaxophone.Core.Mapping;
 using EarSaxophone.Core.Midi;
 
 namespace EarSaxophone.Core.ViewModels;
@@ -14,6 +16,8 @@ public sealed class ControllerElementViewModel : ObservableObject
     private bool _isContinuous;
     private bool _isSelected;
     private int _lastValue;
+    private ControlShape _shape;
+    private MappingBadge _badge = MappingBadge.Empty;
 
     public ControllerElementViewModel(LayoutElement layout)
     {
@@ -27,6 +31,7 @@ public sealed class ControllerElementViewModel : ObservableObject
         Glyph = layout.Glyph;
         Caption = layout.Caption;
         GlyphColor = layout.GlyphColor;
+        _shape = layout.Shape;
     }
 
     /// <summary>Additional control that is not part of the standard layout (found by MIDI-Learn).</summary>
@@ -38,6 +43,7 @@ public sealed class ControllerElementViewModel : ObservableObject
         Width = 150;
         Height = 40;
         GlyphColor = "#DDE1EE";
+        _shape = ControlShape.Unknown;
     }
 
     public ControlId Control { get; }
@@ -68,15 +74,58 @@ public sealed class ControllerElementViewModel : ObservableObject
             if (SetField(ref _summary, value))
             {
                 OnPropertyChanged(nameof(TooltipText));
-                OnPropertyChanged(nameof(ListText));
             }
         }
     }
 
     public string TooltipText => $"{Label}: {_summary}";
 
-    /// <summary>Text for the list of assignments, for example "Fader 1: Lautstärke: Discord.exe".</summary>
-    public string ListText => $"{Label} · {_summary}";
+    /// <summary>Stepless (fader, knob), key, or not known yet (an additional control that has not shown its behaviour).</summary>
+    public ControlShape Shape
+    {
+        get => _shape;
+        set
+        {
+            if (SetField(ref _shape, value))
+            {
+                OnPropertyChanged(nameof(IsStepless));
+            }
+        }
+    }
+
+    /// <summary>True for faders and knobs (the controls a program's volume can be put on).</summary>
+    public bool IsStepless => _shape == ControlShape.Continuous;
+
+    /// <summary>Badge in the picture: symbol ids of the action kinds and the number of actions.</summary>
+    public MappingBadge Badge
+    {
+        get => _badge;
+        private set
+        {
+            if (SetField(ref _badge, value))
+            {
+                OnPropertyChanged(nameof(BadgeKind));
+                OnPropertyChanged(nameof(ActionCount));
+                OnPropertyChanged(nameof(ShowsActionCount));
+            }
+        }
+    }
+
+    /// <summary>Symbol id of the first action (<see cref="ActionKind.None"/> when unmapped).</summary>
+    public ActionKind BadgeKind => _badge.PrimaryKind;
+
+    public int ActionCount => _badge.ActionCount;
+
+    public bool ShowsActionCount => _badge.ShowsCount;
+
+    /// <summary>Updates summary, badge and flags from the mapping of this control (null = unmapped).</summary>
+    public void ShowMapping(ControlMapping? mapping)
+    {
+        HasMapping = mapping is not null;
+        IsContinuous = mapping?.HasContinuousAction ?? false;
+        Summary = MappingDescriber.Describe(mapping);
+        Badge = MappingBadge.From(mapping);
+    }
 
     public bool HasMapping
     {

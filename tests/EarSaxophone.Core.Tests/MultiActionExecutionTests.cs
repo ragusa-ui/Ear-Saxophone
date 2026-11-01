@@ -338,7 +338,7 @@ public class MultiActionExecutionTests
     public void ExecuteAll_EmptyList_ReturnsNothing() => Assert.Empty(_executor.ExecuteAll([]));
 
     [Fact]
-    public void OsdForSeveralExecutions_ShowsTheFirst()
+    public void OsdForSeveralExecutions_ShowsTheFirstTargetPlusTheCount()
     {
         _system.AddSession(@"C:\Games\game1.exe", "spk");
         var mapping = new ControlMapping(Fader, [new SetVolumeAction(App("game1.exe")), new SetVolumeAction(AudioTarget.Speakers)]);
@@ -346,7 +346,7 @@ public class MultiActionExecutionTests
 
         OsdMessage? osd = OsdMessageFactory.Create(invocations, _executor.ExecuteAll(invocations));
 
-        Assert.Equal("game1.exe", osd!.Title);
+        Assert.Equal("game1.exe + 1", osd!.Title);
         Assert.Equal(0.3, osd.Level!.Value, 5);
         Assert.Null(OsdMessageFactory.Create([], []));
     }

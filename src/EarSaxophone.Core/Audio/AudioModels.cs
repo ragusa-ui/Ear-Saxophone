@@ -35,6 +35,22 @@ public sealed record AudioSessionInfo(
     DeviceFlow Flow,
     bool IsSystemSounds = false);
 
+/// <summary>State of an audio session as Windows reports it (AudioSessionState), used to notice programs that start playing.</summary>
+public enum AudioSessionActivity
+{
+    /// <summary>The audio layer does not report the state (the default of adapters that do not support it yet).</summary>
+    Unknown,
+
+    /// <summary>The session exists but plays nothing right now.</summary>
+    Inactive,
+
+    /// <summary>The session is playing (or recording) right now.</summary>
+    Active,
+
+    /// <summary>The session has ended.</summary>
+    Expired,
+}
+
 public interface IAudioSession
 {
     AudioSessionInfo Info { get; }
@@ -42,6 +58,12 @@ public interface IAudioSession
     float Volume { get; set; }
 
     bool Muted { get; set; }
+
+    /// <summary>
+    /// Whether the session plays right now. The default is <see cref="AudioSessionActivity.Unknown"/>, so adapters that do
+    /// not report it never trigger the question for a new program.
+    /// </summary>
+    AudioSessionActivity Activity => AudioSessionActivity.Unknown;
 }
 
 public interface IAudioSystem

@@ -11,6 +11,18 @@ internal sealed class ImmediateUi : IUiThread
     public void Post(Action action) => action();
 }
 
+/// <summary>A clock that only moves when the test says so.</summary>
+internal sealed class ManualClock : TimeProvider
+{
+    private DateTimeOffset _now = new(2026, 11, 1, 12, 0, 0, TimeSpan.Zero);
+
+    public override DateTimeOffset GetUtcNow() => _now;
+
+    public void Advance(TimeSpan by) => _now += by;
+
+    public void AdvanceMs(int milliseconds) => _now += TimeSpan.FromMilliseconds(milliseconds);
+}
+
 internal sealed class RecordingKeyboard : IKeyboardSender
 {
     public List<MediaCommand> Media { get; } = [];

@@ -94,6 +94,8 @@ internal static class UiReport
 
     private static string? Describe(FrameworkElement element) => element switch
     {
+        Button { DataContext: EarSaxophone.Core.ViewModels.ControllerElementViewModel e } =>
+            $"Element '{e.Label}' {e.Kind}{(e.HasMapping ? " belegt" : string.Empty)}{(e.IsSelected ? " gewaehlt" : string.Empty)}",
         TextBlock { Text: "nicht belegt" } => null,
         TextBlock { Text.Length: > 0 } t when IsLeafText(t) => $"Text '{Trim(t.Text)}' size {t.FontSize:0.#}",
         ProgressBar p => $"ProgressBar {p.Value:0.00}",
@@ -161,19 +163,24 @@ internal static class UiReport
 
         double samples = Math.Ceiling(height / 2.0) * Math.Ceiling(width / 2.0);
         sb.AppendLine($"== Pixels: average brightness {sum / samples:0.00} (0 = black, 1 = white), share of near-white pixels {bright / samples:P1}");
-        sb.AppendLine("== ASCII preview (10x20 px per character; ' .:-=+*#%@' = darker to brighter; 'A' accent/teal, 'R' red)");
+        AppendAscii(pixels, width, height, 0, 0, width, height, 10, 20, "whole window, 10x20 px per character", sb);
+        AppendAscii(pixels, width, height, 0, 110, Math.Min(width, 800), Math.Min(height, 700), 6, 12, "device picture area, 6x12 px per character", sb);
+    }
 
+    private static void AppendAscii(byte[] pixels, int width, int height, int x0, int y0, int x1, int y1, int cellWidth, int cellHeight, string title, StringBuilder sb)
+    {
+        sb.AppendLine($"== ASCII preview ({title}; ' .:-=+*#%@' = darker to brighter; 'A' accent/teal, 'R' red)");
         const string ramp = " .:-=+*#%@";
-        for (int cy = 0; cy < height; cy += 20)
+        for (int cy = y0; cy < y1; cy += cellHeight)
         {
             var line = new StringBuilder();
-            for (int cx = 0; cx < width; cx += 10)
+            for (int cx = x0; cx < x1; cx += cellWidth)
             {
                 double r = 0, g = 0, b = 0;
                 int n = 0;
-                for (int y = cy; y < Math.Min(cy + 20, height); y += 4)
+                for (int y = cy; y < Math.Min(cy + cellHeight, y1); y += 2)
                 {
-                    for (int x = cx; x < Math.Min(cx + 10, width); x += 2)
+                    for (int x = cx; x < Math.Min(cx + cellWidth, x1); x += 2)
                     {
                         int i = (y * width + x) * 4;
                         b += pixels[i];

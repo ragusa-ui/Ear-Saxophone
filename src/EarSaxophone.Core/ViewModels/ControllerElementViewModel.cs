@@ -1,25 +1,82 @@
-namespace EarSaxophone.Core.ViewModels;
-
+using EarSaxophone.Core.Devices;
 using EarSaxophone.Core.Midi;
 
-/// <summary>One tile of the controller overview (a knob, fader or button).</summary>
-public sealed class ControllerElementViewModel(ControlId control, string label) : ObservableObject
+namespace EarSaxophone.Core.ViewModels;
+
+/// <summary>One control shown in the picture of the device (a knob, fader or button), or an additional control found by MIDI-Learn.</summary>
+public sealed class ControllerElementViewModel : ObservableObject
 {
+    /// <summary>How far the fader cap can move inside the fader track (design units).</summary>
+    public const double FaderTravel = 105;
+
     private string _summary = string.Empty;
     private bool _hasMapping;
     private bool _isContinuous;
     private bool _isSelected;
     private int _lastValue;
 
-    public ControlId Control { get; } = control;
+    public ControllerElementViewModel(LayoutElement layout)
+    {
+        Control = layout.Control;
+        Label = layout.Label;
+        Kind = layout.Kind;
+        X = layout.X;
+        Y = layout.Y;
+        Width = layout.Width;
+        Height = layout.Height;
+        Glyph = layout.Glyph;
+        Caption = layout.Caption;
+        GlyphColor = layout.GlyphColor;
+    }
 
-    public string Label { get; } = label;
+    /// <summary>Additional control that is not part of the standard layout (found by MIDI-Learn).</summary>
+    public ControllerElementViewModel(ControlId control, string label)
+    {
+        Control = control;
+        Label = label;
+        Kind = ElementKind.Button;
+        Width = 150;
+        Height = 40;
+        GlyphColor = "#DDE1EE";
+    }
+
+    public ControlId Control { get; }
+
+    public string Label { get; }
+
+    public ElementKind Kind { get; }
+
+    public double X { get; }
+
+    public double Y { get; }
+
+    public double Width { get; }
+
+    public double Height { get; }
+
+    public string Glyph { get; } = string.Empty;
+
+    public string Caption { get; } = string.Empty;
+
+    public string GlyphColor { get; }
 
     public string Summary
     {
         get => _summary;
-        set => SetField(ref _summary, value);
+        set
+        {
+            if (SetField(ref _summary, value))
+            {
+                OnPropertyChanged(nameof(TooltipText));
+                OnPropertyChanged(nameof(ListText));
+            }
+        }
     }
+
+    public string TooltipText => $"{Label}: {_summary}";
+
+    /// <summary>Text for the list of assignments, for example "Fader 1: Lautstärke: Discord.exe".</summary>
+    public string ListText => $"{Label} · {_summary}";
 
     public bool HasMapping
     {
@@ -27,7 +84,7 @@ public sealed class ControllerElementViewModel(ControlId control, string label) 
         set => SetField(ref _hasMapping, value);
     }
 
-    /// <summary>True when the mapped action follows the control position (volume), so a level bar makes sense.</summary>
+    /// <summary>True when the mapped action follows the control position (volume).</summary>
     public bool IsContinuous
     {
         get => _isContinuous;
@@ -49,19 +106,21 @@ public sealed class ControllerElementViewModel(ControlId control, string label) 
             if (SetField(ref _lastValue, value))
             {
                 OnPropertyChanged(nameof(LevelFraction));
+                OnPropertyChanged(nameof(KnobAngle));
+                OnPropertyChanged(nameof(CapOffset));
+                OnPropertyChanged(nameof(IsActive));
             }
         }
     }
 
     public double LevelFraction => _lastValue / 127.0;
-}
 
-public sealed class ElementRowViewModel(string title, IReadOnlyList<ControllerElementViewModel> elements)
-{
-    public string Title { get; } = title;
+    /// <summary>Pointer angle of a knob in degrees (-135 at minimum to +135 at maximum).</summary>
+    public double KnobAngle => -135 + 270 * LevelFraction;
 
-    public IReadOnlyList<ControllerElementViewModel> Elements { get; } = elements;
+    /// <summary>How far the fader cap is moved down from its top position (0 = fader at maximum).</summary>
+    public double CapOffset => (1 - LevelFraction) * FaderTravel;
 
-    /// <summary>Strips have 8 columns; the longer transport row is wrapped into two rows of equal width.</summary>
-    public int Columns => Elements.Count <= 8 ? Elements.Count : (Elements.Count + 1) / 2;
+    /// <summary>A button is lit while it is held down (value 64 or more).</summary>
+    public bool IsActive => _lastValue >= Mapping.MappingDispatcher.PressThreshold;
 }

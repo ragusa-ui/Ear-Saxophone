@@ -76,10 +76,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             ProfileNames.Add(profile.Name);
         }
 
-        foreach (LayoutRow row in Nanokontrol2Layout.Rows)
+        foreach (LayoutElement layout in Nanokontrol2Layout.Elements)
         {
-            var elements = row.Elements.Select(e => AddElement(e.Control, e.Label)).ToList();
-            Rows.Add(new ElementRowViewModel(row.Title, elements));
+            var element = new ControllerElementViewModel(layout);
+            _elements[layout.Control] = element;
+            Elements.Add(element);
         }
 
         _router = new ControlRouter(Current);
@@ -109,7 +110,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public ObservableCollection<string> ProfileNames { get; } = [];
 
-    public ObservableCollection<ElementRowViewModel> Rows { get; } = [];
+    /// <summary>All controls of the device in the order of the layout (the picture binds to this).</summary>
+    public ObservableCollection<ControllerElementViewModel> Elements { get; } = [];
+
+    /// <summary>Controls that currently have an action, for the compact list below the picture.</summary>
+    public ObservableCollection<ControllerElementViewModel> MappedElements { get; } = [];
 
     /// <summary>Controls found by MIDI-Learn that are not part of the standard layout.</summary>
     public ObservableCollection<ControllerElementViewModel> ExtraElements { get; } = [];
@@ -429,7 +434,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         Save();
     }
 
-    private ControllerElementViewModel AddElement(ControlId control, string label)
+    private ControllerElementViewModel AddExtraElement(ControlId control, string label)
     {
         var element = new ControllerElementViewModel(control, label);
         _elements[control] = element;
@@ -466,6 +471,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             element.HasMapping = mapping is not null;
             element.IsContinuous = mapping?.Action.IsContinuous ?? false;
             element.Summary = MappingDescriber.Describe(mapping);
+        }
+
+        MappedElements.Clear();
+        foreach (ControllerElementViewModel element in Elements.Concat(ExtraElements).Where(e => e.HasMapping))
+        {
+            MappedElements.Add(element);
         }
     }
 
@@ -505,7 +516,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         IsLearning = false;
         if (!_elements.TryGetValue(control, out ControllerElementViewModel? element))
         {
-            element = AddElement(control, Texts.UiExtraControl(control.ToString()));
+            element = AddExtraElement(control, Texts.UiExtraControl(control.ToString()));
             ExtraElements.Add(element);
             OnPropertyChanged(nameof(HasExtraElements));
             ControlMapping? existing = Current.Find(control);

@@ -2,6 +2,7 @@
                   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                   xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                  xmlns:local="clr-namespace:EarSaxophone.App"
                   Title="Ear Saxophone"
                   Width="1280" Height="860" MinWidth="1120" MinHeight="720"
                   WindowStartupLocation="CenterScreen"
@@ -42,31 +43,43 @@
             <Setter Property="Margin" Value="0,4,0,0" />
         </Style>
 
-        <Style x:Key="TileButton" TargetType="Button">
-            <Setter Property="Margin" Value="2" />
+        <LinearGradientBrush x:Key="BodyBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#2D3347" Offset="0" />
+            <GradientStop Color="#171A26" Offset="1" />
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="KeyBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#454D66" Offset="0" />
+            <GradientStop Color="#2C3248" Offset="1" />
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="KeyActiveBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#66E0CF" Offset="0" />
+            <GradientStop Color="#2F9E91" Offset="1" />
+        </LinearGradientBrush>
+        <RadialGradientBrush x:Key="KnobBrush" GradientOrigin="0.35,0.3" Center="0.5,0.5" RadiusX="0.7" RadiusY="0.7">
+            <GradientStop Color="#5C6782" Offset="0" />
+            <GradientStop Color="#252A3B" Offset="1" />
+        </RadialGradientBrush>
+        <SolidColorBrush x:Key="TrackBrush" Color="#0D1018" />
+        <SolidColorBrush x:Key="DeviceEdge" Color="#3E475F" />
+        <SolidColorBrush x:Key="MutedText" Color="#8D96AE" />
+
+        <Style x:Key="ElementButton" TargetType="Button">
             <Setter Property="Padding" Value="0" />
-            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-            <Setter Property="VerticalContentAlignment" Value="Stretch" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Root" CornerRadius="8" BorderThickness="1.5"
-                                Background="{StaticResource TileBackground}"
-                                BorderBrush="{StaticResource TileBorder}"
-                                Padding="7,6">
+                        <Border x:Name="Root" CornerRadius="14" BorderThickness="2" BorderBrush="Transparent"
+                                Background="Transparent" Padding="3">
                             <ContentPresenter />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="{StaticResource TileBackgroundHover}" />
+                                <Setter TargetName="Root" Property="Background" Value="#1CFFFFFF" />
                             </Trigger>
-                            <DataTrigger Binding="{Binding HasMapping}" Value="True">
-                                <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource TileBorderMapped}" />
-                            </DataTrigger>
                             <DataTrigger Binding="{Binding IsSelected}" Value="True">
                                 <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
-                                <Setter TargetName="Root" Property="Background" Value="{StaticResource TileBackgroundHover}" />
+                                <Setter TargetName="Root" Property="Background" Value="#2A3FB6A8" />
                             </DataTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -74,16 +87,116 @@
             </Setter>
         </Style>
 
-        <DataTemplate x:Key="ElementTile">
-            <Button Style="{StaticResource TileButton}"
+        <DataTemplate x:Key="KnobTemplate">
+            <Button Style="{StaticResource ElementButton}" Width="{Binding Width}" Height="{Binding Height}"
+                    ToolTip="{Binding TooltipText}" Command="{Binding DataContext.SelectCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                    CommandParameter="{Binding}">
+                <Grid>
+                    <Ellipse Fill="{StaticResource KnobBrush}" Stroke="#4A546E" StrokeThickness="1.5" />
+                    <Grid RenderTransformOrigin="0.5,0.5">
+                        <Grid.RenderTransform>
+                            <RotateTransform Angle="{Binding KnobAngle}" />
+                        </Grid.RenderTransform>
+                        <Border Width="4" Height="17" Margin="0,5,0,0" VerticalAlignment="Top" HorizontalAlignment="Center"
+                                CornerRadius="2" Background="{StaticResource AccentBrush}" />
+                    </Grid>
+                    <Ellipse Width="10" Height="10" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-3,-3,0"
+                             Fill="{StaticResource AccentBrush}" Stroke="#171A26" StrokeThickness="1.5"
+                             Visibility="{Binding HasMapping, Converter={StaticResource BoolToVis}}" />
+                </Grid>
+            </Button>
+        </DataTemplate>
+
+        <DataTemplate x:Key="FaderTemplate">
+            <Button Style="{StaticResource ElementButton}" Width="{Binding Width}" Height="{Binding Height}"
+                    ToolTip="{Binding TooltipText}" Command="{Binding DataContext.SelectCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                    CommandParameter="{Binding}">
+                <Grid>
+                    <Border Width="8" HorizontalAlignment="Center" Margin="0,10,0,26" CornerRadius="4"
+                            Background="{StaticResource TrackBrush}" BorderBrush="#2A3045" BorderThickness="1" />
+                    <Border Width="32" Height="22" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,10,0,0" CornerRadius="5"
+                            Background="{StaticResource KeyBrush}" BorderBrush="#5A647F" BorderThickness="1">
+                        <Border.RenderTransform>
+                            <TranslateTransform Y="{Binding CapOffset}" />
+                        </Border.RenderTransform>
+                        <Rectangle Height="2" Margin="6,0" Fill="{StaticResource AccentBrush}" />
+                    </Border>
+                    <TextBlock Text="{Binding Caption}" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12"
+                               FontWeight="SemiBold" Foreground="{StaticResource MutedText}" />
+                    <Ellipse Width="10" Height="10" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-3,-3,0"
+                             Fill="{StaticResource AccentBrush}" Stroke="#171A26" StrokeThickness="1.5"
+                             Visibility="{Binding HasMapping, Converter={StaticResource BoolToVis}}" />
+                </Grid>
+            </Button>
+        </DataTemplate>
+
+        <DataTemplate x:Key="KeyTemplate">
+            <Button Style="{StaticResource ElementButton}" Width="{Binding Width}" Height="{Binding Height}"
+                    ToolTip="{Binding TooltipText}" Command="{Binding DataContext.SelectCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                    CommandParameter="{Binding}">
+                <Grid>
+                    <Border x:Name="Key" CornerRadius="8" Background="{StaticResource KeyBrush}" BorderBrush="#5A647F" BorderThickness="1">
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Glyph}" Foreground="{Binding GlyphColor}" FontSize="14" FontWeight="SemiBold"
+                                       HorizontalAlignment="Center" />
+                            <TextBlock Text="{Binding Caption}" FontSize="8.5" Foreground="{StaticResource MutedText}" HorizontalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <Trigger Property="Text" Value="">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+                    <Ellipse Width="10" Height="10" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-3,-3,0"
+                             Fill="{StaticResource AccentBrush}" Stroke="#171A26" StrokeThickness="1.5"
+                             Visibility="{Binding HasMapping, Converter={StaticResource BoolToVis}}" />
+                </Grid>
+            </Button>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                    <Setter TargetName="Key" Property="Background" Value="{StaticResource KeyActiveBrush}" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <local:ElementTemplateSelector x:Key="ElementSelector" Knob="{StaticResource KnobTemplate}"
+                                       Fader="{StaticResource FaderTemplate}" Button="{StaticResource KeyTemplate}" />
+
+        <Style x:Key="Chip" TargetType="Button">
+            <Setter Property="Margin" Value="3" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Root" CornerRadius="15" BorderThickness="1" Padding="12,5"
+                                Background="{StaticResource TileBackground}" BorderBrush="{StaticResource TileBorder}">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource TileBackgroundHover}" />
+                            </Trigger>
+                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <DataTemplate x:Key="ChipTemplate">
+            <Button Style="{StaticResource Chip}" ToolTip="{Binding TooltipText}"
                     Command="{Binding DataContext.SelectCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                     CommandParameter="{Binding}">
-                <StackPanel MinHeight="58">
-                    <TextBlock Text="{Binding Label}" FontWeight="SemiBold" FontSize="12.5" TextWrapping="Wrap" />
-                    <TextBlock Text="{Binding Summary}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0"
-                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                    <ProgressBar Minimum="0" Maximum="1" Value="{Binding LevelFraction, Mode=OneWay}" Height="4" Margin="0,6,0,0"
-                                 Visibility="{Binding IsContinuous, Converter={StaticResource BoolToVis}}" />
+                <StackPanel Orientation="Horizontal">
+                    <Ellipse Width="7" Height="7" Margin="0,0,8,0" Fill="{StaticResource AccentBrush}" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding ListText}" FontSize="12" VerticalAlignment="Center" />
                 </StackPanel>
             </Button>
         </DataTemplate>
@@ -153,42 +266,82 @@
                 <ColumnDefinition Width="340" />
             </Grid.ColumnDefinitions>
 
-            <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Padding="0,0,12,0">
-                <StackPanel>
-                    <Border Visibility="{Binding IsLearning, Converter={StaticResource BoolToVis}}" Padding="12,9" Margin="0,4,0,0"
-                            CornerRadius="8" Background="#333FB6A8" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1">
-                        <TextBlock Text="{Binding LearnHint}" TextWrapping="Wrap" />
-                    </Border>
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-                    <ItemsControl ItemsSource="{Binding Rows}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel>
-                                    <TextBlock Text="{Binding Title}" Style="{StaticResource SectionTitle}" />
-                                    <ItemsControl ItemsSource="{Binding Elements}" ItemTemplate="{StaticResource ElementTile}">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <UniformGrid Columns="{Binding Columns}" />
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                    </ItemsControl>
-                                </StackPanel>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                <Border Grid.Row="0" Visibility="{Binding IsLearning, Converter={StaticResource BoolToVis}}" Padding="12,9" Margin="0,4,12,0"
+                        CornerRadius="8" Background="#333FB6A8" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1">
+                    <TextBlock Text="{Binding LearnHint}" TextWrapping="Wrap" />
+                </Border>
 
-                    <StackPanel Visibility="{Binding HasExtraElements, Converter={StaticResource BoolToVis}}">
-                        <TextBlock Text="Weitere Regler (per MIDI-Learn erkannt)" Style="{StaticResource SectionTitle}" />
-                        <ItemsControl ItemsSource="{Binding ExtraElements}" ItemTemplate="{StaticResource ElementTile}">
+                <!-- Das Gerät als Bild: antippen, was belegt werden soll -->
+                <Viewbox Grid.Row="1" Stretch="Uniform" Margin="0,10,14,10">
+                    <Grid Width="1000" Height="460">
+                        <Border CornerRadius="28" Background="{StaticResource BodyBrush}" BorderBrush="{StaticResource DeviceEdge}" BorderThickness="1.5">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="32" ShadowDepth="10" Opacity="0.5" Color="Black" />
+                            </Border.Effect>
+                        </Border>
+                        <Canvas>
+                            <Rectangle Canvas.Left="288" Canvas.Top="38" Width="2" Height="384" RadiusX="1" RadiusY="1" Fill="#22FFFFFF" />
+                            <TextBlock Canvas.Left="36" Canvas.Top="392" Text="nanoKONTROL2" FontSize="15" FontWeight="SemiBold"
+                                       Foreground="{StaticResource MutedText}" />
+                        </Canvas>
+                        <ItemsControl ItemsSource="{Binding Elements}" ItemTemplateSelector="{StaticResource ElementSelector}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
-                                    <UniformGrid Columns="4" />
+                                    <Canvas />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemContainerStyle>
+                                <Style TargetType="ContentPresenter">
+                                    <Setter Property="Canvas.Left" Value="{Binding X}" />
+                                    <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                                </Style>
+                            </ItemsControl.ItemContainerStyle>
+                        </ItemsControl>
+                    </Grid>
+                </Viewbox>
+
+                <ScrollViewer Grid.Row="2" MaxHeight="120" VerticalScrollBarVisibility="Auto" Margin="0,0,12,0">
+                    <StackPanel>
+                        <TextBlock Text="Belegungen" Style="{StaticResource SectionTitle}" />
+                        <TextBlock Text="Noch nichts belegt. Tippe im Bild auf einen Regler oder eine Taste.">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource Hint}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding MappedElements.Count}" Value="0">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <ItemsControl ItemsSource="{Binding MappedElements}" ItemTemplate="{StaticResource ChipTemplate}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel />
                                 </ItemsPanelTemplate>
                             </ItemsControl.ItemsPanel>
                         </ItemsControl>
+                        <StackPanel Visibility="{Binding HasExtraElements, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="Weitere Regler (per MIDI-Learn erkannt, nicht im Bild)" Style="{StaticResource SectionTitle}" />
+                            <ItemsControl ItemsSource="{Binding ExtraElements}" ItemTemplate="{StaticResource ChipTemplate}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                        </StackPanel>
                     </StackPanel>
-                </StackPanel>
-            </ScrollViewer>
+                </ScrollViewer>
+            </Grid>
 
             <!-- Editor -->
             <Border Grid.Column="1" CornerRadius="10" Padding="16,12" Margin="0,4,0,0"
@@ -196,7 +349,7 @@
                     BorderBrush="{StaticResource TileBorder}" BorderThickness="1">
                 <Grid>
                     <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Top"
-                               Text="Wählen Sie links ein Element oder nutzen Sie MIDI-Learn und bewegen Sie einen Regler am Gerät. Danach legen Sie hier fest, was er tun soll.">
+                               Text="Tippe links im Bild auf einen Regler, eine Taste oder einen Fader. Oder klicke auf MIDI-Learn und bewege ihn am Gerät. Danach legst du hier fest, was er tun soll.">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
                                 <Setter Property="Visibility" Value="Visible" />

@@ -295,7 +295,7 @@ public partial class App : Application
         window.Width = 1280;
         window.Height = 860;
         window.Show();
-        var element = _viewModel!.Rows.SelectMany(r => r.Elements).First(el => el.Label == "Fader 1");
+        var element = _viewModel!.Elements.First(el => el.Label == "Fader 1");
         _viewModel.Select(element);
         var wait = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
         wait.Tick += (_, _) =>

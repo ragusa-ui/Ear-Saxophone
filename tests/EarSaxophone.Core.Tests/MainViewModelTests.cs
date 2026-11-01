@@ -71,7 +71,7 @@ public class MainViewModelTests : IDisposable
     }
 
     private static ControllerElementViewModel Element(MainViewModel vm, string label) =>
-        vm.Rows.SelectMany(r => r.Elements).Concat(vm.ExtraElements).Single(e => e.Label == label);
+        vm.Elements.Concat(vm.ExtraElements).Single(e => e.Label == label);
 
     private void Assign(MainViewModel vm, string label, Action<MappingEditorViewModel> configure)
     {
@@ -85,21 +85,54 @@ public class MainViewModelTests : IDisposable
     {
         MainViewModel vm = Create();
 
-        Assert.Equal(6, vm.Rows.Count);
-        Assert.Equal(51, vm.Rows.Sum(r => r.Elements.Count));
-        Assert.All(vm.Rows.SelectMany(r => r.Elements), e => Assert.False(e.HasMapping));
+        Assert.Equal(51, vm.Elements.Count);
+        Assert.All(vm.Elements, e => Assert.False(e.HasMapping));
+        Assert.Empty(vm.MappedElements);
         Assert.Equal("Default", vm.ActiveProfileName);
         Assert.False(vm.HasSelection);
         Assert.False(vm.HasError);
     }
 
     [Fact]
-    public void Rows_AreLaidOutInEightColumns_AndTheLongTransportRowIsWrapped()
+    public void Elements_KnowTheirPlaceInThePicture_AndFollowTheirValue()
     {
         MainViewModel vm = Create();
+        ControllerElementViewModel fader = Element(vm, "Fader 1");
+        ControllerElementViewModel knob = Element(vm, "Drehregler 1");
+        ControllerElementViewModel play = Element(vm, "Play");
 
-        Assert.Equal([8, 8, 8, 8, 8, 6], vm.Rows.Select(r => r.Columns));
-        Assert.Equal(["Drehregler", "Fader", "S-Tasten (Solo)", "M-Tasten (Mute)", "R-Tasten (Rec)", "Transport"], vm.Rows.Select(r => r.Title));
+        Assert.Equal(Core.Devices.ElementKind.Fader, fader.Kind);
+        Assert.True(fader.Height > fader.Width && fader.X > Element(vm, "Stopp").X);
+
+        Send(vm, 0, 127);
+        Send(vm, 16, 0);
+        Send(vm, 41, 127);
+        Assert.Equal(0, fader.CapOffset, 3);                        // fader at maximum: cap at the top
+        Assert.Equal(-135, knob.KnobAngle, 3);                      // knob at minimum
+        Assert.True(play.IsActive);                                 // key held down
+
+        Send(vm, 0, 0);
+        Send(vm, 16, 127);
+        Send(vm, 41, 0);
+        Assert.Equal(ControllerElementViewModel.FaderTravel, fader.CapOffset, 3);
+        Assert.Equal(135, knob.KnobAngle, 3);
+        Assert.False(play.IsActive);
+    }
+
+    [Fact]
+    public void MappedElements_ListsExactlyTheAssignedControls_InPictureOrder()
+    {
+        MainViewModel vm = Create();
+        Assign(vm, "Fader 2", e => { e.Kind = ActionKind.SetVolume; e.Target = TargetKind.Speakers; });
+        Assign(vm, "Play", e => { e.Kind = ActionKind.Media; e.Media = MediaCommand.PlayPause; });
+
+        Assert.Equal(["Play", "Fader 2"], vm.MappedElements.Select(e => e.Label));
+        Assert.Contains("Lautstärke", Element(vm, "Fader 2").TooltipText);
+        Assert.Equal("Fader 2 · Lautstärke: Lautsprecher", Element(vm, "Fader 2").ListText);
+
+        vm.Select(Element(vm, "Play"));
+        vm.RemoveSelectedMapping();
+        Assert.Equal(["Fader 2"], vm.MappedElements.Select(e => e.Label));
     }
 
     [Fact]

@@ -395,19 +395,39 @@ public static class Texts
 
     public const string UiActionKind = "Aktion";
 
-    public const string UiTargets = "Ziele";
+    public const string UiTargets = "Was soll gesteuert werden?";
 
-    public const string UiNoTargets = "Noch kein Ziel. Unten hinzufügen.";
+    public const string UiNoTargets = "Noch nichts gewählt. Unten auf „Hinzufügen“ klicken.";
 
-    public const string UiAddSpeakers = "Lautsprecher hinzufügen";
+    public const string UiAddTarget = "Hinzufügen";
 
-    public const string UiAddMicrophone = "Mikrofon hinzufügen";
+    public const string UiAddTargetTip = "Ein Programm, die Lautsprecher oder das Mikrofon hinzufügen";
+
+    public const string UiAddProgramItem = "Programm …";
+
+    public const string UiAddSpeakersItem = "Lautsprecher (Standard-Wiedergabegerät)";
+
+    public const string UiAddMicrophoneItem = "Mikrofon (Standard-Aufnahmegerät)";
+
+    public const string UiChooseProgram = "Programm auswählen";
+
+    public const string UiChooseProgramHint = "Programme, die gerade Ton nutzen:";
+
+    public const string UiNoProgramsPlaying = "Gerade nutzt kein Programm Ton. Mit „Datei öffnen …“ geht jedes Programm.";
+
+    public const string UiOpenProgramFile = "Datei öffnen …";
+
+    public const string UiOpenProgramFileTip = "Programmdatei (.exe) wählen, auch wenn das Programm gerade nicht läuft";
+
+    public const string UiOpenProgramFileFilter = "Programme (*.exe)|*.exe";
+
+    public const string UiProgramFileNotExe = "Bitte eine Programmdatei (.exe) wählen.";
 
     public const string UiAddProgram = "Programm hinzufügen";
 
-    public const string UiProgramPlaceholder = "Programm, z. B. Discord.exe";
+    public const string UiProgramPlaceholder = "Oder Namen eintippen, z. B. Discord.exe";
 
-    public const string UiProgramTip = "Programme, die gerade Ton nutzen, stehen in der Liste. Der Name kann auch eingetippt werden.";
+    public const string UiProgramTip = "Name der Programmdatei, auch für Programme, die gerade nicht laufen";
 
     public const string UiRefreshLists = "Liste aktualisieren";
 

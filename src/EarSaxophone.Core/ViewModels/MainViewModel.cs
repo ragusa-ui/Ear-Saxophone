@@ -368,8 +368,35 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         _midi.Poll();
         PollLeds();
+        _ui.Post(RefreshMuteStates);
         _ui.Post(CheckForNewPrograms);
         _ui.Post(Update.CheckIfDue);
+    }
+
+    /// <summary>
+    /// Mirrors the mute state on the LED areas of the keys in the picture (UI thread; called by <see cref="Tick"/>, after key actions
+    /// and after mapping changes): a key is lit when its mute target (group) is muted, the same rule as the LEDs on the device. An
+    /// unreadable state leaves the key as it is.
+    /// </summary>
+    public void RefreshMuteStates()
+    {
+        Profile profile = Current;
+        foreach (ControllerElementViewModel element in Elements)
+        {
+            if (!element.HasLed)
+            {
+                continue;
+            }
+
+            try
+            {
+                element.IsMuteLit = LedController.IsLit(profile, element.Control, _executor.Audio.ReadGroupMuted);
+            }
+            catch (Exception)
+            {
+                // State unreadable right now (audio device busy or gone): keep what the picture shows.
+            }
+        }
     }
 
     /// <summary>Opens the MIDI device again (button, or return from sleep).</summary>
@@ -760,6 +787,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             element.ShowMapping(Current.Find(element.Control));
         }
+
+        RefreshMuteStates();
     }
 
     private void LoadEditor(ControllerElementViewModel element) =>
@@ -861,6 +890,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (e.PropertyName is nameof(MappingEditorViewModel.IsDirty) or nameof(MappingEditorViewModel.CanApply))
         {
             RaiseEditorCommands();
+        }
+        else if (e.PropertyName == nameof(MappingEditorViewModel.IsChoosingProgram) && Editor.IsChoosingProgram)
+        {
+            RefreshApps(); // "Programm auswählen" shows the programs that use sound right now
         }
     }
 
@@ -1030,6 +1063,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 ? element.Label
                 : control.ToString();
             ShowResults(label, invocations, results);
+            if (invocations.Any(i => i.Action is MuteAction))
+            {
+                RefreshMuteStates(); // a pressed mute key lights up in the picture at once
+            }
         });
     }
 

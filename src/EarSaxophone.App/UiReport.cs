@@ -52,7 +52,7 @@ internal static class UiReport
         }
 
         // The popups (profile menu, settings behind the gear) are closed in the screenshot; open them for a moment and list their content.
-        foreach (string name in new[] { "ProfilePopup", "SettingsPopup" })
+        foreach (string name in new[] { "ProfilePopup", "SettingsPopup", "AddTargetPopup" })
         {
             if (window.FindName(name) is not Popup { Child: FrameworkElement child } popup)
             {
@@ -170,7 +170,7 @@ internal static class UiReport
     private static string? Describe(FrameworkElement element) => element switch
     {
         Button { DataContext: EarSaxophone.Core.ViewModels.ControllerElementViewModel e } =>
-            $"Element '{e.Label}' {e.Kind}{(e.HasMapping ? $" belegt [{e.BadgeKind} x{e.ActionCount}]" : string.Empty)}{(e.IsSelected ? " gewaehlt" : string.Empty)}",
+            $"Element '{e.Label}' {e.Kind}{(e.HasMapping ? $" belegt [{e.BadgeKind} x{e.ActionCount}]" : string.Empty)}{(e.HasLed ? (e.IsMuteLit ? " LED an" : " LED aus") : string.Empty)}{(e.IsSelected ? " gewaehlt" : string.Empty)}",
         TextBlock { Text: "nicht belegt" } => null,
         TextBlock { Text.Length: > 0 } glyph when glyph.Text.All(c => c is >= '\uE000' and <= '\uF8FF') => null, // icon-font glyphs (symbols, scroll bar arrows)
         TextBlock { Text.Length: > 0 } t when IsLeafText(t) => $"Text{Id(t)} '{Trim(t.Text)}' size {t.FontSize:0.#}",
@@ -183,7 +183,7 @@ internal static class UiReport
         ToggleButton toggle when Id(toggle).Length > 0 => $"{toggle.GetType().Name}{Id(toggle)} checked={toggle.IsChecked}",
         ButtonBase { Content: string text } b => $"Button{Id(b)} '{text}' enabled={b.IsEnabled}",
         ButtonBase b when Id(b).Length > 0 => $"Button{Id(b)} (Symbol) enabled={b.IsEnabled}",
-        Border b when Id(b) is " #ApplyBar" or " #ErrorBar" or " #LearnBanner" or " #PendingBanner" or " #UpdateBanner" or " #SidePanel" => $"Border{Id(b)}",
+        Border b when Id(b) is " #ApplyBar" or " #ErrorBar" or " #LearnBanner" or " #PendingBanner" or " #UpdateBanner" or " #SidePanel" or " #ProgramPanel" or " #AddTargetMenu" => $"Border{Id(b)}",
         _ => null,
     };
 

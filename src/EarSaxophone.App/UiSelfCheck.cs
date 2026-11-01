@@ -136,10 +136,68 @@ internal static class UiSelfCheck
             return (moved && vm.Editor.Targets[0].Name == first, $"vorher erstes={first}, danach zweites={vm.Editor.Targets[1].Name}");
         });
 
-        Check("Programm eintippen und '+' fuegt ein Ziel hinzu; 'Uebernehmen' speichert es", () =>
+        Check("Ueberschrift 'Was soll gesteuert werden?'; 'Hinzufuegen' oeffnet ein Menue mit Programm, Lautsprecher und Mikrofon", () =>
+        {
+            bool heading = FindById<TextBlock>(window, "TargetHeading") is { IsVisible: true, Text: Texts.UiTargets };
+            bool oldButtons = FindById<FrameworkElement>(window, "AddSpeakersButton") is not null || FindById<FrameworkElement>(window, "AddMicrophoneButton") is not null;
+            Popup popup = main.AddTargetPopup;
+            popup.StaysOpen = true;
+            try
+            {
+                Toggle(FindById<ToggleButton>(window, "AddTargetButton") ?? throw new InvalidOperationException("AddTargetButton not found"));
+                Flush(window);
+                bool open = popup.IsOpen;
+                string[] ids = ["AddProgramItem", "AddSpeakersItem", "AddMicrophoneItem"];
+                List<string> missing = ids.Where(id => FindById<ButtonBase>(popup.Child, id) is not { IsVisible: true }).ToList();
+                int before = vm.Editor.Targets.Count;
+                Click(FindById<ButtonBase>(popup.Child, "AddSpeakersItem")!);
+                Flush(window);
+                bool closed = !popup.IsOpen;
+                bool speakers = vm.Editor.Targets.Count == before + 1 && vm.Editor.Targets[^1].Symbol == TargetSymbol.Speakers && vm.Editor.IsDirty;
+                popup.IsOpen = true;
+                Flush(window);
+                Click(FindById<ButtonBase>(popup.Child, "AddMicrophoneItem")!);
+                Flush(window);
+                bool microphone = vm.Editor.Targets.Count == before + 2 && vm.Editor.Targets[^1].Symbol == TargetSymbol.Microphone;
+                vm.DiscardEditor();
+                Flush(window);
+                return (heading && !oldButtons && open && missing.Count == 0 && closed && speakers && microphone && vm.Editor.Targets.Count == before,
+                    $"ueberschrift={heading}, alteKnoepfe={oldButtons}, offen={open}, fehlt=[{string.Join(",", missing)}], zu={closed}, lautsprecher={speakers}, mikrofon={microphone}");
+            }
+            finally
+            {
+                popup.IsOpen = false;
+                popup.StaysOpen = false;
+            }
+        });
+
+        Check("'Programm …' zeigt 'Programm auswaehlen' mit Liste, 'Datei oeffnen …' und Namensfeld; Eintippen + '+' fuegt hinzu, 'Uebernehmen' speichert", () =>
         {
             ControlId control = vm.SelectedElement!.Control;
-            var box = FindById<ComboBox>(window, "NewProgramBox") ?? throw new InvalidOperationException("NewProgramBox not found");
+            Popup popup = main.AddTargetPopup;
+            popup.StaysOpen = true;
+            bool panelOpen;
+            try
+            {
+                popup.IsOpen = true;
+                Flush(window);
+                Click(FindById<ButtonBase>(popup.Child, "AddProgramItem") ?? throw new InvalidOperationException("AddProgramItem not found"));
+                Flush(window);
+                panelOpen = !popup.IsOpen && FindById<Border>(window, "ProgramPanel") is { IsVisible: true } && vm.Editor.IsChoosingProgram;
+            }
+            finally
+            {
+                popup.IsOpen = false;
+                popup.StaysOpen = false;
+            }
+
+            bool title = FindById<TextBlock>(window, "ProgramPanelTitle") is { IsVisible: true, Text: Texts.UiChooseProgram };
+            bool list = vm.Editor.HasProgramChoices
+                ? FindById<ItemsControl>(window, "ProgramChoiceList") is { IsVisible: true } choices
+                    && FindAll<ButtonBase>(choices).Count(b => b.IsVisible && AutomationProperties.GetAutomationId(b) == "ProgramChoice") == vm.Editor.ProgramChoices.Count
+                : FindById<TextBlock>(window, "NoProgramsText") is { IsVisible: true };
+            bool file = FindById<ButtonBase>(window, "OpenProgramFileButton") is { IsVisible: true, IsEnabled: true };
+            var box = FindById<TextBox>(window, "ProgramNameBox") ?? throw new InvalidOperationException("ProgramNameBox not found");
             box.Text = "Selbsttest.exe";
             Flush(window);
             Click(FindById<ButtonBase>(window, "AddProgramButton")!);
@@ -151,12 +209,46 @@ internal static class UiSelfCheck
             bool saved = vm.Current.Find(control)?.Actions.OfType<SetVolumeAction>().Any(a => a.Target.App?.ExeName == "Selbsttest.exe") == true;
             bool barAfter = FindById<Border>(window, "ApplyBar") is { IsVisible: true };
 
-            // Clean up: take it out again.
+            // Applying loads the saved mapping again, which closes the program choice; the cross closes it too.
+            bool closedByApply = FindById<Border>(window, "ProgramPanel") is not { IsVisible: true };
             vm.Editor.RemoveTarget(vm.Editor.Targets.First(t => t.Name == "Selbsttest.exe"));
             vm.ApplyEditor();
+            vm.Editor.ShowProgramChoiceCommand.Execute(null);
             Flush(window);
-            return (listed && applyEnabled && saved && !barAfter && box.Text.Length == 0,
-                $"inListe={listed}, uebernehmenAktiv={applyEnabled}, gespeichert={saved}, leisteDanach={barAfter}, eingabeLeer={box.Text.Length == 0}");
+            bool reopened = FindById<Border>(window, "ProgramPanel") is { IsVisible: true };
+            Click(FindById<ButtonBase>(window, "CloseProgramPanelButton")!);
+            Flush(window);
+            bool panelClosed = closedByApply && reopened && FindById<Border>(window, "ProgramPanel") is not { IsVisible: true } && !vm.Editor.IsChoosingProgram;
+            return (panelOpen && title && list && file && listed && applyEnabled && saved && !barAfter && box.Text.Length == 0 && panelClosed,
+                $"bereich={panelOpen}, titel={title}, liste={list} ({vm.Editor.ProgramChoices.Count}), datei={file}, inListe={listed}, uebernehmenAktiv={applyEnabled}, " +
+                $"gespeichert={saved}, leisteDanach={barAfter}, eingabeLeer={box.Text.Length == 0}, geschlossen={panelClosed}");
+        });
+
+        Check("Geraetebild: Tasten mit LED haben eine LED-Flaeche, die bei 'stumm' leuchtet; Track/Marker ohne LED", () =>
+        {
+            ControllerElementViewModel m1 = vm.Elements.First(e => e.Label == "M 1");
+            Button tile = FindTile(window, "M 1");
+            bool led = FindById<Border>(tile, "KeyLed") is { IsVisible: true };
+            bool trackLed = FindById<Border>(FindTile(window, "Track ◄"), "KeyLed") is { IsVisible: true };
+            int ledKeys = vm.Elements.Count(e => FindById<Border>(FindTile(window, e.Label), "KeyLed") is { IsVisible: true });
+            bool was = m1.IsMuteLit;
+            try
+            {
+                // No flush in between: the next tick would show the real mute state again.
+                m1.IsMuteLit = true;
+                window.UpdateLayout();
+                bool lit = FindById<Border>(tile, "KeyLedOn") is { IsVisible: true };
+                m1.IsMuteLit = false;
+                window.UpdateLayout();
+                bool dark = FindById<Border>(tile, "KeyLedOn") is not { IsVisible: true };
+                return (led && !trackLed && ledKeys == vm.Elements.Count(e => e.HasLed) && lit && dark,
+                    $"led={led}, trackLed={trackLed}, tastenMitLed={ledKeys}, leuchtet={lit}, aus={dark}");
+            }
+            finally
+            {
+                m1.IsMuteLit = was;
+                vm.RefreshMuteStates();
+            }
         });
 
         Check("MIDI-Learn startet das Lernen und zeigt den Hinweis; 'Abbrechen' beendet es", () =>

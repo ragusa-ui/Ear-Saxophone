@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using EarSaxophone.Core.Localization;
 using EarSaxophone.Core.ViewModels;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
@@ -117,7 +118,7 @@ public partial class MainWindow : FluentWindow
 
     private bool EnterHasOwnMeaning() =>
         ProfileNameBox.IsKeyboardFocusWithin
-        || NewProgramBox.IsKeyboardFocusWithin
+        || ProgramNameBox.IsKeyboardFocusWithin
         || Keyboard.FocusedElement is ComboBoxItem or ComboBox { IsDropDownOpen: true };
 
     private void Element_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -205,12 +206,37 @@ public partial class MainWindow : FluentWindow
         }
     }
 
-    private void NewProgramBox_KeyDown(object sender, KeyEventArgs e)
+    private void ProgramNameBox_KeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter && _viewModel.Editor.AddAppCommand.CanExecute(null))
         {
             _viewModel.Editor.AddAppCommand.Execute(null);
             e.Handled = true;
+        }
+    }
+
+    /// <summary>An entry of the "Hinzufügen" menu was chosen: the menu closes (the entry's command does the work).</summary>
+    private void AddTargetItem_Click(object sender, RoutedEventArgs e) => AddTargetButton.IsChecked = false;
+
+    /// <summary>"Datei öffnen …": any program file; its file name becomes the program identity (also for programs that are not running).</summary>
+    private void OpenProgramFile_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = Texts.UiChooseProgram,
+            Filter = Texts.UiOpenProgramFileFilter,
+            CheckFileExists = true,
+            Multiselect = true,
+            InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+        };
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        foreach (string file in dialog.FileNames)
+        {
+            _viewModel.Editor.AddProgramFile(file);
         }
     }
 }

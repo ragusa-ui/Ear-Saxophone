@@ -15,6 +15,7 @@ public sealed class ControllerElementViewModel : ObservableObject
     private bool _hasMapping;
     private bool _isContinuous;
     private bool _isSelected;
+    private bool _isMuteLit;
     private int _lastValue;
     private ControlShape _shape;
     private MappingBadge _badge = MappingBadge.Empty;
@@ -31,6 +32,7 @@ public sealed class ControllerElementViewModel : ObservableObject
         Glyph = layout.Glyph;
         Caption = layout.Caption;
         GlyphColor = layout.GlyphColor;
+        HasLed = Nanokontrol2Leds.HasLed(layout.Control);
         _shape = layout.Shape;
     }
 
@@ -65,6 +67,19 @@ public sealed class ControllerElementViewModel : ObservableObject
     public string Caption { get; } = string.Empty;
 
     public string GlyphColor { get; }
+
+    /// <summary>The key has an LED on the device (S, M, R, transport keys and Cycle; see <see cref="Nanokontrol2Leds"/>).</summary>
+    public bool HasLed { get; }
+
+    /// <summary>
+    /// The LED of this key is lit in the picture: the key carries a mute action and its target (group) is muted right now, the same
+    /// rule as the LEDs on the device (<see cref="LedController.IsLit"/>). Set by <see cref="MainViewModel"/>.
+    /// </summary>
+    public bool IsMuteLit
+    {
+        get => _isMuteLit;
+        set => SetField(ref _isMuteLit, value);
+    }
 
     public string Summary
     {

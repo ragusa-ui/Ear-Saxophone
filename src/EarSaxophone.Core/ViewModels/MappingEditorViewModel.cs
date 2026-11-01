@@ -95,6 +95,7 @@ public sealed class MappingEditorViewModel : ObservableObject
     private ControlMapping? _loaded;
     private bool _isDirty;
     private bool _isValid = true;
+    private bool _isChoosingProgram;
 
     public MappingEditorViewModel()
     {
@@ -102,11 +103,14 @@ public sealed class MappingEditorViewModel : ObservableObject
         Targets.CollectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(HasTargets));
+            RebuildProgramChoices();
             Changed();
         };
         AddSpeakersCommand = new RelayCommand(_ => AddTarget(AudioTarget.Speakers));
         AddMicrophoneCommand = new RelayCommand(_ => AddTarget(AudioTarget.Microphone));
         AddAppCommand = new RelayCommand(p => AddApplication(p as string ?? _newAppName));
+        ShowProgramChoiceCommand = new RelayCommand(_ => IsChoosingProgram = true);
+        HideProgramChoiceCommand = new RelayCommand(_ => IsChoosingProgram = false);
         RemoveTargetCommand = new RelayCommand(p => RemoveTarget(p as TargetEntry));
         MoveTargetUpCommand = new RelayCommand(p => MoveTarget(p as TargetEntry, -1));
         MoveTargetDownCommand = new RelayCommand(p => MoveTarget(p as TargetEntry, +1));
@@ -147,6 +151,24 @@ public sealed class MappingEditorViewModel : ObservableObject
     /// <summary>Programs that currently produce or hold audio sessions, offered as suggestions (names).</summary>
     public ObservableCollection<string> AvailableApps { get; } = [];
 
+    /// <summary>
+    /// The programs offered in "Programm auswählen": those of <see cref="AvailableApps"/> that are not in the target list yet
+    /// (same order).
+    /// </summary>
+    public ObservableCollection<string> ProgramChoices { get; } = [];
+
+    public bool HasProgramChoices => ProgramChoices.Count > 0;
+
+    /// <summary>
+    /// The "Programm auswählen" part is open (entry "Programm …" of the add menu): list of programs with sound, "Datei öffnen …"
+    /// and a name field. Closed again by loading another control or by <see cref="HideProgramChoiceCommand"/>.
+    /// </summary>
+    public bool IsChoosingProgram
+    {
+        get => _isChoosingProgram;
+        set => SetField(ref _isChoosingProgram, value);
+    }
+
     /// <summary>Targets of the volume or mute actions, in order (the first one is shown in the overlay).</summary>
     public ObservableCollection<TargetEntry> Targets { get; } = [];
 
@@ -158,6 +180,11 @@ public sealed class MappingEditorViewModel : ObservableObject
 
     /// <summary>Adds the program given as parameter (a string), or else the typed <see cref="NewAppName"/>.</summary>
     public RelayCommand AddAppCommand { get; }
+
+    /// <summary>Opens "Programm auswählen" (<see cref="IsChoosingProgram"/>).</summary>
+    public RelayCommand ShowProgramChoiceCommand { get; }
+
+    public RelayCommand HideProgramChoiceCommand { get; }
 
     /// <summary>Parameter: the <see cref="TargetEntry"/> to remove.</summary>
     public RelayCommand RemoveTargetCommand { get; }
@@ -344,6 +371,8 @@ public sealed class MappingEditorViewModel : ObservableObject
         {
             _programPaths.TryAdd(AppMatcher.NormalizeName(program.ExeName), program.ExePath);
         }
+
+        RebuildProgramChoices();
     }
 
     /// <summary>Tells the editor which devices exist right now (both kinds). Ticked devices stay ticked.</summary>
@@ -364,6 +393,7 @@ public sealed class MappingEditorViewModel : ObservableObject
             Control = control;
             _shape = shape;
             _loaded = mapping;
+            IsChoosingProgram = false;
             OnPropertyChanged(nameof(Control));
             OnPropertyChanged(nameof(Shape));
             KindOptions = OptionsFor(shape);
@@ -429,6 +459,28 @@ public sealed class MappingEditorViewModel : ObservableObject
 
         NewAppName = string.Empty;
         return true;
+    }
+
+    /// <summary>
+    /// Adds a program chosen as a file ("Datei öffnen …"): the file name (for example "Spiel.exe") becomes the program identity,
+    /// so a program that is not running right now can be assigned too. Only program files (.exe) are accepted.
+    /// </summary>
+    public bool AddProgramFile(string? path)
+    {
+        string name = AppMatcher.FileNameOf(path ?? string.Empty);
+        if (name.Length == 0)
+        {
+            ValidationMessage = Texts.UiEditorAppRequired;
+            return false;
+        }
+
+        if (!name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) || name.Length == ".exe".Length)
+        {
+            ValidationMessage = Texts.UiProgramFileNotExe;
+            return false;
+        }
+
+        return AddTarget(AudioTarget.Application(name));
     }
 
     public bool RemoveTarget(TargetEntry? entry) => entry is not null && Targets.Remove(entry);
@@ -760,6 +812,26 @@ public sealed class MappingEditorViewModel : ObservableObject
         {
             MoveTarget(index, index + step);
         }
+    }
+
+    private void RebuildProgramChoices()
+    {
+        var listed = Targets.Where(t => t.Target.Kind == AudioTargetKind.Application && t.Target.App is not null)
+            .Select(t => AppMatcher.NormalizeName(t.Target.App!.ExeName))
+            .ToHashSet();
+        List<string> choices = AvailableApps.Where(a => !listed.Contains(AppMatcher.NormalizeName(a))).ToList();
+        if (choices.SequenceEqual(ProgramChoices))
+        {
+            return;
+        }
+
+        ProgramChoices.Clear();
+        foreach (string choice in choices)
+        {
+            ProgramChoices.Add(choice);
+        }
+
+        OnPropertyChanged(nameof(HasProgramChoices));
     }
 
     private void RaiseKept()

@@ -125,6 +125,69 @@
             </Style.Triggers>
         </Style>
 
+        <!-- Symbol und Text (z. B. "Hinzufügen"): wie IconButton, aber so breit wie der Inhalt -->
+        <Style x:Key="PillButton" TargetType="ButtonBase" BasedOn="{StaticResource IconButton}">
+            <Setter Property="Width" Value="Auto" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="Background" Value="{StaticResource SubtleFillBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ButtonBase">
+                        <Border x:Name="Root" CornerRadius="8" Background="{TemplateBinding Background}" BorderThickness="1"
+                                BorderBrush="{StaticResource CardStrokeBrush}" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource SubtleHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource AccentSoftBrush}" />
+                            </Trigger>
+                            <Trigger Property="ToggleButton.IsChecked" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource AccentSoftBrush}" />
+                                <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.35" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Eintrag in einem Menü oder einer Auswahlliste: ganze Breite, Symbol + Text links -->
+        <Style x:Key="MenuItemButton" TargetType="ButtonBase">
+            <Setter Property="Height" Value="38" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ButtonBase">
+                        <Border x:Name="Root" CornerRadius="8" Background="{TemplateBinding Background}" Padding="10,0">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource SubtleHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource AccentSoftBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.35" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Auswahl aus Symbol-Kacheln (Aktionsart) -->
         <Style x:Key="SymbolTileItem" TargetType="ListBoxItem">
             <Setter Property="Margin" Value="0,0,6,6" />
@@ -195,30 +258,48 @@
             </Setter>
         </Style>
 
-        <!-- Gerätebild -->
+        <!-- Gerätebild: angelehnt an den schwarzen nanoKONTROL2 (flaches schwarzes Gehäuse, helle Knöpfe, weiße Aufdrucke).
+             Farben und Maße sind geschätzt; die Lage jedes Elements kommt aus Nanokontrol2Layout (Klickflächen bleiben gleich). -->
         <LinearGradientBrush x:Key="BodyBrush" StartPoint="0,0" EndPoint="0,1">
-            <GradientStop Color="#2B3144" Offset="0" />
-            <GradientStop Color="#161924" Offset="1" />
+            <GradientStop Color="#2A2B2F" Offset="0" />
+            <GradientStop Color="#1E1F22" Offset="0.5" />
+            <GradientStop Color="#17181A" Offset="1" />
         </LinearGradientBrush>
+        <LinearGradientBrush x:Key="BodyFrontBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#141517" Offset="0" />
+            <GradientStop Color="#0B0B0C" Offset="1" />
+        </LinearGradientBrush>
+        <SolidColorBrush x:Key="DeviceEdge" Color="#44464C" />
+        <SolidColorBrush x:Key="PrintBrush" Color="#F2F2F2" />
+        <SolidColorBrush x:Key="PrintSoftBrush" Color="#A9ACB3" />
         <LinearGradientBrush x:Key="KeyBrush" StartPoint="0,0" EndPoint="0,1">
-            <GradientStop Color="#434B63" Offset="0" />
-            <GradientStop Color="#2A3046" Offset="1" />
+            <GradientStop Color="#3A3C42" Offset="0" />
+            <GradientStop Color="#2A2C31" Offset="1" />
         </LinearGradientBrush>
         <LinearGradientBrush x:Key="KeyActiveBrush" StartPoint="0,0" EndPoint="0,1">
-            <GradientStop Color="#66E0CF" Offset="0" />
-            <GradientStop Color="#2F9E91" Offset="1" />
+            <GradientStop Color="#5C5F67" Offset="0" />
+            <GradientStop Color="#45484F" Offset="1" />
         </LinearGradientBrush>
-        <RadialGradientBrush x:Key="KnobBrush" GradientOrigin="0.35,0.3" Center="0.5,0.5" RadiusX="0.7" RadiusY="0.7">
-            <GradientStop Color="#5C6782" Offset="0" />
-            <GradientStop Color="#252A3B" Offset="1" />
+        <SolidColorBrush x:Key="KeyEdgeBrush" Color="#08090A" />
+        <SolidColorBrush x:Key="LedOffBrush" Color="#3B2624" />
+        <SolidColorBrush x:Key="LedOnBrush" Color="#FF5A4A" />
+        <RadialGradientBrush x:Key="KnobBrush" GradientOrigin="0.38,0.3" Center="0.5,0.5" RadiusX="0.65" RadiusY="0.65">
+            <GradientStop Color="#E3E5E9" Offset="0" />
+            <GradientStop Color="#B4B8C0" Offset="0.6" />
+            <GradientStop Color="#8C9099" Offset="1" />
         </RadialGradientBrush>
-        <SolidColorBrush x:Key="TrackBrush" Color="#0D1018" />
-        <SolidColorBrush x:Key="DeviceEdge" Color="#3A435A" />
+        <SolidColorBrush x:Key="KnobSkirtBrush" Color="#0E0F11" />
+        <LinearGradientBrush x:Key="FaderCapBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#E8EAEE" Offset="0" />
+            <GradientStop Color="#C3C7CE" Offset="0.5" />
+            <GradientStop Color="#9DA1A9" Offset="1" />
+        </LinearGradientBrush>
+        <SolidColorBrush x:Key="TrackBrush" Color="#050506" />
 
         <!-- Kleines Symbol der Belegung (Art der ersten Aktion, Zahl bei mehreren Aktionen) -->
         <ControlTemplate x:Key="BadgeTemplate" TargetType="ContentControl">
             <Border x:Name="BadgeRoot" Height="20" MinWidth="20" CornerRadius="10" Padding="4,0" Background="{StaticResource AccentBrush}"
-                    BorderBrush="#161924" BorderThickness="1.5" AutomationProperties.AutomationId="Badge"
+                    BorderBrush="#1B1C1F" BorderThickness="1.5" AutomationProperties.AutomationId="Badge"
                     Visibility="{Binding HasMapping, Converter={StaticResource BoolToVis}}">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                     <ui:SymbolIcon Symbol="{Binding BadgeKind, Converter={StaticResource KindSymbol}}" FontSize="12" Filled="True"
@@ -289,70 +370,99 @@
             </Setter>
         </Style>
 
+        <!-- Drehregler: dunkle Fassung mit Skalenpunkten, heller Knopf, helle Markierungslinie (dreht live mit) -->
         <DataTemplate x:Key="KnobTemplate">
             <Button Style="{StaticResource ElementButton}">
                 <Grid>
-                    <Ellipse Fill="{StaticResource KnobBrush}" Stroke="#4A546E" StrokeThickness="1.5" />
-                    <Grid RenderTransformOrigin="0.5,0.5">
+                    <Ellipse Width="58" Height="58" Stroke="#66FFFFFF" StrokeThickness="2" StrokeDashArray="0.5 3.6" StrokeDashCap="Round"
+                             IsHitTestVisible="False" />
+                    <Ellipse Width="46" Height="46" Fill="{StaticResource KnobSkirtBrush}" Stroke="#3A3C41" StrokeThickness="1" />
+                    <Ellipse Width="38" Height="38" Fill="{StaticResource KnobBrush}" Stroke="#5E626A" StrokeThickness="1" />
+                    <Grid Width="38" Height="38" RenderTransformOrigin="0.5,0.5">
                         <Grid.RenderTransform>
                             <RotateTransform Angle="{Binding KnobAngle}" />
                         </Grid.RenderTransform>
-                        <Border Width="4" Height="17" Margin="0,5,0,0" VerticalAlignment="Top" HorizontalAlignment="Center"
-                                CornerRadius="2" Background="{StaticResource AccentBrush}" />
+                        <Border Width="4" Height="15" Margin="0,2,0,0" VerticalAlignment="Top" HorizontalAlignment="Center"
+                                CornerRadius="2" Background="#FFFFFF" BorderBrush="#55000000" BorderThickness="0.8" />
                     </Grid>
                     <ContentControl Template="{StaticResource BadgeTemplate}" Focusable="False" IsHitTestVisible="False"
-                                    HorizontalAlignment="Right" VerticalAlignment="Top" />
+                                    HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-2,-6,0" />
                 </Grid>
             </Button>
         </DataTemplate>
 
+        <!-- Fader: dunkler Schlitz mit Skalenstrichen, heller Fader-Kopf mit Mittellinie (fährt live mit), Kanalnummer darunter -->
         <DataTemplate x:Key="FaderTemplate">
             <Button Style="{StaticResource ElementButton}">
                 <Grid>
-                    <Border Width="8" HorizontalAlignment="Center" Margin="0,10,0,26" CornerRadius="4"
-                            Background="{StaticResource TrackBrush}" BorderBrush="#2A3045" BorderThickness="1" />
-                    <Border Width="32" Height="22" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,10,0,0" CornerRadius="5"
-                            Background="{StaticResource KeyBrush}" BorderBrush="#5A647F" BorderThickness="1">
+                    <Grid Width="22" Margin="0,22,0,46" HorizontalAlignment="Center" IsHitTestVisible="False">
+                        <Rectangle Height="1" VerticalAlignment="Top" Fill="#59FFFFFF" />
+                        <Rectangle Height="1" VerticalAlignment="Center" Fill="#40FFFFFF" Width="14" />
+                        <Rectangle Height="1" VerticalAlignment="Bottom" Fill="#59FFFFFF" />
+                    </Grid>
+                    <Border Width="6" HorizontalAlignment="Center" Margin="0,14,0,38" CornerRadius="3"
+                            Background="{StaticResource TrackBrush}" BorderBrush="#3A3C42" BorderThickness="1" />
+                    <Border Width="30" Height="24" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,10,0,0" CornerRadius="3"
+                            Background="{StaticResource FaderCapBrush}" BorderBrush="#1A1B1E" BorderThickness="1">
                         <Border.RenderTransform>
                             <TranslateTransform Y="{Binding CapOffset}" />
                         </Border.RenderTransform>
-                        <Rectangle Height="2" Margin="6,0" Fill="{StaticResource AccentBrush}" />
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="6" ShadowDepth="2" Opacity="0.6" Color="Black" />
+                        </Border.Effect>
+                        <Rectangle Height="2" Margin="3,0" Fill="#FFFFFF" />
                     </Border>
-                    <TextBlock Text="{Binding Caption}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="4,0,0,2" FontSize="12"
-                               FontWeight="SemiBold" Foreground="{StaticResource MutedText}" />
+                    <TextBlock Text="{Binding Caption}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,6" FontSize="15"
+                               FontWeight="SemiBold" Foreground="{StaticResource PrintBrush}" IsHitTestVisible="False" />
                     <ContentControl Template="{StaticResource BadgeTemplate}" Focusable="False" IsHitTestVisible="False"
-                                    HorizontalAlignment="Right" VerticalAlignment="Bottom" />
+                                    HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-12,4" />
                 </Grid>
             </Button>
         </DataTemplate>
 
+        <!-- Taste: rechteckig, abgerundet, weißer Aufdruck; Tasten mit LED am Gerät haben oben eine kleine LED-Fläche,
+             die leuchtet, solange das Stumm-Ziel der Taste stumm ist (IsMuteLit). Gedrückt = heller. -->
         <DataTemplate x:Key="KeyTemplate">
             <Button Style="{StaticResource ElementButton}">
                 <Grid>
-                    <Border x:Name="Key" CornerRadius="8" Background="{StaticResource KeyBrush}" BorderBrush="#5A647F" BorderThickness="1">
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="{Binding Glyph}" Foreground="{Binding GlyphColor}" FontSize="14" FontWeight="SemiBold"
-                                       HorizontalAlignment="Center" />
-                            <TextBlock Text="{Binding Caption}" FontSize="8.5" Foreground="{StaticResource MutedText}" HorizontalAlignment="Center">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Style.Triggers>
-                                            <Trigger Property="Text" Value="">
-                                                <Setter Property="Visibility" Value="Collapsed" />
-                                            </Trigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                        </StackPanel>
+                    <Border x:Name="Key" CornerRadius="5" Margin="2" Background="{StaticResource KeyBrush}"
+                            BorderBrush="{StaticResource KeyEdgeBrush}" BorderThickness="1">
+                        <Border CornerRadius="4" BorderBrush="#24FFFFFF" BorderThickness="0,1,0,0" />
                     </Border>
+                    <Border x:Name="Led" Width="16" Height="4" CornerRadius="2" Margin="0,6,0,0" VerticalAlignment="Top" HorizontalAlignment="Center"
+                            Background="{StaticResource LedOffBrush}" IsHitTestVisible="False" AutomationProperties.AutomationId="KeyLed"
+                            Visibility="{Binding HasLed, Converter={StaticResource BoolToVis}}" />
+                    <Border x:Name="LedOn" Width="16" Height="4" CornerRadius="2" Margin="0,6,0,0" VerticalAlignment="Top" HorizontalAlignment="Center"
+                            Background="{StaticResource LedOnBrush}" IsHitTestVisible="False" AutomationProperties.AutomationId="KeyLedOn"
+                            Visibility="Collapsed">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="8" ShadowDepth="0" Opacity="0.9" Color="#FF5A4A" />
+                        </Border.Effect>
+                    </Border>
+                    <TextBlock x:Name="GlyphText" Text="{Binding Glyph}" Foreground="{StaticResource PrintBrush}" FontSize="13" FontWeight="SemiBold"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" />
                     <ContentControl Template="{StaticResource BadgeTemplate}" Focusable="False" IsHitTestVisible="False"
-                                    HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-6,-6,0" />
+                                    HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-7,-7,0" />
                 </Grid>
             </Button>
             <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding HasLed}" Value="True">
+                    <Setter TargetName="GlyphText" Property="Margin" Value="0,7,0,0" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Height}" Value="44">
+                    <Setter TargetName="GlyphText" Property="FontSize" Value="16" />
+                    <Setter TargetName="Led" Property="Margin" Value="0,7,0,0" />
+                    <Setter TargetName="LedOn" Property="Margin" Value="0,7,0,0" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsMuteLit}" Value="True">
+                    <Setter TargetName="LedOn" Property="Visibility" Value="Visible" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding HasLed}" Value="False">
+                    <Setter TargetName="LedOn" Property="Visibility" Value="Collapsed" />
+                </DataTrigger>
                 <DataTrigger Binding="{Binding IsActive}" Value="True">
                     <Setter TargetName="Key" Property="Background" Value="{StaticResource KeyActiveBrush}" />
+                    <Setter TargetName="Key" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
                 </DataTrigger>
             </DataTemplate.Triggers>
         </DataTemplate>
@@ -639,15 +749,31 @@
                 <!-- Das Gerät als Bild -->
                 <Viewbox x:Name="DeviceView" Grid.Row="1" Stretch="Uniform" Margin="4,6,4,6" AutomationProperties.AutomationId="DeviceView">
                     <Grid Width="1000" Height="460" Margin="12">
-                        <Border CornerRadius="28" Background="{StaticResource BodyBrush}" BorderBrush="{StaticResource DeviceEdge}" BorderThickness="1.5">
+                        <!-- Gehäuse: flach und schwarz, oben eine feine Lichtkante, unten die schmale Vorderkante (Slim-Line) -->
+                        <Border CornerRadius="18" Background="{StaticResource BodyBrush}" BorderBrush="{StaticResource DeviceEdge}" BorderThickness="1.5">
                             <Border.Effect>
-                                <DropShadowEffect BlurRadius="40" ShadowDepth="12" Opacity="0.55" Color="Black" />
+                                <DropShadowEffect BlurRadius="36" ShadowDepth="10" Opacity="0.6" Color="Black" />
                             </Border.Effect>
                         </Border>
-                        <Canvas>
-                            <Rectangle Canvas.Left="288" Canvas.Top="38" Width="2" Height="384" RadiusX="1" RadiusY="1" Fill="#1FFFFFFF" />
-                            <TextBlock Canvas.Left="36" Canvas.Top="392" Text="nanoKONTROL2" FontSize="15" FontWeight="SemiBold"
-                                       Foreground="{StaticResource MutedText}" />
+                        <Border CornerRadius="17,17,0,0" Margin="1.5" Height="2" VerticalAlignment="Top" Background="#1AFFFFFF" IsHitTestVisible="False" />
+                        <Border CornerRadius="0,0,17,17" Margin="1.5" Height="12" VerticalAlignment="Bottom" Background="{StaticResource BodyFrontBrush}"
+                                IsHitTestVisible="False" />
+                        <!-- Aufdrucke auf dem Gehäuse (Lage passend zu Nanokontrol2Layout) -->
+                        <Canvas IsHitTestVisible="False">
+                            <TextBlock Canvas.Left="34" Canvas.Top="26" Width="134" TextAlignment="Center" Text="TRACK" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{StaticResource PrintBrush}" />
+                            <Rectangle Canvas.Left="34" Canvas.Top="33" Width="40" Height="1" Fill="#66FFFFFF" />
+                            <Rectangle Canvas.Left="128" Canvas.Top="33" Width="40" Height="1" Fill="#66FFFFFF" />
+                            <TextBlock Canvas.Left="178" Canvas.Top="26" Width="62" TextAlignment="Center" Text="CYCLE" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{StaticResource PrintBrush}" />
+                            <TextBlock Canvas.Left="34" Canvas.Top="106" Width="206" TextAlignment="Center" Text="MARKER" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{StaticResource PrintBrush}" />
+                            <Rectangle Canvas.Left="34" Canvas.Top="113" Width="72" Height="1" Fill="#66FFFFFF" />
+                            <Rectangle Canvas.Left="168" Canvas.Top="113" Width="72" Height="1" Fill="#66FFFFFF" />
+                            <Rectangle Canvas.Left="34" Canvas.Top="200" Width="206" Height="1" Fill="#26FFFFFF" />
+                            <Rectangle Canvas.Left="288" Canvas.Top="30" Width="1.5" Height="400" Fill="#24FFFFFF" />
+                            <TextBlock Canvas.Left="34" Canvas.Top="390" Text="nanoKONTROL2" FontSize="19" FontWeight="SemiBold"
+                                       Foreground="{StaticResource PrintBrush}" />
                         </Canvas>
                         <ItemsControl x:Name="DeviceElements" ItemsSource="{Binding Elements}" ItemTemplateSelector="{StaticResource ElementSelector}"
                                       Focusable="False">
@@ -766,7 +892,8 @@
 
                             <!-- Ziele (Lautstärke, Stumm): mehrere Programme oder Geräte auf einem Element -->
                             <StackPanel x:Name="TargetSection" Visibility="{Binding Editor.IsAudio, Converter={StaticResource BoolToVis}}">
-                                <TextBlock Text="{x:Static loc:Texts.UiTargets}" Style="{StaticResource SectionLabel}" />
+                                <TextBlock x:Name="TargetHeading" Text="{x:Static loc:Texts.UiTargets}" Style="{StaticResource SectionLabel}" FontSize="13"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" AutomationProperties.AutomationId="TargetHeading" />
                                 <ItemsControl x:Name="TargetList" ItemsSource="{Binding Editor.Targets}" Focusable="False"
                                               AutomationProperties.AutomationId="TargetList">
                                     <ItemsControl.ItemTemplate>
@@ -824,49 +951,118 @@
                                 <TextBlock Text="{x:Static loc:Texts.UiNoTargets}" Style="{StaticResource Hint}" Margin="2,0,0,6"
                                            Visibility="{Binding Editor.HasTargets, Converter={StaticResource InverseBoolToVis}}" />
 
-                                <!-- Hinzufügen: Lautsprecher, Mikrofon oder ein Programm -->
-                                <Grid Margin="0,4,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <Button x:Name="AddSpeakersButton" Style="{StaticResource IconButton}" Width="40" Background="{StaticResource SubtleFillBrush}"
-                                            Command="{Binding Editor.AddSpeakersCommand}" ToolTip="{x:Static loc:Texts.UiAddSpeakers}"
-                                            AutomationProperties.AutomationId="AddSpeakersButton" AutomationProperties.Name="{x:Static loc:Texts.UiAddSpeakers}">
-                                        <StackPanel Orientation="Horizontal">
-                                            <ui:SymbolIcon Symbol="Add12" FontSize="10" VerticalAlignment="Top" />
-                                            <ui:SymbolIcon Symbol="Speaker220" FontSize="16" />
+                                <!-- Hinzufügen: ein Menü mit drei eindeutigen Einträgen (Programm, Lautsprecher, Mikrofon) -->
+                                <ToggleButton x:Name="AddTargetButton" Style="{StaticResource PillButton}" Margin="0,4,0,0" HorizontalAlignment="Left"
+                                              ToolTip="{x:Static loc:Texts.UiAddTargetTip}" AutomationProperties.AutomationId="AddTargetButton"
+                                              AutomationProperties.Name="{x:Static loc:Texts.UiAddTarget}"
+                                              IsHitTestVisible="{Binding IsOpen, ElementName=AddTargetPopup, Converter={StaticResource Inverse}}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ui:SymbolIcon Symbol="Add20" FontSize="16" VerticalAlignment="Center" />
+                                        <TextBlock Text="{x:Static loc:Texts.UiAddTarget}" Margin="8,0,8,0" VerticalAlignment="Center" FontSize="13" />
+                                        <ui:SymbolIcon Symbol="ChevronDown16" FontSize="12" VerticalAlignment="Center" Foreground="{StaticResource MutedText}" />
+                                    </StackPanel>
+                                </ToggleButton>
+                                <Popup x:Name="AddTargetPopup" PlacementTarget="{Binding ElementName=AddTargetButton}" Placement="Bottom"
+                                       HorizontalOffset="-12" VerticalOffset="-6" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade"
+                                       IsOpen="{Binding IsChecked, ElementName=AddTargetButton, Mode=TwoWay}">
+                                    <Border Style="{StaticResource PopupCard}" Padding="6" Width="316" AutomationProperties.AutomationId="AddTargetMenu">
+                                        <StackPanel>
+                                            <Button x:Name="AddProgramItem" Style="{StaticResource MenuItemButton}" Click="AddTargetItem_Click"
+                                                    Command="{Binding Editor.ShowProgramChoiceCommand}" AutomationProperties.AutomationId="AddProgramItem"
+                                                    AutomationProperties.Name="{x:Static loc:Texts.UiAddProgramItem}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <ui:SymbolIcon Symbol="AppGeneric20" FontSize="18" Foreground="{StaticResource AccentStrongBrush}" />
+                                                    <TextBlock Text="{x:Static loc:Texts.UiAddProgramItem}" Margin="12,0,0,0" VerticalAlignment="Center" />
+                                                </StackPanel>
+                                            </Button>
+                                            <Button x:Name="AddSpeakersItem" Style="{StaticResource MenuItemButton}" Click="AddTargetItem_Click"
+                                                    Command="{Binding Editor.AddSpeakersCommand}" AutomationProperties.AutomationId="AddSpeakersItem"
+                                                    AutomationProperties.Name="{x:Static loc:Texts.UiAddSpeakersItem}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <ui:SymbolIcon Symbol="Speaker220" FontSize="18" Foreground="{StaticResource AccentStrongBrush}" />
+                                                    <TextBlock Text="{x:Static loc:Texts.UiAddSpeakersItem}" Margin="12,0,0,0" VerticalAlignment="Center" />
+                                                </StackPanel>
+                                            </Button>
+                                            <Button x:Name="AddMicrophoneItem" Style="{StaticResource MenuItemButton}" Click="AddTargetItem_Click"
+                                                    Command="{Binding Editor.AddMicrophoneCommand}" AutomationProperties.AutomationId="AddMicrophoneItem"
+                                                    AutomationProperties.Name="{x:Static loc:Texts.UiAddMicrophoneItem}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <ui:SymbolIcon Symbol="Mic20" FontSize="18" Foreground="{StaticResource AccentStrongBrush}" />
+                                                    <TextBlock Text="{x:Static loc:Texts.UiAddMicrophoneItem}" Margin="12,0,0,0" VerticalAlignment="Center" />
+                                                </StackPanel>
+                                            </Button>
                                         </StackPanel>
-                                    </Button>
-                                    <Button x:Name="AddMicrophoneButton" Grid.Column="1" Style="{StaticResource IconButton}" Width="40" Margin="4,0,0,0"
-                                            Background="{StaticResource SubtleFillBrush}" Command="{Binding Editor.AddMicrophoneCommand}"
-                                            ToolTip="{x:Static loc:Texts.UiAddMicrophone}" AutomationProperties.AutomationId="AddMicrophoneButton"
-                                            AutomationProperties.Name="{x:Static loc:Texts.UiAddMicrophone}">
-                                        <StackPanel Orientation="Horizontal">
-                                            <ui:SymbolIcon Symbol="Add12" FontSize="10" VerticalAlignment="Top" />
-                                            <ui:SymbolIcon Symbol="Mic20" FontSize="16" />
-                                        </StackPanel>
-                                    </Button>
-                                    <ComboBox x:Name="NewProgramBox" Grid.Column="2" Margin="8,0,0,0" IsEditable="True" Height="32" MinHeight="0" Padding="8,4"
-                                              VerticalContentAlignment="Center" ItemsSource="{Binding Editor.AvailableApps}"
-                                              Text="{Binding Editor.NewAppName, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static loc:Texts.UiProgramTip}"
-                                              KeyDown="NewProgramBox_KeyDown" AutomationProperties.AutomationId="NewProgramBox"
-                                              AutomationProperties.Name="{x:Static loc:Texts.UiProgramPlaceholder}" />
-                                    <Button x:Name="AddProgramButton" Grid.Column="3" Style="{StaticResource IconButton}" Margin="4,0,0,0"
-                                            Background="{StaticResource AccentSoftBrush}" Command="{Binding Editor.AddAppCommand}"
-                                            ToolTip="{x:Static loc:Texts.UiAddProgram}" AutomationProperties.AutomationId="AddProgramButton"
-                                            AutomationProperties.Name="{x:Static loc:Texts.UiAddProgram}">
-                                        <ui:SymbolIcon Symbol="Add20" />
-                                    </Button>
-                                    <Button x:Name="RefreshProgramsButton" Grid.Column="4" Style="{StaticResource IconButton}" Margin="2,0,0,0"
-                                            Command="{Binding RefreshAppsCommand}" ToolTip="{x:Static loc:Texts.UiRefreshLists}"
-                                            AutomationProperties.AutomationId="RefreshProgramsButton" AutomationProperties.Name="{x:Static loc:Texts.UiRefreshLists}">
-                                        <ui:SymbolIcon Symbol="ArrowSync20" />
-                                    </Button>
-                                </Grid>
+                                    </Border>
+                                </Popup>
+
+                                <!-- "Programm …": laufende Programme mit Ton, "Datei öffnen …" und (als Unterpunkt) Name eintippen -->
+                                <Border x:Name="ProgramPanel" Visibility="{Binding Editor.IsChoosingProgram, Converter={StaticResource BoolToVis}}"
+                                        Margin="0,8,0,0" Padding="10,8,8,10" CornerRadius="12" Background="{StaticResource SubtleFillBrush}"
+                                        BorderBrush="{StaticResource AccentBrush}" BorderThickness="1" AutomationProperties.AutomationId="ProgramPanel">
+                                    <StackPanel>
+                                        <DockPanel>
+                                            <Button x:Name="CloseProgramPanelButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}" Width="28" Height="28"
+                                                    Command="{Binding Editor.HideProgramChoiceCommand}" ToolTip="{x:Static loc:Texts.UiClose}"
+                                                    AutomationProperties.AutomationId="CloseProgramPanelButton" AutomationProperties.Name="{x:Static loc:Texts.UiClose}">
+                                                <ui:SymbolIcon Symbol="Dismiss16" />
+                                            </Button>
+                                            <Button x:Name="RefreshProgramsButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}" Width="28" Height="28"
+                                                    Command="{Binding RefreshAppsCommand}" ToolTip="{x:Static loc:Texts.UiRefreshLists}"
+                                                    AutomationProperties.AutomationId="RefreshProgramsButton" AutomationProperties.Name="{x:Static loc:Texts.UiRefreshLists}">
+                                                <ui:SymbolIcon Symbol="ArrowSync20" FontSize="14" />
+                                            </Button>
+                                            <ui:SymbolIcon DockPanel.Dock="Left" Symbol="AppGeneric20" FontSize="16" Foreground="{StaticResource AccentStrongBrush}"
+                                                           VerticalAlignment="Center" Margin="0,0,8,0" />
+                                            <TextBlock x:Name="ProgramPanelTitle" Text="{x:Static loc:Texts.UiChooseProgram}" FontWeight="SemiBold" VerticalAlignment="Center"
+                                                       AutomationProperties.AutomationId="ProgramPanelTitle" />
+                                        </DockPanel>
+                                        <TextBlock Text="{x:Static loc:Texts.UiChooseProgramHint}" Style="{StaticResource Hint}" Margin="2,6,0,4"
+                                                   Visibility="{Binding Editor.HasProgramChoices, Converter={StaticResource BoolToVis}}" />
+                                        <TextBlock x:Name="NoProgramsText" Text="{x:Static loc:Texts.UiNoProgramsPlaying}" Style="{StaticResource Hint}" Margin="2,6,0,4"
+                                                   Visibility="{Binding Editor.HasProgramChoices, Converter={StaticResource InverseBoolToVis}}"
+                                                   AutomationProperties.AutomationId="NoProgramsText" />
+                                        <ScrollViewer MaxHeight="176" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                            <ItemsControl x:Name="ProgramChoiceList" ItemsSource="{Binding Editor.ProgramChoices}" Focusable="False"
+                                                          AutomationProperties.AutomationId="ProgramChoiceList">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Button Style="{StaticResource MenuItemButton}" Height="34"
+                                                                Command="{Binding DataContext.Editor.AddAppCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                CommandParameter="{Binding}" ToolTip="{x:Static loc:Texts.UiAddProgram}"
+                                                                AutomationProperties.AutomationId="ProgramChoice" AutomationProperties.Name="{Binding}">
+                                                            <DockPanel>
+                                                                <ui:SymbolIcon DockPanel.Dock="Right" Symbol="Add16" FontSize="14" Foreground="{StaticResource AccentStrongBrush}"
+                                                                               VerticalAlignment="Center" />
+                                                                <ui:SymbolIcon DockPanel.Dock="Left" Symbol="AppGeneric20" FontSize="16" VerticalAlignment="Center" />
+                                                                <TextBlock Text="{Binding}" Margin="10,0,8,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                            </DockPanel>
+                                                        </Button>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </ScrollViewer>
+                                        <ui:Button x:Name="OpenProgramFileButton" Content="{x:Static loc:Texts.UiOpenProgramFile}" Icon="{ui:SymbolIcon FolderOpen20}"
+                                                   Margin="0,8,0,0" Height="32" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                                   Click="OpenProgramFile_Click" ToolTip="{x:Static loc:Texts.UiOpenProgramFileTip}"
+                                                   AutomationProperties.AutomationId="OpenProgramFileButton" />
+                                        <Grid Margin="0,8,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <ui:TextBox x:Name="ProgramNameBox" Text="{Binding Editor.NewAppName, UpdateSourceTrigger=PropertyChanged}"
+                                                        PlaceholderText="{x:Static loc:Texts.UiProgramPlaceholder}" ToolTip="{x:Static loc:Texts.UiProgramTip}"
+                                                        KeyDown="ProgramNameBox_KeyDown" AutomationProperties.AutomationId="ProgramNameBox"
+                                                        AutomationProperties.Name="{x:Static loc:Texts.UiProgramPlaceholder}" />
+                                            <Button x:Name="AddProgramButton" Grid.Column="1" Style="{StaticResource IconButton}" Margin="4,0,0,0" VerticalAlignment="Center"
+                                                    Background="{StaticResource AccentSoftBrush}" Command="{Binding Editor.AddAppCommand}"
+                                                    ToolTip="{x:Static loc:Texts.UiAddProgram}" AutomationProperties.AutomationId="AddProgramButton"
+                                                    AutomationProperties.Name="{x:Static loc:Texts.UiAddProgram}">
+                                                <ui:SymbolIcon Symbol="Add20" />
+                                            </Button>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
 
                             <!-- Stumm: Verhalten der Taste -->

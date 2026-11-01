@@ -16,6 +16,14 @@ Wenn du nicht alle Fälle unten durchgehen willst, prüfe zuerst diese acht Punk
 | 7 | Fenster mit X schließen (Tray bleibt), Tray-Menü, Programm beenden und neu starten: Zuordnungen noch da? | M5-4, M5-6 | |
 | 8 | Rechner in den Ruhezustand und wieder aufwecken: reagieren die Regler wieder? | M2-7 | |
 
+Neu seit rc2 (Geräteabbild, Anzeige, Gerätewechsel, Update):
+| Nr. | Was tun | Ergebnis (ok / nicht ok + Notiz) |
+|---|---|---|
+| N1 | Geräteabbild: Sieht es gut aus? Antippen eines Faders/Drehreglers/einer Taste wählt es aus (Rahmen), der Editor rechts zeigt es. Bewegst du einen Fader/Drehregler am Gerät, bewegen sich Kappe/Zeiger im Bild; gedrückte Tasten leuchten. | |
+| N2 | Anzeige: Fader auf Lautsprecher legen und bewegen: Erscheint die Einblendung mit Name, Balken und Prozent und verschwindet nach ca. 2 s? Position unten im Fenster ändern (alle sechs) und "Anzeige testen". Fensterbild/Spiel im Vordergrund stört sie nicht (kein Fokusklau, Klicks gehen hindurch)? | |
+| N3 | Gerätewechsel: Track-Taste (oder eine andere) auf "Audiogerät wechseln", Wiedergabe, Geräte ankreuzen, "Übernehmen". Taste drücken: Wechselt das Windows-Standard-Wiedergabegerät (Einstellungen > System > Sound) reihum und zeigt die Anzeige den Namen? Dasselbe mit "Aufnahme (Mikrofon)". | |
+| N4 | Update: Neue ZIP herunterladen, `Update.cmd` im Programmordner doppelklicken: Wird aktualisiert, bleiben die Belegungen? | |
+
 **Bei jedem Fehler bitte notieren:** Version (Fenstertitel), die genaue Meldung (rote Leiste oder Statuszeile) und die letzte Zeile von `error.log`, falls vorhanden.
 
 ## M2: MIDI-Eingang und Wiederverbindung

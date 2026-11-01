@@ -29,6 +29,12 @@ tests/EarSaxophone.Windows.Tests         xUnit, nur Windows (läuft in der CI au
 - App: dünnes XAML (`MainWindow.xaml`) mit Bindings; `App.xaml.cs` setzt alles zusammen (Audio mit Ersatz `UnavailableAudioSystem`, MIDI, Executor, Timer 1 s für die Geräteprüfung), Einzelinstanz per Mutex, Tray (H.NotifyIcon), `error.log` bei unerwarteten Fehlern.
 - CI-Hilfen (nur mit `--demo-screenshot`, nie im Normalbetrieb): `DemoData`, `UiReport` (Textbericht, Überlappungs- und Ressourcenprüfung, ASCII-Vorschau), `UiSelfCheck` (Bedienung per UI-Automation).
 
+## Gerätewechsel, Anzeige, Update
+- `SwitchDeviceAction` (Flow, optionale Geräte-IDs): `AudioController.SwitchDevice` bildet eine Rotation aus den aktiven Geräten (nach Namen sortiert, ggf. auf die Auswahl begrenzt), nimmt das Gerät nach dem aktuellen Standard und setzt es über `IAudioSystem.SetDefaultEndpoint`. Windows-Seite: `PolicyConfig` (interne `IPolicyConfig`-COM-Schnittstelle, alle drei Rollen); jeder Fehler wird als `AudioUnsupportedException` gemeldet. Nur kompiliert und ohne Gerät ausgeführt, nicht an echten Geräten geprüft.
+- Anzeige: `ActionResult` trägt Pegel, Stumm-Zustand und Gerätename; `OsdMessageFactory` macht daraus eine `OsdMessage` (nicht bei Fehlern und Tastenkombinationen). `MainViewModel.OsdRequested` löst im App-Projekt `OsdWindow` aus (immer oben, `WS_EX_TRANSPARENT|NOACTIVATE|TOOLWINDOW`, sechs Positionen im Arbeitsbereich des Hauptbildschirms). Einstellungen `ShowOsd`/`OsdPosition` in `settings.json`.
+- Geräteabbild: `Nanokontrol2Layout` liefert für jedes der 51 Elemente Art (Drehregler/Fader/Taste), Position und Größe im schematischen Bild (1000 x 460 Einheiten, per Unit-Test überlappungsfrei und innerhalb des Geräts); `ElementTemplateSelector` wählt die Zeichnung, Zeiger/Kappe/Leuchten folgen `LastValue`.
+- Update: `Update.cmd`/`Update.ps1` liegen im ZIP (Windows PowerShell 5.1 genügt), aus der neuesten heruntergeladenen ZIP; Prüfsumme, laufendes Programm beenden, Dateien ersetzen, Benutzerdateien aussparen; in der CI mit einer Test-Installation geprüft.
+
 ## Aktionen und Eingabe
 - `Actions/ActionExecutor`: führt jede Aktion aus (Audio, Medienbefehl, Tastenkombination) und liefert ein `ActionResult` mit verständlicher Meldung; Ausnahmen werden nie nach außen gereicht.
 - `Input/Hotkey` (+ `KeyTable`): Parser und kanonische Schreibweise für Kombinationen wie `Ctrl+Alt+M` (`Strg` wird akzeptiert), Tasten als Windows-Virtual-Key-Codes.

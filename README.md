@@ -7,8 +7,10 @@ Eine Alternative zu MIDI Mixer für **Windows 11**: Der Korg **nanoKONTROL2** st
 ## Funktionen
 - **Lautstärke** für das Standard-Wiedergabegerät (Lautsprecher/Kopfhörer), das Standard-Aufnahmegerät (**Mikrofon**) und einzelne **Anwendungen**; Bereich einstellbar (zum Beispiel 20–80 %), auch umkehrbar.
 - **Stummschaltung umschalten** für dieselben Ziele (auch Mikrofon-Mute).
+- **Audiogerät wechseln:** Eine Taste schaltet reihum durch die Wiedergabegeräte (oder die Mikrofone), zum Beispiel Lautsprecher, Kopfhörer, Monitor. Du kannst auswählen, welche Geräte dabei sein sollen.
+- **Anzeige am Bildschirm** (wie bei MIDI Mixer): Beim Ändern von Lautstärke, Stummschaltung oder Gerät erscheint kurz eine kleine Einblendung mit Ziel, Balken und Prozent. Position (vier Ecken, oben/unten Mitte) und Ein/Aus stellst du unten im Fenster ein.
 - **Medienbefehle** (Wiedergabe/Pause, nächster, vorheriger Titel, Stopp) und **Tastenkombinationen** (zum Beispiel `Strg+Alt+M`) als getrennte Aktionen, jeder Taste frei zuordenbar und nicht an ein Programm gebunden.
-- **MIDI-Learn**, übersichtliche Darstellung aller 51 Elemente des nanoKONTROL2 mit Live-Pegel, mehrere **Profile**.
+- **Das Gerät als Bild:** Der nanoKONTROL2 ist schematisch abgebildet (Transportblock und acht Kanäle). Du tippst auf den Regler, die Taste oder den Fader, den du belegen willst; Drehregler, Fader und Tasten zeigen live, was am Gerät passiert. Dazu **MIDI-Learn** und mehrere **Profile**.
 - Robuste **Geräteverbindung**: Das Gerät wird automatisch gefunden und nach dem Abziehen oder Einstecken wieder verbunden.
 - Dunkle Oberfläche, **Tray-Betrieb**, **Start mit Windows**, verständliche Fehlermeldungen auf Deutsch.
 
@@ -22,6 +24,8 @@ Eine Alternative zu MIDI Mixer für **Windows 11**: Der Korg **nanoKONTROL2** st
 3. `EarSaxophone.exe` starten.
 
 Die Programmdatei ist **nicht digital signiert**. Windows SmartScreen kann deshalb beim ersten Start warnen ("Der Computer wurde durch Windows geschützt"): "Weitere Informationen" und dann "Trotzdem ausführen". Das ZIP enthält keine Installation; es wird nichts in Windows eingetragen, außer du schaltest "Mit Windows starten" ein.
+
+**Aktualisieren:** Neue ZIP von der Release-Seite herunterladen (am besten auch die `.sha256`-Datei daneben). Dann im Programmordner auf **`Update.cmd`** doppelklicken: Das Skript nimmt die neueste ZIP aus dem Downloads-Ordner, prüft die Prüfsumme, beendet das laufende Programm, ersetzt die Programmdateien und startet es auf Wunsch neu. `profiles.json` und `settings.json` bleiben unberührt. (Ohne das Skript geht es auch: ZIP in denselben Ordner entpacken und Überschreiben bestätigen.) Eine automatische Update-Suche in der App gibt es nicht, weil das Repository privat ist.
 
 **Deinstallieren:** "Mit Windows starten" in der Anwendung ausschalten, Programm beenden (Tray-Symbol > Beenden), Ordner löschen.
 
@@ -48,6 +52,8 @@ Oben wählst du das Profil, benennst es um oder legst ein neues an. Jedes Profil
 - **Minimiert starten:** Beim Start nur Tray-Symbol, kein Fenster.
 
 ## Bekannte Einschränkungen
+- **Audiogerät wechseln:** Windows hat dafür keine offizielle Schnittstelle; das Programm nutzt dieselbe interne Schnittstelle wie andere Umschalt-Werkzeuge. Sie funktioniert auf Windows 10/11, kann aber durch ein Windows-Update einmal ausfallen; dann erscheint eine Meldung. Die Reihenfolge im Wechsel ist alphabetisch nach Gerätename. Mindestens zwei Geräte müssen angeschlossen (und ausgewählt) sein.
+- **Die Einblendung** erscheint nicht über Spielen im exklusiven Vollbild (Fenstermodus oder "randloses Vollbild" geht) und nutzt den Hauptbildschirm.
 - **Medientasten** gehen an das Programm, das Windows als aktuelle Mediensitzung ansieht; das Ziel lässt sich nicht wählen. Ob Spotify/SoundCloud im Browser reagieren, hängt von Webseite und Browser ab. Einzelheiten: [docs/MEDIA_CONTROL.md](docs/MEDIA_CONTROL.md).
 - **Programme mit Administratorrechten** (auch Fenster im Vordergrund) blockieren simulierte Tasten; solche Programme sind eventuell auch nicht als Audioziel auffindbar.
 - **Browser-Tabs** sind nicht einzeln steuerbar: Alle Tabs eines Browsers sind eine Anwendung.
@@ -66,6 +72,7 @@ Oben wählst du das Profil, benennst es um oder legst ein neues an. Jedes Profil
 | Discord (oder anderes Programm) reagiert nicht | Läuft es und gibt es Ton aus? Programmdatei-Name prüfen (`Discord.exe`). Bei Discord PTB/Canary heißt die Datei anders (`DiscordPTB.exe`). Läuft das Programm als Administrator, die App ebenfalls als Administrator starten oder das Programm normal starten. |
 | Meldung "Kein Standard-Aufnahmegerät verfügbar" | In Windows unter Einstellungen > System > Sound > Eingabe ein Mikrofon aktivieren und als Standard wählen. |
 | Meldung "… erlaubt keine Lautstärke-Steuerung über Windows" | Das Gerät bietet in Windows keine Lautstärke oder Stummschaltung an (Treiber/Headset). Gerätesoftware des Herstellers verwenden. |
+| Gerätewechsel meldet "Windows hat das Umschalten abgelehnt" oder wechselt nicht | Die Windows-Schnittstelle zum Umschalten hat auf deinem System nicht funktioniert (mit Meldung und Version bitte melden). Als Ersatz die Windows-Einstellungen (Sound) oder das Lautsprecher-Symbol in der Taskleiste verwenden. |
 | Medientaste landet beim falschen Programm | Windows wählt das Ziel (siehe Einschränkungen). Das gewünschte Programm einmal kurz abspielen, oder stattdessen eine Tastenkombination verwenden, die das Programm kennt. |
 | Meldung "Windows hat die Tasteneingabe blockiert" | Im Vordergrund läuft ein Programm mit Administratorrechten. Es zuerst normal starten oder die App ebenfalls als Administrator starten. |
 | "Die Profile konnten nicht geladen werden" | `profiles.json` war beschädigt; sie wurde als `profiles.json.corrupt` gesichert und es wird mit Standardwerten gestartet. Die Sicherung lässt sich bei Bedarf von Hand wiederherstellen. |

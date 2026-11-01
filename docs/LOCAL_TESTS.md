@@ -16,13 +16,24 @@ Wenn du nicht alle Fälle unten durchgehen willst, prüfe zuerst diese acht Punk
 | 7 | Fenster mit X schließen (Tray bleibt), Tray-Menü, Programm beenden und neu starten: Zuordnungen noch da? | M5-4, M5-6 | |
 | 8 | Rechner in den Ruhezustand und wieder aufwecken: reagieren die Regler wieder? | M2-7 | |
 
-Neu seit rc2 (Geräteabbild, Anzeige, Gerätewechsel, Update):
+Neu seit rc2 (Geräteabbild, Anzeige, Gerätewechsel; das Update ist jetzt Test V7):
 | Nr. | Was tun | Ergebnis (ok / nicht ok + Notiz) |
 |---|---|---|
 | N1 | Geräteabbild: Sieht es gut aus? Antippen eines Faders/Drehreglers/einer Taste wählt es aus (Rahmen), der Editor rechts zeigt es. Bewegst du einen Fader/Drehregler am Gerät, bewegen sich Kappe/Zeiger im Bild; gedrückte Tasten leuchten. | |
 | N2 | Anzeige: Fader auf Lautsprecher legen und bewegen: Erscheint die Einblendung mit Name, Balken und Prozent und verschwindet nach ca. 2 s? Position unten im Fenster ändern (alle sechs) und "Anzeige testen". Fensterbild/Spiel im Vordergrund stört sie nicht (kein Fokusklau, Klicks gehen hindurch)? | |
 | N3 | Gerätewechsel: Track-Taste (oder eine andere) auf "Audiogerät wechseln", Wiedergabe, Geräte ankreuzen, "Übernehmen". Taste drücken: Wechselt das Windows-Standard-Wiedergabegerät (Einstellungen > System > Sound) reihum und zeigt die Anzeige den Namen? Dasselbe mit "Aufnahme (Mikrofon)". | |
-| N4 | Update: Neue ZIP herunterladen, `Update.cmd` im Programmordner doppelklicken: Wird aktualisiert, bleiben die Belegungen? | |
+
+Neu in V2 (alles ungeprüft an echter Hardware bzw. unter Windows, daher bitte der Reihe nach):
+| Nr. | Was tun | Ergebnis (ok / nicht ok + Notiz) |
+|---|---|---|
+| V1 | Gerätebild und Auswahl per Druck: Sieht das Bild wie dein nanoKONTROL2 aus (Symbole, Badges, LED-Flächen)? Fader bewegen, Taste (z. B. Rec) drücken: Wird das Element im Bild gewählt (Auswahl folgt dem Gerät), springt die Auswahl beim Weiterbedienen nicht? Nadel: angepinnt wählt nur der Klick. | |
+| V2 | Mehrere Belegungen: Auf einen Fader mehrere Programme legen (Hinzufügen > Programm…, auch "Datei öffnen …"). Bewegen sich alle gemeinsam? Auf einer Taste: Stumm in den Modi Umschalten / gehalten stumm / gehalten Ton an. Bei Fadern wird kein Hotkey angeboten? | |
+| V3 | Drag-and-Drop: Belegung auf ein freies passendes Element ziehen (verschiebt), auf ein belegtes (tauscht), mit Strg (kopiert). Fader auf Taste ziehen: wird abgelehnt mit Hinweis? | |
+| V4 | Übernehmen: Etwas ändern, Übernehmen-Leiste erscheint auffällig; Übernehmen (Enter) und Verwerfen. Auswahl wechseln mit gültiger ungespeicherter Änderung: wird übernommen? | |
+| V5 | Pop-up neues Programm: Ein noch nicht belegtes Programm Ton abspielen lassen. Erscheint nach kurzer Zeit das Pop-up mit Miniatur, ohne Fokusklau? Regler anklicken oder am Gerät bewegen: Programm wird dem Regler hinzugefügt. "Nicht jetzt" und "Nie fragen" (Zahnrad: Ignorierte zurücksetzen). Meldet Windows die aktive Ausgabe zuverlässig (kein Pop-up ohne Ton, keins zu spät)? | |
+| V6 | LED bei Stumm: Gerät einrichten (README, Abschnitt LEDs: Korg KONTROL Editor, Receive Scene Data, LED Mode = External, Control Mode = CC, Write Scene Data, neu einstecken; App währenddessen beendet). Dann `M 1` o. Ä. auf Mikrofon-Stumm legen: Leuchtet die Taste bei Stumm und erlischt sie sonst? Stimmen die angenommenen CC-Nummern (S 32–39, M 48–55, R 64–71, Play 41, Stop 42, Rew 43, FF 44, Rec 45, Cycle 46)? Track/Marker ohne LED? Notiere Abweichungen. | |
+| V7 | Update-Knopf (ab rc4; von rc3 auf rc4 einmal von Hand): Zahnrad > Nach Updates suchen; bei neuer Version Banner/"Jetzt aktualisieren": Wird aktualisiert und neu gestartet, bleiben `profiles.json`/`settings.json`? Antivirus-Meldungen? Automatische Prüfung höchstens 1x/24 h, im Zahnrad abschaltbar. | |
+| V8 | Profil-Migration: Mit einer `profiles.json` aus rc2/rc3 starten (Kopie aufheben). Sind alle Belegungen noch da, und liegt `profiles.json.v1.bak` daneben? | |
 
 **Bei jedem Fehler bitte notieren:** Version (Fenstertitel), die genaue Meldung (rote Leiste oder Statuszeile) und die letzte Zeile von `error.log`, falls vorhanden.
 
@@ -72,10 +83,10 @@ Die CI hat das Fenster gerendert und per UI-Automation bedient, aber nie ein Men
 | Nr. | Test | Erwartung | Status |
 |---|---|---|---|
 | M5-1 | App starten (ZIP entpacken, `EarSaxophone.exe`) | Dunkles Fenster, gut lesbare Schrift, keine abgeschnittenen Texte; auch bei Windows-Skalierung 125 % und 150 %; Fenster auf Mindestgröße ziehen | offen |
-| M5-2 | Auf "Regler wählen (MIDI-Learn)" klicken, dann nacheinander Fader 1, einen Drehregler, S/M/R und Play am Gerät bewegen/drücken | Jeweils die passende Kachel wird gewählt (Beschriftung stimmt mit dem Gerät überein). Weicht etwas ab: "Weiterer Regler" erscheint, bitte notieren welche | offen |
+| M5-2 | Nacheinander (ab V2 ohne MIDI-Learn-Knopf: Auswahl folgt dem Gerät) Fader 1, einen Drehregler, S/M/R und Play am Gerät bewegen/drücken | Jeweils die passende Kachel wird gewählt (Beschriftung stimmt mit dem Gerät überein). Weicht etwas ab: "Weiterer Regler" erscheint, bitte notieren welche | offen |
 | M5-3 | Fader 1 auf Lautsprecher legen, "Übernehmen"; Fader bewegen | Windows-Lautstärke folgt; Kachel zeigt Pegel und "Lautstärke: Lautsprecher" | offen |
 | M5-4 | Zuordnungen anlegen, App beenden (Tray: Beenden), neu starten | Zuordnungen sind noch da (`profiles.json` im Programmordner) | offen |
-| M5-5 | "Testen" im Editor (Lautstärke, Medienbefehl) | Aktion läuft einmal, ohne zu speichern; Lautstärke steht danach auf 50 % | offen |
+| M5-5 | (entfällt in V2: "Testen" gibt es nicht mehr) | - | entfällt |
 | M5-6 | Fenster mit X schließen (Einstellung "Im Infobereich bleiben" an); Tray-Symbol: Doppelklick, Rechtsklick-Menü | Programm läuft weiter, Symbol sichtbar, Doppelklick öffnet, Menü "Öffnen"/"Beenden" funktioniert; mit Einstellung aus beendet das X das Programm | offen |
 | M5-7 | "Mit Windows starten" einschalten, abmelden/neu starten (oder Task-Manager > Autostart prüfen) | Eintrag "EarSaxophone" vorhanden, Programm startet minimiert im Tray; Ausschalten entfernt den Eintrag | offen |
 | M5-8 | Programm ein zweites Mal starten | Kein zweites Fenster; das vorhandene kommt in den Vordergrund (auch aus dem Tray) | offen |

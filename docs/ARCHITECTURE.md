@@ -1,4 +1,4 @@
-# Architektur (Stand Meilenstein 6)
+# Architektur (Stand V2, in Abnahme)
 
 ```
 src/EarSaxophone.Core   net10.0          plattformneutral, vollständig unit-getestet
@@ -13,8 +13,9 @@ tests/EarSaxophone.Windows.Tests         xUnit, nur Windows (läuft in der CI au
 - `Midi/IMidiInput.cs`: Schnittstellen für Eingabeports; `MidiConnectionManager` verbindet per Namensfragment ("nanoKONTROL2") und verbindet nach Trennung selbst neu (Polling der Geräteliste, da WinMM kein Entfernen meldet).
 - `Mapping/`
   - `ControlRouter`: ein Eingang für alle Nachrichten; schaltet zwischen MIDI-Learn und Aktionen um.
-  - `ControlMapping`: Regler -> Aktion; ein Regler darf pro Profil nur einmal belegt sein (`Profile.Validate`).
-  - Aktionen: `SetVolumeAction`, `ToggleMuteAction`, `MediaAction`, `HotkeyAction`.
+  - `ControlMapping` (V2): Regler -> **Liste von Aktionen**, optional `Name`; ein Regler nur einmal je Profil (`Profile.Validate`). `ControlShape` (Continuous/Button/Unknown) und `ActionRules.IsAllowed` lassen je Reglerart nur passende Aktionen zu. `Profile.TransferMapping` (Verschieben/Tauschen/Kopieren).
+  - Aktionen: `SetVolumeAction`, `MuteAction` (Modi Umschalten / `MuteWhileHeld` / `UnmuteWhileHeld`; ersetzt `ToggleMuteAction`), `MediaAction`, `HotkeyAction`, `SwitchDeviceAction`. Tasten erzeugen `Pressed` und `Released`.
+  - Schema 2 in `profiles.json`; Schema 1 wird beim Laden migriert, einmalig Sicherung `profiles.json.v1.bak`.
   - `AudioTarget`: trennt `DeviceFlow.Render` (Lautsprecher) und `DeviceFlow.Capture` (Mikrofon) ausdrücklich, dazu `DeviceRole` und optional eine konkrete Geräte-ID. Anwendungen werden über `AppSelector` (Exe-Name/-Pfad) beschrieben, nie über Session-IDs.
   - `ValueScaling`: 0-127 -> Pegel, mit Bereich und Invertierung.
   - `MappingDispatcher`: Regler-Aktionen laufend, Tasten nur bei steigender Flanke (Wert >= 64).
@@ -28,6 +29,10 @@ tests/EarSaxophone.Windows.Tests         xUnit, nur Windows (läuft in der CI au
 - `Settings/`: `AppSettings` (Autostart, im Tray bleiben, minimiert starten), `DataLocation` (portabel neben der Programmdatei, sonst `%APPDATA%\EarSaxophone`), `IAutostart` (Windows: `RegistryAutostart`, Run-Schlüssel mit Pfadreparatur).
 - App: dünnes XAML (`MainWindow.xaml`) mit Bindings; `App.xaml.cs` setzt alles zusammen (Audio mit Ersatz `UnavailableAudioSystem`, MIDI, Executor, Timer 1 s für die Geräteprüfung), Einzelinstanz per Mutex, Tray (H.NotifyIcon), `error.log` bei unerwarteten Fehlern.
 - CI-Hilfen (nur mit `--demo-screenshot`, nie im Normalbetrieb): `DemoData`, `UiReport` (Textbericht, Überlappungs- und Ressourcenprüfung, ASCII-Vorschau), `UiSelfCheck` (Bedienung per UI-Automation).
+
+## V2: Oberfläche, Pop-up, LEDs (siehe `docs/DESIGN_V2.md`, `docs/LED_RESEARCH.md`)
+- ViewModels im Core (Linux-getestet, 517 Core-Tests): Auswahl folgt dem Gerät, Mehrziel-Editor mit `IsDirty`/Übernehmen, Transfer für Drag-and-Drop, Badges, Pop-up-Logik (`ProgramPromptService`, `IAudioSession` mit Aktiv-Zustand). WPF-Fenster (Hauptfenster, Pop-up) in der App: nur kompiliert und in der CI gestartet.
+- LEDs: Rückmeldung für Stumm-Tasten über einen MIDI-Ausgang; Annahmen zu CC-Nummern/Kanal unbestätigt, nie an Hardware ausgeführt.
 
 ## Gerätewechsel, Anzeige, Update
 - `SwitchDeviceAction` (Flow, optionale Geräte-IDs): `AudioController.SwitchDevice` bildet eine Rotation aus den aktiven Geräten (nach Namen sortiert, ggf. auf die Auswahl begrenzt), nimmt das Gerät nach dem aktuellen Standard und setzt es über `IAudioSystem.SetDefaultEndpoint`. Windows-Seite: `PolicyConfig` (interne `IPolicyConfig`-COM-Schnittstelle, alle drei Rollen); jeder Fehler wird als `AudioUnsupportedException` gemeldet. Nur kompiliert und ohne Gerät ausgeführt, nicht an echten Geräten geprüft.

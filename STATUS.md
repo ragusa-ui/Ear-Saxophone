@@ -1,7 +1,7 @@
 # STATUS
 
-**Letztes Update:** 2026-11-01 (Release Candidate v1.0.0-rc1 veröffentlicht; offen nur deine Abnahme)
-**Letzter bestätigter Build:** GitHub Actions, [Lauf #26](https://github.com/ragusa-ui/Ear-Saxophone/actions/runs/41310821082) auf Commit `618dde9` (Stand nach den Erweiterungen unten): **erfolgreich** auf `windows-latest`: Build, Core- und Windows-Tests, self-contained Publish, Start ohne .NET im PATH, 12 UI-Prüfungen per UI-Automation, Normalstart mit Tray und Einzelinstanz, Test des Update-Skripts in Windows PowerShell 5.1, ZIP und UI-Screenshot als Artefakte; Linux-Job grün. Diese Erweiterungen sind im Release [v1.0.0-rc2](https://github.com/ragusa-ui/Ear-Saxophone/releases/tag/v1.0.0-rc2) enthalten (Commit `b431b47`, ZIP 65,6 MB mit `.sha256`, von `release.yml` Lauf #4 erstellt; Vorabversion).
+**Letztes Update:** 2026-11-01 (V2-Oberfläche umgesetzt, **in Abnahme**; Update in der App statt `Update.cmd`; offen nur deine Abnahme)
+**Letzter bestätigter Build:** GitHub Actions, [Lauf #26](https://github.com/ragusa-ui/Ear-Saxophone/actions/runs/41310821082) auf Commit `618dde9` (Stand nach den Erweiterungen unten): **erfolgreich** auf `windows-latest`: Build, Core- und Windows-Tests, self-contained Publish, Start ohne .NET im PATH, 12 UI-Prüfungen per UI-Automation, Normalstart mit Tray und Einzelinstanz, Test des (inzwischen entfernten) Update-Skripts in Windows PowerShell 5.1, ZIP und UI-Screenshot als Artefakte; Linux-Job grün. Diese Erweiterungen sind im Release [v1.0.0-rc2](https://github.com/ragusa-ui/Ear-Saxophone/releases/tag/v1.0.0-rc2) enthalten (Commit `b431b47`, ZIP 65,6 MB mit `.sha256`, von `release.yml` Lauf #4 erstellt; Vorabversion).
 
 ## Fortschritt
 Berechnung: Summe der Gewichte erledigter Arbeitspakete (Gesamtgewicht 100). Ein Paket zählt, wenn es umgesetzt und **so weit geprüft ist, wie es in der Cloud möglich ist** (Unit-Tests mit Fakes, Kompilieren). Teilfortschritt wird nicht angerechnet. Alles, was echte Hardware braucht, steht zusätzlich in `docs/LOCAL_TESTS.md`; bestätigt hast du davon bisher **nichts**, und 5 Punkte (6.5) sind ausdrücklich für deine Abnahme reserviert.
@@ -69,16 +69,24 @@ Nicht Teil der 100 gewichteten Punkte; alle in der CI geprüft, keine an echter 
 - ☑ **Geräteabbild statt Kachel-Tabelle:** Der nanoKONTROL2 ist schematisch gezeichnet (Transportblock, acht Kanäle); Antippen wählt den Regler; Drehregler-Zeiger, Fader-Kappe und Tastenleuchten zeigen live, was am Gerät passiert; Punkt für belegte, Rahmen für gewählte Elemente, Liste der Belegungen darunter. Geometrie per Unit-Test geprüft (51 Elemente, keine Überlappung). Das Aussehen wurde nur über den Textbericht geprüft, nicht angesehen.
 - ☑ **Anzeige bei Änderungen (OSD):** kleines Overlay (immer oben, klickdurchlässig, ohne Fokus) für Lautstärke, Stumm, Gerätewechsel und Medientasten; sechs Positionen, Ein/Aus und Test in den Einstellungen. CI: erscheint, zeigt "Lautsprecher"/"65 %", Fensterstil klickdurchlässig/ohne Fokus, in allen sechs Positionen im sichtbaren Bereich.
 - ☑ **Audiogerät wechseln** (Wiedergabe **und** Aufnahme/Mikrofon): neue Aktion, reihum nach Namen, optional auf ausgewählte Geräte begrenzt; Auswahl im Editor. Logik per 11 Unit-Tests. Das Setzen des Windows-Standardgeräts nutzt die **undokumentierte** Schnittstelle `IPolicyConfig` (wie andere Umschalt-Werkzeuge); sie ist kompiliert, aber nie an einem echten Gerät ausgeführt (Test N3).
-- ☑ **Update-Skript** `Update.cmd`/`Update.ps1` im ZIP (privates Repository: kein automatischer Update-Check möglich). CI-Test in Windows PowerShell 5.1: falsche Prüfsumme wird abgelehnt, Update wird angewendet, `profiles.json`/`settings.json` bleiben, fremde ZIP wird abgelehnt. Mit echtem Download und laufendem Programm nicht getestet (Test N4).
-- Tests: 186 Core-Tests (Linux) bestanden; mehrere Läufe in Folge ohne Ausreißer.
+- ☑ **Update-Skript** `Update.cmd`/`Update.ps1` (rc2): **entfernt**, der Antivirus blockierte es. Ersatz: Update in der App, siehe V2 unten.
+- Tests: 186 Core-Tests (Linux) bestanden zum Stand rc2; aktuell 517 Core-Tests (V2).
+
+## V2: Überarbeitung nach dem ersten Test (**in Abnahme**, Gesamtprozent bleibt 95 %)
+Vorgabe: `docs/DESIGN_V2.md`. Nicht Teil der 100 gewichteten Punkte; der Rest bis 100 % ist weiterhin deine Abnahme. Die Core-Logik ist mit 517 Core-Tests geprüft; das Aussehen und alles an Windows/Hardware ist **ungeprüft** (CI kompiliert und startet nur).
+- ☑ **Oberfläche:** kompaktes Profilfeld, Zahnrad mit allen Einstellungen, Gerätebild nach echtem nanoKONTROL2 mit Symbolen/Badges und LED-Flächen, Seitenpanel "Was soll gesteuert werden?" (Hinzufügen: Programm…/Lautsprecher/Mikrofon, Programm-Auswahl mit "Datei öffnen …"), Übernehmen-Leiste, Drag-and-Drop (Strg kopiert), Auswahl folgt dem Drücken am Gerät. Nur kompiliert/in der CI gestartet, nie von einem Menschen bedient.
+- ☑ **Datenmodell:** mehrere Belegungen pro Element, Regeln je Reglertyp (Fader stufenlos, Tasten Drücken/Halten/Umschalten, Stumm-Modi, kein Hotkey auf Fadern), Migration mit Sicherung `profiles.json.v1.bak`. Core-getestet, mit echten Profilen ungeprüft.
+- ☑ **Pop-up für neue Programme mit Ton** (Miniatur 8 Fader/Knöpfe, "Nicht jetzt"/"Nie fragen"). Logik core-getestet; **ungeprüft, ob Windows die aktive Ausgabe zuverlässig meldet.**
+- ☑ **LEDs:** Taste leuchtet bei Stumm. Rein auf Recherche gestützt (`docs/LED_RESEARCH.md`), Annahmen: CC auf Kanal 1, 127/0, S 32–39, M 48–55, R 64–71, Play 41, Stop 42, Rew 43, FF 44, Rec 45, Cycle 46; Track/Marker ohne LED. Einrichtung am Gerät mit dem Korg KONTROL Editor steht in der README. **Alles ungeprüft an echter Hardware.**
+- ☑ **Update in der App:** Prüfung beim Start (höchstens 1x/24 h, abschaltbar), Banner/Knopf "Jetzt aktualisieren", Austausch ohne Skripte durch Umbenennen der Dateien (`.old`), schützt `profiles.json`/`settings.json`/`error.log`; nur bei **öffentlichem** Repository (jetzt öffentlich). Update-Knopf ab rc4. Alles Windows-seitige ungeprüft.
 
 ## Aktuelle Aufgabe
-**Keine laufende Aufgabe.** rc2 ist veröffentlicht. Offen: deine Abnahme (6.5) mit dem Schnelltest in `docs/LOCAL_TESTS.md`, inklusive der neuen Punkte N1 bis N4.
+**Keine laufende Aufgabe.** V2 ist **in Abnahme**. Offen: deine Abnahme (6.5) mit dem Schnelltest in `docs/LOCAL_TESTS.md`, inklusive N1 bis N3 und V1 bis V8.
 
 ## Tests
 | Bereich | Ergebnis |
 |---|---|
-| `EarSaxophone.Core.Tests`, Linux, Release: 161 Tests (zusätzlich zu M5: Nachrichten-Warteschlange, Neuverbinden, Port-Index, Treiber-Warnungen, parallele Verarbeitung im MainViewModel), 4 Läufe in Folge ohne Ausreißer | **bestanden** (161/161) |
+| `EarSaxophone.Core.Tests`, Linux, Release, aktueller V2-Stand: **517 Core-Tests** (Stand rc1: 161, rc2: 186) | **bestanden** (517/517) |
 | Mutationsprüfung der Nachrichten-Warteschlange (Tastendruck darf nie zusammengefasst werden) | die absichtliche Änderung wurde von 2 Tests erkannt; Code zurückgesetzt |
 | Mutationsprüfung der Identitäts-Tests (Namensvergleich, Einmal-Anwendung, Render/Capture-Trennung) | alle 3 Änderungen wurden von den passenden Tests erkannt; Code wieder zurückgesetzt |
 | GitHub Actions Lauf #8 (M4-Stand), Windows Server 2025: 125 Core-Tests und 16 Windows-Tests (INPUT-Struktur 40 Byte, Tastenfolge, Extended-Flag, Medientasten-Codes, Smoke-Tests der MIDI- und Audio-Adapter ohne Hardware); seit M5 kommen Registry-Tests für den Autostart dazu (Lauf #15 grün, Testschritt erfolgreich) | **bestanden** |
@@ -87,10 +95,11 @@ Nicht Teil der 100 gewichteten Punkte; alle in der CI geprüft, keine an echter 
 | Lauf #15: 7 UI-Prüfungen durch UI-Automation (Kachel wählen, MIDI-Learn starten/abbrechen, Profil neu/löschen, Fehlerleiste, Tray-Schalter) | **bestanden** |
 | Lauf #15: Normalstart `--minimized` (Tray), zweite Instanz beendet sich, kein `error.log` | **bestanden** |
 | Windows-Adapter (NAudio MIDI, Core Audio, SendInput) | in CI **ohne Hardware** ausgeführt (Erzeugen, Abfragen, Freigeben ohne Fehler; auf dem Runner gibt es kein MIDI-Gerät und vermutlich keine Audiogeräte); mit echten Geräten und Programmen nie ausgeführt |
-| Alles mit nanoKONTROL2, Mikrofon, Discord, WPF-Start | noch nicht ausgeführt (`docs/LOCAL_TESTS.md`: Schnelltest 1-8, M2-1 bis M2-9, M3-1 bis M3-12, M4-1 bis M4-7, M5-1 bis M5-13, R-1 bis R-5, alle offen) |
+| Alles mit nanoKONTROL2, Mikrofon, Discord, WPF-Start, V2-Oberfläche, LEDs, Update-Knopf | noch nicht ausgeführt (`docs/LOCAL_TESTS.md`: Schnelltest 1-8, N1-N3, V1-V8, M2-1 bis M2-9, M3-1 bis M3-12, M4-1 bis M4-7, M5-1 bis M5-13, R-1 bis R-5, alle offen) |
 
 ## Bekannte Probleme, offene Fragen, Blocker
 - Keine Blocker.
+- V2: Aussehen der neuen Oberfläche, LEDs (CC-Annahmen), Pop-up bei neuem Programm und der Update-Knopf sind ungeprüft (Tests V1-V8). Das Update setzt ein öffentliches Repository voraus.
 - **Discord-Zuordnung ist weiterhin eine Hypothese in der Praxis.** Im Modell bestätigt; bei echten Sessions kann Windows/Discord anders reagieren (Tests M3-5 bis M3-10).
 - Reconnect-Risiko: WinMM meldet das Entfernen eines USB-Geräts nicht; Erkennung per Polling von Name und Port-Index, nach dem Ruhezustand und über die Schaltfläche "Neu verbinden". Ein Ziehen und Einstecken innerhalb einer Sekunde ohne Indexänderung bleibt unbemerkt (Tests M2-3, M2-7). Ob Windows ein geöffnetes, abgezogenes Gerät aus der Liste entfernt, ist unbestätigt (der Reviewer konnte es auch nicht verifizieren).
 - Pfad eines Prozesses ist bei geschützten oder höher privilegierten Prozessen eventuell nicht lesbar; diese Anwendung gilt dann als nicht aktiv (Test M3-10).
@@ -105,11 +114,12 @@ Nicht Teil der 100 gewichteten Punkte; alle in der CI geprüft, keine an echter 
 - Die Programmdatei ist nicht signiert (SmartScreen-Warnung möglich, in der README erklärt).
 - Die Standardbelegung des nanoKONTROL2 (Control-Nummern der Beschriftung, z. B. Fader 1 = CC 0, Play = CC 41) stammt aus dem üblichen Werkszustand und ist nicht an deinem Gerät geprüft. Weicht es ab, erkennt MIDI-Learn jeden Regler trotzdem und zeigt ihn als "Weiterer Regler" (Test M5-2).
 - Fensterposition und -größe werden nicht gespeichert.
+- LEDs: Im Modus "External" leuchtet nichts von selbst; ohne die Einrichtung am Gerät (README) bleibt die LED-Anzeige wirkungslos. Editor und App können den Port nicht gleichzeitig nutzen.
 - Im Editor ist als Ziel nur Standardgerät oder Anwendung wählbar; ein konkretes Gerät (Modell unterstützt es) kann die Oberfläche noch nicht einstellen.
 - Die Oberfläche wurde in der CI mit 1100 px Breite gerendert; Verhalten bei hoher Windows-Skalierung (125-200 %) ist ungeprüft.
 - Das Tray-Symbol und sein Menü wurden nie gesehen (CI ohne Taskleiste).
 - Der Download der CI-Logs/Artefakte von dieser Cloud-Sitzung aus ist blockiert (Host `productionresultssa17.blob.core.windows.net` nicht erlaubt); ich prüfe die Oberfläche deshalb über den Textbericht im Log.
 
 ## Nächste Schritte
-1. **Du:** ZIP von [v1.0.0-rc2](https://github.com/ragusa-ui/Ear-Saxophone/releases/tag/v1.0.0-rc2) laden (von rc1 aus: in denselben Ordner entpacken, Überschreiben bestätigen; ab rc2 geht es mit `Update.cmd`), Schnelltest und die neuen Punkte N1-N4 aus `docs/LOCAL_TESTS.md` durchgehen; bei Fehlern Version, Meldung und `error.log` melden.
+1. **Du:** ZIP von [v1.0.0-rc2](https://github.com/ragusa-ui/Ear-Saxophone/releases/tag/v1.0.0-rc2) laden (von rc1 aus: in denselben Ordner entpacken, Überschreiben bestätigen; den Update-Knopf in der App gibt es ab rc4; rc3 auf rc4 einmal von Hand: ZIP entpacken, `profiles.json` und `settings.json` kopieren), Schnelltest und die neuen Punkte N1-N3 sowie V1-V8 aus `docs/LOCAL_TESTS.md` durchgehen; bei Fehlern Version, Meldung und `error.log` melden.
 2. Danach: Befunde beheben, endgültiges `v1.0.0` über `release.yml` (Option `publish`) erzeugen, STATUS auf 100 %.

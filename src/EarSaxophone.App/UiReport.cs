@@ -116,6 +116,7 @@ internal static class UiReport
         Button { DataContext: EarSaxophone.Core.ViewModels.ControllerElementViewModel e } =>
             $"Element '{e.Label}' {e.Kind}{(e.HasMapping ? " belegt" : string.Empty)}{(e.IsSelected ? " gewaehlt" : string.Empty)}",
         TextBlock { Text: "nicht belegt" } => null,
+        TextBlock { Text.Length: > 0 } glyph when glyph.Text.All(c => c is >= '\uE000' and <= '\uF8FF') => null, // icon-font glyphs (scroll bar arrows)
         TextBlock { Text.Length: > 0 } t when IsLeafText(t) => $"Text '{Trim(t.Text)}' size {t.FontSize:0.#}",
         ProgressBar p => $"ProgressBar {p.Value:0.00}",
         Slider s => $"Slider {s.Value:0}",

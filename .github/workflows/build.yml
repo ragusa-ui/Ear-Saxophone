@@ -113,6 +113,7 @@ jobs:
           & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $install 'Update.ps1') -Zip (Join-Path $root 'other.zip') -NoStart -NoPause
           if ($LASTEXITCODE -ne 1) { throw "A zip without EarSaxophone.exe should fail with 1, got $LASTEXITCODE" }
           Write-Host 'Update script: wrong checksum rejected, update applied, profiles and settings kept, foreign zip rejected'
+          $global:LASTEXITCODE = 0   # the last native call failed on purpose; do not let it fail this step
       - name: Print screenshot as base64 JPEG
         if: ${{ github.event.inputs.print_screenshot == 'true' }}
         shell: pwsh

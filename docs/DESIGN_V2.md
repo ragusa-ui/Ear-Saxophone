@@ -65,3 +65,14 @@ Auslöser: Rückmeldung des Nutzers zu rc2. Die App funktioniert, ist aber "simp
 - **Nicht pushen, keine Tags, keine Workflows ändern, nicht `git commit`** (der Kurator committet nach Durchsicht). Keine Dateien außerhalb des zugewiesenen Teils ändern, außer wo für das Kompilieren zwingend nötig (dann in der Abschlussmeldung nennen).
 - Was nicht gelaufen ist, wird in der Abschlussmeldung als **ungeprüft** bezeichnet. Nichts als "getestet" melden, was nicht ausgeführt wurde. UI-Verhalten kann nur die CI auf Windows prüfen.
 - Abschlussmeldung: höchstens 25 Zeilen: erledigt, geänderte/neue Dateien, ausgeführte Tests mit Ergebnis, ungeprüft/offen, Annahmen.
+
+## 6. Neu: Nachfrage bei einem neuen Programm mit Ton (Wunsch des Nutzers)
+Spielt ein Programm, das noch nirgends belegt ist, zum ersten Mal Ton ab, soll Ear Saxophone von selbst fragen, auf welchen Regler es gelegt werden soll (nur Ausgabe/Wiedergabe, **nicht** Mikrofon).
+- **Auslöser:** Eine Audiositzung der Wiedergabe wird **hörbar aktiv** (Sitzungszustand "aktiv", nicht nur vorhanden), gehört zu einer Programmdatei, die nicht Systemklänge, nicht Ear Saxophone selbst, **in keinem Mapping des aktuellen Profils** und nicht auf der Ignorierliste ist. Je Programm höchstens einmal pro Programmlauf nachfragen, dazu eine Mindestpause zwischen zwei Nachfragen (z. B. 5 s), damit mehrere gleichzeitig startende Programme nicht überfallen.
+- **Pop-up:** kleines Fenster am Bildschirmrand (Nähe der Overlay-Position), immer oben, **nimmt keinen Fokus**, aber klickbar. Zeigt Programmsymbol und Name ("<Name> spielt Ton"), ein **Mini-Geräteabbild nur mit Fadern und Drehreglern**, auf dem man den Zielregler **anklickt oder am Gerät bewegt**; darauf liegende Belegungen sind als kleines Symbol/Zähler erkennbar. Zusätzlich "Nicht jetzt" und "Nie fragen" (Programm kommt dauerhaft auf die Ignorierliste). Ohne Reaktion nach ca. 25 s verschwindet es wie "Nicht jetzt".
+- **Wirkung:** Das Programm wird dem gewählten Regler als weiteres Ziel (`SetVolumeAction` mit `AudioTarget.Application(exe)`) hinzugefügt, ohne vorhandene Ziele zu verändern; ist der Regler unbelegt, entsteht ein neues Mapping. Das Overlay bestätigt kurz.
+- **Einstellungen (Zahnrad):** Schalter "Bei neuem Programm mit Ton fragen" (Standard an) und Schaltfläche "Ignorierte Programme zurücksetzen". Die Ignorierliste steht in `settings.json`.
+- **Aufteilung:** Erkennung und Entscheidungslogik gehören in den Core (`ProgramPromptService`, testbar mit der Fake-Audioumgebung; `IAudioSession` bekommt einen Aktiv-Zustand); das Fenster liegt in der App. Nachfragen nur, wenn das Hauptfenster oder Overlay nichts Wichtiges verdeckt: kein Fokusklau.
+
+## 7. Später (eigene Runde): LEDs am Gerät
+Der Nutzer will die LEDs des nanoKONTROL2 ansteuern (z. B. leuchtet "Mute", wenn stumm). Vorab-Recherche zur Machbarkeit läuft; Umsetzung erst nach V2.

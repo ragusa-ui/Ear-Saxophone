@@ -5,7 +5,7 @@
                   xmlns:local="clr-namespace:EarSaxophone.App"
                   xmlns:loc="clr-namespace:EarSaxophone.Core.Localization;assembly=EarSaxophone.Core"
                   Title="Ear Saxophone"
-                  Width="1000" Height="500" MinWidth="880" MinHeight="420"
+                  Width="780" Height="330" MinWidth="640" MinHeight="290"
                   WindowStartupLocation="CenterScreen"
                   ExtendsContentIntoTitleBar="True"
                   WindowBackdropType="None"
@@ -244,7 +244,7 @@
         </ui:TitleBar>
 
         <!-- Kopfzeile: Verbindung links; Profil, Neu verbinden, MIDI-Learn und Zahnrad rechts -->
-        <Grid x:Name="HeaderBar" Grid.Row="1" Margin="16,2,16,10" Height="36">
+        <Grid x:Name="HeaderBar" Grid.Row="1" Margin="12,0,12,6" Height="34">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
@@ -277,7 +277,7 @@
             <!-- Profil: kleines Auswahlfeld, Verwalten im Menü -->
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,12,0">
                 <ui:SymbolIcon Symbol="Person20" FontSize="16" Margin="0,0,8,0" Foreground="{DynamicResource MutedText}" VerticalAlignment="Center" />
-                <ComboBox x:Name="ProfilePicker" Width="170" Height="32" MinHeight="0" Padding="10,4" VerticalContentAlignment="Center"
+                <ComboBox x:Name="ProfilePicker" Width="132" Height="32" MinHeight="0" Padding="10,4" VerticalContentAlignment="Center"
                           ItemsSource="{Binding ProfileNames}" SelectedItem="{Binding ActiveProfileName, Mode=TwoWay}"
                           ToolTip="{x:Static loc:Texts.UiProfile}" AutomationProperties.AutomationId="ProfilePicker"
                           AutomationProperties.Name="{x:Static loc:Texts.UiProfile}" />
@@ -310,14 +310,14 @@
             </StackPanel>
 
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                <ui:Button x:Name="ReconnectButton" Content="{x:Static loc:Texts.UiReconnect}" Icon="{ui:SymbolIcon PlugConnected20}" Height="32"
+                <ui:Button x:Name="ReconnectButton" Icon="{ui:SymbolIcon PlugConnected20}" Width="38" Height="32" AutomationProperties.Name="{x:Static loc:Texts.UiReconnect}"
                            Command="{Binding ReconnectCommand}" ToolTip="{x:Static loc:Texts.UiReconnectTip}"
                            AutomationProperties.AutomationId="ReconnectButton" />
-                <ui:Button x:Name="LearnButton" Content="{x:Static loc:Texts.UiLearn}" Icon="{ui:SymbolIcon TapSingle20}" Height="32" Margin="8,0,0,0"
+                <ui:Button x:Name="LearnButton" Icon="{ui:SymbolIcon TapSingle20}" Width="38" Height="32" Margin="6,0,0,0" AutomationProperties.Name="{x:Static loc:Texts.UiLearn}"
                            Command="{Binding LearnCommand}" ToolTip="{x:Static loc:Texts.UiLearnTip}"
                            Visibility="{Binding IsLearning, Converter={StaticResource InverseBoolToVis}}"
                            AutomationProperties.AutomationId="LearnButton" />
-                <ui:Button x:Name="CancelLearnButton" Content="{x:Static loc:Texts.UiCancel}" Icon="{ui:SymbolIcon Dismiss20}" Height="32" Margin="8,0,0,0"
+                <ui:Button x:Name="CancelLearnButton" Icon="{ui:SymbolIcon Dismiss20}" Width="38" Height="32" Margin="6,0,0,0" AutomationProperties.Name="{x:Static loc:Texts.UiCancel}" ToolTip="{x:Static loc:Texts.UiCancel}"
                            Appearance="Primary" Command="{Binding CancelLearnCommand}"
                            Visibility="{Binding IsLearning, Converter={StaticResource BoolToVis}}"
                            AutomationProperties.AutomationId="CancelLearnButton" />
@@ -425,7 +425,7 @@
         </Grid>
 
         <!-- Hauptbereich: Gerätebild links, Seitenpanel rechts -->
-        <Grid Grid.Row="2" Margin="16,0,16,8">
+        <Grid Grid.Row="2" Margin="12,0,12,2">
             
 
             <Grid Grid.Column="0">
@@ -494,8 +494,8 @@
                 </StackPanel>
 
                 <!-- Das Gerät als Bild -->
-                <Viewbox x:Name="DeviceView" Grid.Row="1" Stretch="Uniform" Margin="4,6,4,6" AutomationProperties.AutomationId="DeviceView">
-                    <Grid Width="1000" Height="270" Margin="12">
+                <Viewbox x:Name="DeviceView" Grid.Row="1" Stretch="Uniform" Margin="0" AutomationProperties.AutomationId="DeviceView" ToolTip="{x:Static loc:Texts.UiDragHint}" ToolTipService.InitialShowDelay="1200">
+                    <Grid Width="1000" Height="270" Margin="8,4,8,12">
                         <!-- Gehäuse: flach und schwarz wie das echte Gerät -->
                         <Border CornerRadius="{DynamicResource BodyRadius}" Background="{DynamicResource BodyBrush}" BorderBrush="{DynamicResource DeviceEdge}" BorderThickness="1.5">
                             <Border.Effect>
@@ -544,7 +544,7 @@
                     </ItemsControl>
                 </StackPanel>
 
-                <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="6,0,0,0">
+                <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="6,0,0,0" Visibility="Collapsed">
                     <ui:SymbolIcon Symbol="HandDraw20" FontSize="13" Foreground="{DynamicResource MutedText}" Margin="0,0,6,0" VerticalAlignment="Center" />
                     <TextBlock Text="{x:Static loc:Texts.UiDragHint}" Style="{StaticResource Hint}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
                                VerticalAlignment="Center" />
@@ -553,7 +553,7 @@
         </Grid>
 
         <!-- Statuszeile und Fehlerleiste (nur wenn nötig) -->
-        <StackPanel Grid.Row="3" Margin="16,0,16,10">
+        <StackPanel Grid.Row="3" Margin="12,0,12,6">
             <Border x:Name="ErrorBar" Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" CornerRadius="{DynamicResource ControlRadius}" Padding="12,6,6,6" Margin="0,0,0,6"
                     Background="{DynamicResource SystemFillColorCriticalBackgroundBrush}" AutomationProperties.AutomationId="ErrorBar">
                 <DockPanel>

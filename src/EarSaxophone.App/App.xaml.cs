@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Windows;
@@ -440,8 +440,8 @@ public partial class App : Application
         window.WindowStartupLocation = WindowStartupLocation.Manual;
         window.Left = 0;
         window.Top = 0;
-        window.Width = 1000;
-        window.Height = 500;
+        window.Width = 780;
+        window.Height = 330;
         window.Show();
         DemoData.PrepareScreenshot(_viewModel!);
         var wait = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
@@ -523,3 +523,4 @@ public partial class App : Application
         public void SetEnabled(bool enabled) => IsEnabled = enabled;
     }
 }
+

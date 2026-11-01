@@ -273,28 +273,33 @@
         <SolidColorBrush x:Key="PrintBrush" Color="#F2F2F2" />
         <SolidColorBrush x:Key="PrintSoftBrush" Color="#A9ACB3" />
         <LinearGradientBrush x:Key="KeyBrush" StartPoint="0,0" EndPoint="0,1">
-            <GradientStop Color="#3A3C42" Offset="0" />
-            <GradientStop Color="#2A2C31" Offset="1" />
+            <GradientStop Color="#2A2B2F" Offset="0" />
+            <GradientStop Color="#16171A" Offset="1" />
         </LinearGradientBrush>
         <LinearGradientBrush x:Key="KeyActiveBrush" StartPoint="0,0" EndPoint="0,1">
             <GradientStop Color="#5C5F67" Offset="0" />
             <GradientStop Color="#45484F" Offset="1" />
         </LinearGradientBrush>
         <SolidColorBrush x:Key="KeyEdgeBrush" Color="#08090A" />
-        <SolidColorBrush x:Key="LedOffBrush" Color="#3B2624" />
+        <SolidColorBrush x:Key="LedOffBrush" Color="#6B3636" />
         <SolidColorBrush x:Key="LedOnBrush" Color="#FF5A4A" />
         <RadialGradientBrush x:Key="KnobBrush" GradientOrigin="0.38,0.3" Center="0.5,0.5" RadiusX="0.65" RadiusY="0.65">
-            <GradientStop Color="#E3E5E9" Offset="0" />
-            <GradientStop Color="#B4B8C0" Offset="0.6" />
-            <GradientStop Color="#8C9099" Offset="1" />
+            <GradientStop Color="#4A4C52" Offset="0" />
+            <GradientStop Color="#232428" Offset="0.6" />
+            <GradientStop Color="#121214" Offset="1" />
         </RadialGradientBrush>
         <SolidColorBrush x:Key="KnobSkirtBrush" Color="#0E0F11" />
         <LinearGradientBrush x:Key="FaderCapBrush" StartPoint="0,0" EndPoint="0,1">
-            <GradientStop Color="#E8EAEE" Offset="0" />
-            <GradientStop Color="#C3C7CE" Offset="0.5" />
-            <GradientStop Color="#9DA1A9" Offset="1" />
+            <GradientStop Color="#3C3E44" Offset="0" />
+            <GradientStop Color="#1C1D20" Offset="0.5" />
+            <GradientStop Color="#0E0E10" Offset="1" />
         </LinearGradientBrush>
         <SolidColorBrush x:Key="TrackBrush" Color="#050506" />
+        <LinearGradientBrush x:Key="SlotBrush" StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="#8A8C92" Offset="0" />
+            <GradientStop Color="#BDBFC4" Offset="0.5" />
+            <GradientStop Color="#8A8C92" Offset="1" />
+        </LinearGradientBrush>
 
         <!-- Kleines Symbol der Belegung (Art der ersten Aktion, Zahl bei mehreren Aktionen) -->
         <ControlTemplate x:Key="BadgeTemplate" TargetType="ContentControl">
@@ -370,71 +375,81 @@
             </Setter>
         </Style>
 
-        <!-- Drehregler: dunkle Fassung mit Skalenpunkten, heller Knopf, helle Markierungslinie (dreht live mit) -->
+        <!-- Drehregler: schwarzer Knopf wie am Gerät mit heller Markierung (dreht live mit), feine Skalenpunkte außen -->
         <DataTemplate x:Key="KnobTemplate">
             <Button Style="{StaticResource ElementButton}">
                 <Grid>
-                    <Ellipse Width="58" Height="58" Stroke="#66FFFFFF" StrokeThickness="2" StrokeDashArray="0.5 3.6" StrokeDashCap="Round"
+                    <Ellipse Width="48" Height="48" Stroke="#59FFFFFF" StrokeThickness="1.5" StrokeDashArray="0.4 4" StrokeDashCap="Round"
                              IsHitTestVisible="False" />
-                    <Ellipse Width="46" Height="46" Fill="{StaticResource KnobSkirtBrush}" Stroke="#3A3C41" StrokeThickness="1" />
-                    <Ellipse Width="38" Height="38" Fill="{StaticResource KnobBrush}" Stroke="#5E626A" StrokeThickness="1" />
-                    <Grid Width="38" Height="38" RenderTransformOrigin="0.5,0.5">
+                    <Ellipse Width="40" Height="40" Fill="#050506" Stroke="#3A3C42" StrokeThickness="1">
+                        <Ellipse.Effect>
+                            <DropShadowEffect BlurRadius="7" ShadowDepth="3" Opacity="0.8" Color="Black" />
+                        </Ellipse.Effect>
+                    </Ellipse>
+                    <Ellipse Width="36" Height="36" Fill="{StaticResource KnobBrush}" Stroke="#4A4D55" StrokeThickness="1" />
+                    <Ellipse Width="26" Height="26" Stroke="#22FFFFFF" StrokeThickness="1" IsHitTestVisible="False" />
+                    <Grid Width="36" Height="36" RenderTransformOrigin="0.5,0.5">
                         <Grid.RenderTransform>
                             <RotateTransform Angle="{Binding KnobAngle}" />
                         </Grid.RenderTransform>
-                        <Border Width="4" Height="15" Margin="0,2,0,0" VerticalAlignment="Top" HorizontalAlignment="Center"
-                                CornerRadius="2" Background="#FFFFFF" BorderBrush="#55000000" BorderThickness="0.8" />
+                        <Border Width="3" Height="13" Margin="0,2,0,0" VerticalAlignment="Top" HorizontalAlignment="Center"
+                                CornerRadius="1.5" Background="#F2F2F2" />
                     </Grid>
                     <ContentControl Template="{StaticResource BadgeTemplate}" Focusable="False" IsHitTestVisible="False"
-                                    HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-2,-6,0" />
+                                    HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-4,-8,0" />
                 </Grid>
             </Button>
         </DataTemplate>
 
-        <!-- Fader: dunkler Schlitz mit Skalenstrichen, heller Fader-Kopf mit Mittellinie (fährt live mit), Kanalnummer darunter -->
+        <!-- Fader: heller Schlitz wie am Gerät, schwarze Kappe mit Rillen (fährt live mit), Kanalnummer darunter -->
         <DataTemplate x:Key="FaderTemplate">
             <Button Style="{StaticResource ElementButton}">
                 <Grid>
-                    <Grid Width="22" Margin="0,22,0,46" HorizontalAlignment="Center" IsHitTestVisible="False">
-                        <Rectangle Height="1" VerticalAlignment="Top" Fill="#59FFFFFF" />
-                        <Rectangle Height="1" VerticalAlignment="Center" Fill="#40FFFFFF" Width="14" />
-                        <Rectangle Height="1" VerticalAlignment="Bottom" Fill="#59FFFFFF" />
-                    </Grid>
-                    <Border Width="6" HorizontalAlignment="Center" Margin="0,14,0,38" CornerRadius="3"
-                            Background="{StaticResource TrackBrush}" BorderBrush="#3A3C42" BorderThickness="1" />
-                    <Border Width="30" Height="24" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,10,0,0" CornerRadius="3"
-                            Background="{StaticResource FaderCapBrush}" BorderBrush="#1A1B1E" BorderThickness="1">
+                    <Border Width="18" HorizontalAlignment="Center" Margin="0,2,0,20" CornerRadius="3"
+                            Background="{StaticResource SlotBrush}" BorderBrush="#2A2B2F" BorderThickness="1">
+                        <Rectangle Width="3" Margin="0,4" Fill="#55000000" />
+                    </Border>
+                    <Border Width="28" Height="40" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,6,0,0" CornerRadius="3"
+                            Background="{StaticResource FaderCapBrush}" BorderBrush="#000000" BorderThickness="1">
                         <Border.RenderTransform>
                             <TranslateTransform Y="{Binding CapOffset}" />
                         </Border.RenderTransform>
                         <Border.Effect>
-                            <DropShadowEffect BlurRadius="6" ShadowDepth="2" Opacity="0.6" Color="Black" />
+                            <DropShadowEffect BlurRadius="6" ShadowDepth="3" Opacity="0.8" Color="Black" />
                         </Border.Effect>
-                        <Rectangle Height="2" Margin="3,0" Fill="#FFFFFF" />
+                        <StackPanel VerticalAlignment="Center" IsHitTestVisible="False">
+                            <Rectangle Height="2" Margin="3,0,3,4" Fill="#3A3C42" />
+                            <Rectangle Height="2" Margin="3,0,3,4" Fill="#3A3C42" />
+                            <Rectangle Height="2" Margin="3,0,3,4" Fill="#E8E9EC" />
+                            <Rectangle Height="2" Margin="3,0,3,4" Fill="#3A3C42" />
+                            <Rectangle Height="2" Margin="3,0" Fill="#3A3C42" />
+                        </StackPanel>
                     </Border>
-                    <TextBlock Text="{Binding Caption}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,6" FontSize="15"
-                               FontWeight="SemiBold" Foreground="{StaticResource PrintBrush}" IsHitTestVisible="False" />
+                    <TextBlock Text="{Binding Caption}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,1" FontSize="12"
+                               FontWeight="SemiBold" Foreground="{StaticResource PrintSoftBrush}" IsHitTestVisible="False" />
                     <ContentControl Template="{StaticResource BadgeTemplate}" Focusable="False" IsHitTestVisible="False"
-                                    HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-12,4" />
+                                    HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-12,-10,0" />
                 </Grid>
             </Button>
         </DataTemplate>
 
-        <!-- Taste: rechteckig, abgerundet, weißer Aufdruck; Tasten mit LED am Gerät haben oben eine kleine LED-Fläche,
-             die leuchtet, solange das Stumm-Ziel der Taste stumm ist (IsMuteLit). Gedrückt = heller. -->
+        <!-- Taste wie am Gerät: dunkle Fläche mit weißem Aufdruck. Tasten mit LED haben einen rötlichen Leuchtrand; bei Stumm
+             (IsMuteLit) leuchtet er hell und die Fläche färbt sich rot. Gedrückt = heller. -->
         <DataTemplate x:Key="KeyTemplate">
             <Button Style="{StaticResource ElementButton}">
                 <Grid>
-                    <Border x:Name="Key" CornerRadius="5" Margin="2" Background="{StaticResource KeyBrush}"
+                    <Border x:Name="Key" CornerRadius="6" Margin="1" Background="{StaticResource KeyBrush}"
                             BorderBrush="{StaticResource KeyEdgeBrush}" BorderThickness="1">
-                        <Border CornerRadius="4" BorderBrush="#24FFFFFF" BorderThickness="0,1,0,0" />
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="4" ShadowDepth="2" Opacity="0.7" Color="Black" />
+                        </Border.Effect>
                     </Border>
-                    <Border x:Name="Led" Width="16" Height="4" CornerRadius="2" Margin="0,6,0,0" VerticalAlignment="Top" HorizontalAlignment="Center"
-                            Background="{StaticResource LedOffBrush}" IsHitTestVisible="False" AutomationProperties.AutomationId="KeyLed"
+                    <Border x:Name="KeyGlow" CornerRadius="6" Margin="1" Background="#40FF5A4A" Opacity="0" IsHitTestVisible="False" />
+                    <Border x:Name="Led" CornerRadius="6" Margin="1" BorderThickness="1.5" BorderBrush="{StaticResource LedOffBrush}"
+                            IsHitTestVisible="False" AutomationProperties.AutomationId="KeyLed"
                             Visibility="{Binding HasLed, Converter={StaticResource BoolToVis}}" />
-                    <Border x:Name="LedOn" Width="16" Height="4" CornerRadius="2" Margin="0,6,0,0" VerticalAlignment="Top" HorizontalAlignment="Center"
-                            Background="{StaticResource LedOnBrush}" IsHitTestVisible="False" AutomationProperties.AutomationId="KeyLedOn"
-                            Visibility="Collapsed">
+                    <Border x:Name="LedOn" CornerRadius="6" Margin="1" BorderThickness="1.5" BorderBrush="{StaticResource LedOnBrush}"
+                            IsHitTestVisible="False" AutomationProperties.AutomationId="KeyLedOn" Visibility="Collapsed">
                         <Border.Effect>
                             <DropShadowEffect BlurRadius="8" ShadowDepth="0" Opacity="0.9" Color="#FF5A4A" />
                         </Border.Effect>
@@ -446,16 +461,20 @@
                 </Grid>
             </Button>
             <DataTemplate.Triggers>
-                <DataTrigger Binding="{Binding HasLed}" Value="True">
-                    <Setter TargetName="GlyphText" Property="Margin" Value="0,7,0,0" />
+                <!-- flache Tasten (TRACK, CYCLE, MARKER): Pillenform, kleine Schrift -->
+                <DataTrigger Binding="{Binding Height}" Value="22">
+                    <Setter TargetName="Key" Property="CornerRadius" Value="11" />
+                    <Setter TargetName="Led" Property="CornerRadius" Value="11" />
+                    <Setter TargetName="LedOn" Property="CornerRadius" Value="11" />
+                    <Setter TargetName="KeyGlow" Property="CornerRadius" Value="11" />
+                    <Setter TargetName="GlyphText" Property="FontSize" Value="9" />
                 </DataTrigger>
-                <DataTrigger Binding="{Binding Height}" Value="44">
-                    <Setter TargetName="GlyphText" Property="FontSize" Value="16" />
-                    <Setter TargetName="Led" Property="Margin" Value="0,7,0,0" />
-                    <Setter TargetName="LedOn" Property="Margin" Value="0,7,0,0" />
+                <DataTrigger Binding="{Binding Height}" Value="36">
+                    <Setter TargetName="GlyphText" Property="FontSize" Value="14" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding IsMuteLit}" Value="True">
                     <Setter TargetName="LedOn" Property="Visibility" Value="Visible" />
+                    <Setter TargetName="KeyGlow" Property="Opacity" Value="1" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding HasLed}" Value="False">
                     <Setter TargetName="LedOn" Property="Visibility" Value="Collapsed" />
@@ -463,6 +482,7 @@
                 <!-- Blinken bei Stumm: in der dunklen Phase bleibt KeyLedOn sichtbar (IsMuteLit), wird aber ausgeblendet (Opacity). -->
                 <DataTrigger Binding="{Binding IsLedBlinkOff}" Value="True">
                     <Setter TargetName="LedOn" Property="Opacity" Value="0" />
+                    <Setter TargetName="KeyGlow" Property="Opacity" Value="0" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding IsActive}" Value="True">
                     <Setter TargetName="Key" Property="Background" Value="{StaticResource KeyActiveBrush}" />
@@ -758,32 +778,25 @@
 
                 <!-- Das Gerät als Bild -->
                 <Viewbox x:Name="DeviceView" Grid.Row="1" Stretch="Uniform" Margin="4,6,4,6" AutomationProperties.AutomationId="DeviceView">
-                    <Grid Width="1000" Height="460" Margin="12">
-                        <!-- Gehäuse: flach und schwarz, oben eine feine Lichtkante, unten die schmale Vorderkante (Slim-Line) -->
-                        <Border CornerRadius="18" Background="{StaticResource BodyBrush}" BorderBrush="{StaticResource DeviceEdge}" BorderThickness="1.5">
+                    <Grid Width="1000" Height="270" Margin="12">
+                        <!-- Gehäuse: flach und schwarz wie das echte Gerät -->
+                        <Border CornerRadius="14" Background="{StaticResource BodyBrush}" BorderBrush="{StaticResource DeviceEdge}" BorderThickness="1.5">
                             <Border.Effect>
                                 <DropShadowEffect BlurRadius="36" ShadowDepth="10" Opacity="0.6" Color="Black" />
                             </Border.Effect>
                         </Border>
-                        <Border CornerRadius="17,17,0,0" Margin="1.5" Height="2" VerticalAlignment="Top" Background="#1AFFFFFF" IsHitTestVisible="False" />
-                        <Border CornerRadius="0,0,17,17" Margin="1.5" Height="12" VerticalAlignment="Bottom" Background="{StaticResource BodyFrontBrush}"
-                                IsHitTestVisible="False" />
+                        <Border CornerRadius="13,13,0,0" Margin="1.5" Height="2" VerticalAlignment="Top" Background="#14FFFFFF" IsHitTestVisible="False" />
                         <!-- Aufdrucke auf dem Gehäuse (Lage passend zu Nanokontrol2Layout) -->
                         <Canvas IsHitTestVisible="False">
-                            <TextBlock Canvas.Left="34" Canvas.Top="26" Width="134" TextAlignment="Center" Text="TRACK" FontSize="11" FontWeight="SemiBold"
+                            <Ellipse Canvas.Left="30" Canvas.Top="22" Width="9" Height="9" Fill="#BFE9FF" />
+                            <TextBlock Canvas.Left="30" Canvas.Top="44" Text="nanoKONTROL2" FontSize="28" FontWeight="SemiBold"
                                        Foreground="{StaticResource PrintBrush}" />
-                            <Rectangle Canvas.Left="34" Canvas.Top="33" Width="40" Height="1" Fill="#66FFFFFF" />
-                            <Rectangle Canvas.Left="128" Canvas.Top="33" Width="40" Height="1" Fill="#66FFFFFF" />
-                            <TextBlock Canvas.Left="178" Canvas.Top="26" Width="62" TextAlignment="Center" Text="CYCLE" FontSize="11" FontWeight="SemiBold"
+                            <TextBlock Canvas.Left="33" Canvas.Top="86" Width="88" TextAlignment="Center" Text="TRACK" FontSize="10" FontWeight="SemiBold"
                                        Foreground="{StaticResource PrintBrush}" />
-                            <TextBlock Canvas.Left="34" Canvas.Top="106" Width="206" TextAlignment="Center" Text="MARKER" FontSize="11" FontWeight="SemiBold"
+                            <TextBlock Canvas.Left="129" Canvas.Top="129" Width="139" TextAlignment="Center" Text="MARKER" FontSize="10" FontWeight="SemiBold"
                                        Foreground="{StaticResource PrintBrush}" />
-                            <Rectangle Canvas.Left="34" Canvas.Top="113" Width="72" Height="1" Fill="#66FFFFFF" />
-                            <Rectangle Canvas.Left="168" Canvas.Top="113" Width="72" Height="1" Fill="#66FFFFFF" />
-                            <Rectangle Canvas.Left="34" Canvas.Top="200" Width="206" Height="1" Fill="#26FFFFFF" />
-                            <Rectangle Canvas.Left="288" Canvas.Top="30" Width="1.5" Height="400" Fill="#24FFFFFF" />
-                            <TextBlock Canvas.Left="34" Canvas.Top="390" Text="nanoKONTROL2" FontSize="19" FontWeight="SemiBold"
-                                       Foreground="{StaticResource PrintBrush}" />
+                            <Rectangle Canvas.Left="129" Canvas.Top="136" Width="38" Height="1" Fill="#66FFFFFF" />
+                            <Rectangle Canvas.Left="230" Canvas.Top="136" Width="38" Height="1" Fill="#66FFFFFF" />
                         </Canvas>
                         <ItemsControl x:Name="DeviceElements" ItemsSource="{Binding Elements}" ItemTemplateSelector="{StaticResource ElementSelector}"
                                       Focusable="False">

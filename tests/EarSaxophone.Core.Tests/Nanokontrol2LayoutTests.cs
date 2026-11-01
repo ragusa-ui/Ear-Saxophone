@@ -74,9 +74,10 @@ public class Nanokontrol2LayoutTests
     {
         var faders = Nanokontrol2Layout.Elements.Where(e => e.Kind == ElementKind.Fader).OrderBy(e => e.X).ToList();
         var pitch = faders.Zip(faders.Skip(1), (a, b) => b.X - a.X).Distinct().ToList();
-        double transportRight = Nanokontrol2Layout.Elements.Where(e => e.Kind == ElementKind.Button && e.X < 300).Max(e => e.X + e.Width);
+        double transportRight = Nanokontrol2Layout.Elements.Where(e => e.Strip is null).Max(e => e.X + e.Width);
+        double stripsLeft = Nanokontrol2Layout.Elements.Where(e => e.Strip is not null).Min(e => e.X);
 
         Assert.Single(pitch);
-        Assert.True(transportRight < faders[0].X - 20);
+        Assert.True(transportRight < stripsLeft - 20);
     }
 }

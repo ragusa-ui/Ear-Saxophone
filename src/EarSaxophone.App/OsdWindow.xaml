@@ -4,24 +4,24 @@
         Title="Ear Saxophone Anzeige"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         ShowInTaskbar="False" ShowActivated="False" Topmost="True" Focusable="False" IsHitTestVisible="False"
-        ResizeMode="NoResize" SizeToContent="WidthAndHeight" Opacity="0">
-    <Border Margin="16" CornerRadius="18" Padding="22,15,22,16" MinWidth="280"
-            Background="#F0171A26" BorderBrush="#4A546E" BorderThickness="1">
+        ResizeMode="NoResize" SizeToContent="WidthAndHeight" Opacity="0" FontFamily="{DynamicResource UiFont}">
+    <Border Margin="16" CornerRadius="{DynamicResource PopupRadius}" Padding="22,15,22,16" MinWidth="280"
+            Background="{DynamicResource PopupBrush}" BorderBrush="{DynamicResource CardStrokeBrush}" BorderThickness="1">
         <Border.Effect>
             <DropShadowEffect BlurRadius="24" ShadowDepth="5" Opacity="0.55" Color="Black" />
         </Border.Effect>
         <StackPanel>
             <DockPanel LastChildFill="True">
-                <TextBlock x:Name="ValueText" DockPanel.Dock="Right" FontSize="15" FontWeight="SemiBold" Foreground="#3FB6A8"
+                <TextBlock x:Name="ValueText" DockPanel.Dock="Right" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}"
                            VerticalAlignment="Center" Margin="16,0,0,0" />
-                <TextBlock x:Name="TitleText" FontSize="16" FontWeight="SemiBold" Foreground="#F2F4FA" VerticalAlignment="Center"
+                <TextBlock x:Name="TitleText" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"
                            TextTrimming="CharacterEllipsis" />
             </DockPanel>
             <Grid x:Name="BarHost" Width="260" Height="9" Margin="0,11,0,0" HorizontalAlignment="Left">
-                <Border Background="#2A3045" CornerRadius="4.5" />
-                <Border x:Name="Fill" HorizontalAlignment="Left" Width="0" CornerRadius="4.5" Background="#3FB6A8" />
+                <Border Background="{DynamicResource SubtleHoverBrush}" CornerRadius="4.5" />
+                <Border x:Name="Fill" HorizontalAlignment="Left" Width="0" CornerRadius="4.5" Background="{DynamicResource AccentBrush}" />
             </Grid>
-            <TextBlock x:Name="DetailText" Margin="0,9,0,0" FontSize="13" Foreground="#A4ACC2" TextTrimming="CharacterEllipsis" MaxWidth="320" />
+            <TextBlock x:Name="DetailText" Margin="0,9,0,0" FontSize="13" Foreground="{DynamicResource InkSecondaryBrush}" TextTrimming="CharacterEllipsis" MaxWidth="320" />
         </StackPanel>
     </Border>
 </Window>

@@ -440,8 +440,8 @@ public partial class App : Application
         window.WindowStartupLocation = WindowStartupLocation.Manual;
         window.Left = 0;
         window.Top = 0;
-        window.Width = 1280;
-        window.Height = 860;
+        window.Width = 1000;
+        window.Height = 500;
         window.Show();
         DemoData.PrepareScreenshot(_viewModel!);
         var wait = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
@@ -460,6 +460,16 @@ public partial class App : Application
                 encoder.Save(stream);
                 stream.Close();
                 File.WriteAllText(path + ".report.txt", UiReport.Build(window, bitmap));
+                if (window.EditorWindow is { IsVisible: true } editor)
+                {
+                    editor.UpdateLayout();
+                    var editorBitmap = new RenderTargetBitmap((int)editor.ActualWidth, (int)editor.ActualHeight, 96, 96, PixelFormats.Pbgra32);
+                    editorBitmap.Render(editor);
+                    var editorEncoder = new PngBitmapEncoder();
+                    editorEncoder.Frames.Add(BitmapFrame.Create(editorBitmap));
+                    using FileStream editorStream = File.Create(path + ".editor.png");
+                    editorEncoder.Save(editorStream);
+                }
 
                 // Operate the window like a user would and record what happened.
                 var checks = UiSelfCheck.Run(window, _viewModel!, _osd!);

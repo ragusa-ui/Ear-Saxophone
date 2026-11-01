@@ -21,8 +21,9 @@ public partial class OsdWindow : Window
     private const int WsExNoActivate = 0x08000000;
     private const double ScreenMargin = 18;
 
-    private static readonly Brush ActiveFill = new SolidColorBrush(Color.FromRgb(0x3F, 0xB6, 0xA8));
-    private static readonly Brush MutedFill = new SolidColorBrush(Color.FromRgb(0x6B, 0x73, 0x90));
+    private static Brush ActiveFill => Application.Current.TryFindResource("AccentBrush") as Brush ?? Brushes.Teal;
+
+    private static Brush MutedFill => Application.Current.TryFindResource("MutedText") as Brush ?? Brushes.Gray;
 
     private readonly DispatcherTimer _hideTimer = new();
     private int _generation;

@@ -6,16 +6,6 @@
         ShowInTaskbar="False" ShowActivated="False" Topmost="True" Focusable="False"
         ResizeMode="NoResize" SizeToContent="Manual" Width="484" Height="324">
     <Window.Resources>
-        <SolidColorBrush x:Key="CardBrush" Color="#F2181B27" />
-        <SolidColorBrush x:Key="RailBrush" Color="#2B3146" />
-        <SolidColorBrush x:Key="AccentBrush" Color="#3FB6A8" />
-        <SolidColorBrush x:Key="TextBrush" Color="#F2F4FA" />
-        <SolidColorBrush x:Key="MutedBrush" Color="#8E97AE" />
-        <SolidColorBrush x:Key="SubtleTextBrush" Color="#C3C9DA" />
-        <LinearGradientBrush x:Key="HeaderBrush" StartPoint="0,0" EndPoint="1,0">
-            <GradientStop Color="#3FB6A8" Offset="0" />
-            <GradientStop Color="#2E8F86" Offset="1" />
-        </LinearGradientBrush>
 
         <!-- Round knob (stepless control, shown as a small circle). -->
         <Style x:Key="KnobButton" TargetType="Button">
@@ -34,7 +24,7 @@
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Disc" Property="Fill" Value="{StaticResource AccentBrush}" />
+                                <Setter TargetName="Disc" Property="Fill" Value="{DynamicResource AccentBrush}" />
                                 <Setter TargetName="Disc" Property="Stroke" Value="#7FE6D9" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
@@ -63,13 +53,13 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Grid Background="Transparent">
-                            <Border x:Name="Rail" Width="6" CornerRadius="3" Background="{StaticResource RailBrush}" />
+                            <Border x:Name="Rail" Width="6" CornerRadius="3" Background="{DynamicResource CardStrokeBrush}" />
                             <Border x:Name="Cap" Width="16" Height="9" CornerRadius="3" Background="#C9CFE2"
                                     VerticalAlignment="Bottom" Margin="0,0,0,12" />
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Rail" Property="Background" Value="{StaticResource AccentBrush}" />
+                                <Setter TargetName="Rail" Property="Background" Value="{DynamicResource AccentBrush}" />
                                 <Setter TargetName="Cap" Property="Background" Value="#7FE6D9" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
@@ -90,7 +80,7 @@
         <Style x:Key="LinkButton" TargetType="Button">
             <Setter Property="Focusable" Value="False" />
             <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource MutedText}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -100,7 +90,7 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Bg" Property="Background" Value="#2B3146" />
-                                <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -110,8 +100,8 @@
     </Window.Resources>
 
     <!-- Outer border carries the teal glow (pulses for the first seconds, see code-behind); the card slides in. -->
-    <Border x:Name="Card" Margin="12" CornerRadius="16" Background="{StaticResource CardBrush}"
-            BorderBrush="{StaticResource AccentBrush}" BorderThickness="1.5" Opacity="0"
+    <Border x:Name="Card" Margin="12" CornerRadius="16" Background="{DynamicResource PopupBrush}"
+            BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1.5" Opacity="0"
             RenderTransformOrigin="0.5,0.5">
         <Border.RenderTransform>
             <TranslateTransform x:Name="SlideTransform" X="36" />
@@ -129,12 +119,12 @@
             </Grid.RowDefinitions>
 
             <!-- Header band: "Neues Programm mit Ton". -->
-            <Border Grid.Row="0" CornerRadius="14.5,14.5,0,0" Background="{StaticResource HeaderBrush}" Padding="16,6,16,6">
+            <Border Grid.Row="0" CornerRadius="14.5,14.5,0,0" Background="{DynamicResource AccentBrush}" Padding="16,6,16,6">
                 <StackPanel Orientation="Horizontal">
                     <!-- Small speaker with sound waves. -->
-                    <Path Width="16" Height="14" Stretch="Uniform" Fill="#0E1F22" VerticalAlignment="Center" Margin="0,0,8,0"
+                    <Path Width="16" Height="14" Stretch="Uniform" Fill="{DynamicResource OnAccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0"
                           Data="M0,5 L4,5 L9,0 L9,16 L4,11 L0,11 Z M11,4 C13,6 13,10 11,12 L12,13 C15,10 15,6 12,3 Z M13,1 C17,5 17,11 13,15 L14,16 C19,11 19,5 14,0 Z" />
-                    <TextBlock Text="{Binding Header}" FontSize="13" FontWeight="Bold" Foreground="#0E1F22"
+                    <TextBlock Text="{Binding Header}" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource OnAccentBrush}"
                                VerticalAlignment="Center" />
                 </StackPanel>
             </Border>
@@ -148,16 +138,16 @@
                 <Border Width="44" Height="44" CornerRadius="10" Background="#262B3D" Margin="0,0,12,0" VerticalAlignment="Center">
                     <Grid>
                         <TextBlock x:Name="IconFallback" Text="{Binding ProgramInitial}" FontSize="22" FontWeight="Bold"
-                                   Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                   Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         <Image x:Name="ProgramIcon" Width="32" Height="32" Visibility="Collapsed"
                                RenderOptions.BitmapScalingMode="HighQuality" />
                     </Grid>
                 </Border>
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                     <TextBlock Text="{Binding ProgramName}" FontSize="22" FontWeight="Bold"
-                               Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis" />
+                               Foreground="{DynamicResource InkBrush}" TextTrimming="CharacterEllipsis" />
                     <TextBlock Text="{Binding Question}" Margin="0,1,0,0" FontSize="13.5"
-                               Foreground="{StaticResource SubtleTextBrush}" TextTrimming="CharacterEllipsis" />
+                               Foreground="{DynamicResource InkSecondaryBrush}" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
             </Grid>
 
@@ -182,7 +172,7 @@
                                     Command="{Binding DataContext.AssignCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                     CommandParameter="{Binding}" />
                             <TextBlock Text="{Binding Number}" HorizontalAlignment="Center" Margin="0,4,0,0"
-                                       FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" />
+                                       FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource MutedText}" />
                         </StackPanel>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
@@ -196,7 +186,7 @@
             <!-- Countdown until the question closes itself as "Nicht jetzt" (shrinks to the left, see code-behind). -->
             <Border Grid.Row="4" Height="4" Margin="14,0,14,8" CornerRadius="2" Background="#262B3D"
                     ToolTip="{Binding AutoCloseHint}">
-                <Border x:Name="CountdownBar" CornerRadius="2" Background="{StaticResource AccentBrush}"
+                <Border x:Name="CountdownBar" CornerRadius="2" Background="{DynamicResource AccentBrush}"
                         RenderTransformOrigin="0,0.5">
                     <Border.RenderTransform>
                         <ScaleTransform x:Name="CountdownScale" ScaleX="1" />

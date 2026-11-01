@@ -140,7 +140,7 @@ internal static class UiSelfCheck
         {
             bool heading = FindById<TextBlock>(window, "TargetHeading") is { IsVisible: true, Text: Texts.UiTargets };
             bool oldButtons = FindById<FrameworkElement>(window, "AddSpeakersButton") is not null || FindById<FrameworkElement>(window, "AddMicrophoneButton") is not null;
-            Popup popup = main.AddTargetPopup;
+            Popup popup = main.EditorWindow!.AddTargetPopup;
             popup.StaysOpen = true;
             try
             {
@@ -174,7 +174,7 @@ internal static class UiSelfCheck
         Check("'Programm …' zeigt 'Programm auswaehlen' mit Liste, 'Datei oeffnen …' und Namensfeld; Eintippen + '+' fuegt hinzu, 'Uebernehmen' speichert", () =>
         {
             ControlId control = vm.SelectedElement!.Control;
-            Popup popup = main.AddTargetPopup;
+            Popup popup = main.EditorWindow!.AddTargetPopup;
             popup.StaysOpen = true;
             bool panelOpen;
             try
@@ -253,7 +253,7 @@ internal static class UiSelfCheck
             bool removed = vm.Editor.Targets.Count == 0;
 
             bool offered, readded, hiddenAfter;
-            Popup popup = main.AddTargetPopup;
+            Popup popup = main.EditorWindow!.AddTargetPopup;
             popup.StaysOpen = true;
             try
             {
@@ -560,8 +560,9 @@ internal static class UiSelfCheck
                         problems.Add($"{id} unsichtbar");
                     }
 
-                    Rect r = element.TransformToAncestor(window).TransformBounds(new Rect(0, 0, element.ActualWidth, element.ActualHeight));
-                    if (r.Left < -1 || r.Top < -1 || r.Right > window.ActualWidth + 1 || r.Bottom > window.ActualHeight + 1)
+                    Window owner = Window.GetWindow(element) ?? window;
+                    Rect r = element.TransformToAncestor(owner).TransformBounds(new Rect(0, 0, element.ActualWidth, element.ActualHeight));
+                    if (r.Left < -1 || r.Top < -1 || r.Right > owner.ActualWidth + 1 || r.Bottom > owner.ActualHeight + 1)
                     {
                         problems.Add($"{id} ausserhalb ({r.X:0},{r.Y:0} {r.Width:0}x{r.Height:0})");
                     }
@@ -586,7 +587,6 @@ internal static class UiSelfCheck
                 }
 
                 Apart("ConnectionStatus", "ProfilePicker", "ProfileMenuButton", "ReconnectButton", "LearnButton", "SettingsButton");
-                Apart("DeviceView", "SidePanel");
                 Apart("ApplyButton", "DiscardButton", "RemoveButton");
                 Bounds("StatusText");
                 vm.DiscardEditor();
@@ -766,6 +766,15 @@ internal static class UiSelfCheck
         if (root is T self)
         {
             yield return self;
+        }
+
+        if (root is MainWindow { EditorWindow: { IsLoaded: true } editor })
+        {
+            // The assignments live in a second window; the checks treat both windows as one.
+            foreach (T nested in FindAll<T>(editor))
+            {
+                yield return nested;
+            }
         }
 
         if (root is Popup { Child: { } child })

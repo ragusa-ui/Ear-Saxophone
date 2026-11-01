@@ -29,6 +29,76 @@ public partial class MainWindow : FluentWindow
         InitializeComponent();
         Title = $"Ear Saxophone {AppInfo.Version}";
         WindowTitleBar.Title = Title;
+        viewModel.PropertyChanged += OnViewModelChanged;
+        LocationChanged += (_, _) => PlaceEditor();
+        SizeChanged += (_, _) => PlaceEditor();
+        StateChanged += (_, _) =>
+        {
+            if (WindowState == System.Windows.WindowState.Minimized)
+            {
+                _editor?.Hide();
+            }
+        };
+    }
+
+    /// <summary>The second window with the assignments of the selected element (null until the first selection).</summary>
+    internal EditorWindow? EditorWindow => _editor;
+
+    private EditorWindow? _editor;
+
+    private void OnViewModelChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(MainViewModel.SelectedElement))
+        {
+            return;
+        }
+
+        if (_viewModel.SelectedElement is null)
+        {
+            _editor?.Hide();
+            return;
+        }
+
+        ShowEditor();
+    }
+
+    /// <summary>
+    /// Opens the editor next to the device window for the selected element, without taking the keyboard focus
+    /// (a control that was moved on the device must not interrupt what the user is typing).
+    /// </summary>
+    internal void ShowEditor()
+    {
+        if (_viewModel.SelectedElement is null || !IsVisible || WindowState == System.Windows.WindowState.Minimized)
+        {
+            return;
+        }
+
+        _editor ??= CreateEditor();
+        if (!_editor.IsVisible)
+        {
+            PlaceEditor();
+            _editor.Show();
+        }
+    }
+
+    private EditorWindow CreateEditor()
+    {
+        var editor = new EditorWindow(_viewModel) { Owner = this };
+        editor.Closing += (_, args) =>
+        {
+            if (!App.Instance.IsExiting)
+            {
+                args.Cancel = true;
+                editor.Hide();
+            }
+        };
+        return editor;
+    }
+
+    /// <summary>Puts the editor to the right of the device window; on the left or inside the screen when there is no room.</summary>
+    private void PlaceEditor()
+    {
+        _editor?.PlaceNextTo(this);
     }
 
     /// <summary>Shows the window again (from the tray or when a second instance was started) and brings it to the front.</summary>
@@ -117,7 +187,6 @@ public partial class MainWindow : FluentWindow
 
     private bool EnterHasOwnMeaning() =>
         ProfileNameBox.IsKeyboardFocusWithin
-        || ProgramNameBox.IsKeyboardFocusWithin
         || Keyboard.FocusedElement is ComboBoxItem or ComboBox { IsDropDownOpen: true };
 
     private void Element_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -126,7 +195,12 @@ public partial class MainWindow : FluentWindow
         _pressedAt = e.GetPosition(this);
     }
 
-    private void Element_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e) => _pressed = null;
+    private void Element_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        _pressed = null;
+        // A click on the already selected element must bring a closed editor back (the selection itself does not change then).
+        Dispatcher.BeginInvoke(ShowEditor, System.Windows.Threading.DispatcherPriority.Background);
+    }
 
     private void Element_PreviewMouseMove(object sender, MouseEventArgs e)
     {
@@ -202,40 +276,6 @@ public partial class MainWindow : FluentWindow
         {
             box.GetBindingExpression(System.Windows.Controls.TextBox.TextProperty)?.UpdateTarget();
             e.Handled = true;
-        }
-    }
-
-    private void ProgramNameBox_KeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Enter && _viewModel.Editor.AddAppCommand.CanExecute(null))
-        {
-            _viewModel.Editor.AddAppCommand.Execute(null);
-            e.Handled = true;
-        }
-    }
-
-    /// <summary>An entry of the "Hinzufügen" menu was chosen: the menu closes (the entry's command does the work).</summary>
-    private void AddTargetItem_Click(object sender, RoutedEventArgs e) => AddTargetButton.IsChecked = false;
-
-    /// <summary>"Datei öffnen …": any program file; its file name becomes the program identity (also for programs that are not running).</summary>
-    private void OpenProgramFile_Click(object sender, RoutedEventArgs e)
-    {
-        var dialog = new Microsoft.Win32.OpenFileDialog
-        {
-            Title = Texts.UiChooseProgram,
-            Filter = Texts.UiOpenProgramFileFilter,
-            CheckFileExists = true,
-            Multiselect = true,
-            InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
-        };
-        if (dialog.ShowDialog(this) != true)
-        {
-            return;
-        }
-
-        foreach (string file in dialog.FileNames)
-        {
-            _viewModel.Editor.AddProgramFile(file);
         }
     }
 }

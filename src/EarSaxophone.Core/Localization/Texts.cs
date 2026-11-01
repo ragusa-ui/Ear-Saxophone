@@ -199,6 +199,56 @@ public static class Texts
     public const string TrayExit = "Beenden";
 
     public static string TrayTooltip(string connection) => $"Ear Saxophone – {connection}";
+
+    // Device switching
+    public static string DeviceKindName(DeviceFlow flow) => flow == DeviceFlow.Capture ? "Aufnahmegerät" : "Wiedergabegerät";
+
+    public static string SwitchNoDevices(DeviceFlow flow) => $"Es ist kein {DeviceKindName(flow)} zum Umschalten verfügbar.";
+
+    public static string SwitchNeedTwo(DeviceFlow flow) =>
+        $"Zum Umschalten werden mindestens zwei {DeviceKindName(flow)}e gebraucht (angeschlossen und, falls ausgewählt, in der Auswahl enthalten).";
+
+    public static string SwitchDone(DeviceFlow flow, string name) => $"{DeviceKindName(flow)}: {name}";
+
+    public static string SwitchRefused(string name, string reason) => $"Windows hat das Umschalten auf {name} abgelehnt ({reason}).";
+
+    public static string DescribeSwitch(DeviceFlow flow, int selected) =>
+        selected == 0 ? $"{DeviceKindName(flow)} wechseln" : $"{DeviceKindName(flow)} wechseln ({selected} ausgewählt)";
+
+    public const string UiKindSwitch = "Audiogerät wechseln";
+
+    public const string UiSwitchRender = "Wiedergabe (Lautsprecher, Kopfhörer)";
+
+    public const string UiSwitchCapture = "Aufnahme (Mikrofon)";
+
+    public const string UiSwitchHint = "Jeder Tastendruck schaltet zum nächsten Gerät. Ohne Haken werden alle angeschlossenen Geräte durchgeschaltet.";
+
+    public const string UiNoDevicesListed = "Keine Geräte gefunden.";
+
+    // On-screen display
+    public const string OsdTitleMedia = "Medien";
+
+    public const string OsdMuted = "Stumm";
+
+    public const string OsdUnmuted = "Ton an";
+
+    public const string OsdInactive = "nicht aktiv";
+
+    public const string UiOsdToggle = "Anzeige bei Änderungen";
+
+    public const string UiOsdTest = "Anzeige testen";
+
+    public static string OsdPositionName(Settings.OsdPosition position) => position switch
+    {
+        Settings.OsdPosition.TopLeft => "Oben links",
+        Settings.OsdPosition.TopCenter => "Oben Mitte",
+        Settings.OsdPosition.TopRight => "Oben rechts",
+        Settings.OsdPosition.BottomLeft => "Unten links",
+        Settings.OsdPosition.BottomCenter => "Unten Mitte",
+        _ => "Unten rechts",
+    };
+
+    public const string SwitchInterfaceMissing = "Die Windows-Schnittstelle zum Umschalten ist auf diesem System nicht verfügbar";
 }
 
 /// <summary>Display text of a control, used inside messages.</summary>

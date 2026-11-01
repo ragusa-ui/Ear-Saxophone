@@ -87,6 +87,36 @@ public sealed class NAudioAudioSystem : IAudioSystem, IDisposable
         }
     }
 
+    public IReadOnlyList<IAudioEndpoint> GetEndpoints(DeviceFlow flow)
+    {
+        lock (_gate)
+        {
+            return _devices
+                .Where(entry => entry.Value.Flow == flow)
+                .Select(entry => GetEndpointLocked(entry.Key))
+                .OfType<IAudioEndpoint>()
+                .ToList();
+        }
+    }
+
+    public void SetDefaultEndpoint(string deviceId, DeviceFlow flow)
+    {
+        lock (_gate)
+        {
+            if (!_devices.TryGetValue(deviceId, out var entry) || entry.Flow != flow)
+            {
+                throw new AudioGoneException(Texts.DeviceOrSessionGone);
+            }
+        }
+
+        // Called outside the lock: Windows answers with change notifications that start a rebuild on another thread.
+        PolicyConfig.SetDefaultForAllRoles(deviceId);
+        lock (_gate)
+        {
+            _defaultIds.Clear();
+        }
+    }
+
     public IReadOnlyList<IAudioSession> GetSessions()
     {
         lock (_gate)

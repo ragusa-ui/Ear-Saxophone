@@ -114,6 +114,23 @@ internal sealed class FakeAudioSystem : IAudioSystem
 
     public IAudioEndpoint? GetEndpoint(string deviceId) => Endpoints.FirstOrDefault(e => e.Id == deviceId);
 
+    public Exception? SetDefaultFailure { get; set; }
+
+    public List<(string Id, DeviceFlow Flow)> DefaultChanges { get; } = [];
+
+    public IReadOnlyList<IAudioEndpoint> GetEndpoints(DeviceFlow flow) => Endpoints.Where(e => e.Flow == flow).ToList<IAudioEndpoint>();
+
+    public void SetDefaultEndpoint(string deviceId, DeviceFlow flow)
+    {
+        if (SetDefaultFailure is not null)
+        {
+            throw SetDefaultFailure;
+        }
+
+        DefaultChanges.Add((deviceId, flow));
+        Defaults[flow] = deviceId;
+    }
+
     public IReadOnlyList<IAudioSession> GetSessions() =>
         ThrowOnListing ? throw new InvalidOperationException("audio service unavailable") : Sessions.ToList<IAudioSession>();
 }

@@ -14,7 +14,7 @@ public sealed class ActionExecutor(AudioController audio, IKeyboardSender keyboa
         {
             return invocation.Mapping.Action switch
             {
-                SetVolumeAction or ToggleMuteAction => audio.Execute(invocation)
+                SetVolumeAction or ToggleMuteAction or SwitchDeviceAction => audio.Execute(invocation)
                     ?? new ActionResult(ActionOutcome.Failed, Texts.AudioActionFailed),
                 MediaAction media => RunMedia(media),
                 HotkeyAction hotkey => RunHotkey(hotkey),

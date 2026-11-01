@@ -30,6 +30,7 @@ public partial class App : Application
     private EventWaitHandle? _activate;
     private MainViewModel? _viewModel;
     private MainWindow? _window;
+    private OsdWindow? _osd;
     private TaskbarIcon? _tray;
     private System.Threading.Timer? _timer;
     private MidiConnectionManager? _midi;
@@ -100,6 +101,15 @@ public partial class App : Application
         }
 
         _window = new MainWindow(_viewModel);
+        _osd = new OsdWindow();
+        _viewModel.OsdRequested += message => _osd.Present(message, _viewModel.OsdPosition, TimeSpan.FromSeconds(1.8));
+        _viewModel.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(MainViewModel.ShowOsd) && !_viewModel.ShowOsd)
+            {
+                _osd.HideNow();
+            }
+        };
         _timer = new System.Threading.Timer(_ => Tick(), null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
 
         if (demo)
@@ -315,7 +325,7 @@ public partial class App : Application
                 File.WriteAllText(path + ".report.txt", UiReport.Build(window, bitmap));
 
                 // Operate the window like a user would and record what happened.
-                var checks = UiSelfCheck.Run(window, _viewModel!);
+                var checks = UiSelfCheck.Run(window, _viewModel!, _osd!);
                 var lines = checks.Select(c => $"{(c.Ok ? "ok" : "FAILED")} {c.Name} [{c.Detail}]");
                 File.AppendAllText(path + ".report.txt", Environment.NewLine + "== Interaction checks" + Environment.NewLine + string.Join(Environment.NewLine, lines) + Environment.NewLine);
                 if (checks.Any(c => !c.Ok))

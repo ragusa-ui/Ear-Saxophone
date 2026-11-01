@@ -3,7 +3,22 @@ using System.Text.Json;
 namespace EarSaxophone.Core.Settings;
 
 /// <summary>Per-user program settings. Autostart is stored by Windows itself; this value mirrors the last choice.</summary>
-public sealed record AppSettings(bool StartWithWindows = false, bool KeepInTray = true, bool StartMinimized = false);
+public enum OsdPosition
+{
+    TopLeft,
+    TopCenter,
+    TopRight,
+    BottomLeft,
+    BottomCenter,
+    BottomRight,
+}
+
+public sealed record AppSettings(
+    bool StartWithWindows = false,
+    bool KeepInTray = true,
+    bool StartMinimized = false,
+    bool ShowOsd = true,
+    OsdPosition OsdPosition = OsdPosition.BottomRight);
 
 public sealed class SettingsStore(string path)
 {
@@ -11,6 +26,7 @@ public sealed class SettingsStore(string path)
     {
         WriteIndented = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
     };
 
     public string Path { get; } = path;

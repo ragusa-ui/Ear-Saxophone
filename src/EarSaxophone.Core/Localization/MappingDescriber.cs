@@ -13,6 +13,7 @@ public static class MappingDescriber
         ToggleMuteAction a => Texts.DescribeMute(Describe(a.Target)),
         MediaAction a => Texts.DescribeMedia(a.Command),
         HotkeyAction a => Texts.DescribeHotkey(a.Keys),
+        SwitchDeviceAction a => Texts.DescribeSwitch(a.Flow, a.SelectedIds.Count),
         _ => Texts.UiNoMapping,
     };
 

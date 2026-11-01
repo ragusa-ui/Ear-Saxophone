@@ -430,6 +430,25 @@
                                            Text="Zum Beispiel Strg+Alt+M, Win+D oder Strg+Umschalt+Esc. Sie wirkt auf das Programm, das gerade im Vordergrund ist." />
                             </StackPanel>
 
+                            <StackPanel Visibility="{Binding Editor.IsSwitchDevice, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="Gerätetyp" Style="{StaticResource FieldLabel}" />
+                                <ComboBox ItemsSource="{Binding Editor.SwitchFlowOptions}" DisplayMemberPath="Text" SelectedValuePath="Value"
+                                          SelectedValue="{Binding Editor.SwitchFlow, Mode=TwoWay}" />
+                                <TextBlock Text="Geräte im Wechsel" Style="{StaticResource FieldLabel}" />
+                                <ItemsControl ItemsSource="{Binding Editor.DeviceChoices}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <CheckBox Content="{Binding Name}" IsChecked="{Binding IsSelected, Mode=TwoWay}" Margin="0,2" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Text="Keine Geräte gefunden." Style="{StaticResource Hint}"
+                                           Visibility="{Binding Editor.HasNoDevices, Converter={StaticResource BoolToVis}}" />
+                                <ui:Button Content="Liste aktualisieren" Margin="0,8,0,0" Command="{Binding RefreshAppsCommand}" />
+                                <TextBlock Style="{StaticResource Hint}"
+                                           Text="Jeder Tastendruck schaltet zum nächsten Gerät. Ohne Haken werden alle angeschlossenen Geräte durchgeschaltet. Windows bietet dafür keine offizielle Schnittstelle; klappt es auf deinem System nicht, erscheint eine Meldung." />
+                            </StackPanel>
+
                             <TextBlock Text="{Binding Editor.ValidationMessage}" TextWrapping="Wrap" Margin="0,12,0,0" Foreground="#FF7B72"
                                        Visibility="{Binding Editor.HasValidationMessage, Converter={StaticResource BoolToVis}}" />
 
@@ -473,6 +492,14 @@
                     <ui:ToggleSwitch Content="Minimiert starten" IsChecked="{Binding StartMinimized, Mode=TwoWay}" />
                 </StackPanel>
             </Grid>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+                <ui:ToggleSwitch Content="Anzeige bei Änderungen" IsChecked="{Binding ShowOsd, Mode=TwoWay}" Margin="0,0,16,0" />
+                <TextBlock Text="Position" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                <ComboBox ItemsSource="{Binding OsdPositionOptions}" DisplayMemberPath="Text" SelectedValuePath="Value"
+                          SelectedValue="{Binding OsdPosition, Mode=TwoWay}" MinWidth="140" />
+                <ui:Button Content="Anzeige testen" Margin="12,0,0,0" Command="{Binding TestOsdCommand}" />
+            </StackPanel>
         </StackPanel>
     </Grid>
 </ui:FluentWindow>

@@ -13,6 +13,7 @@ public enum ActionKind
     ToggleMute,
     Media,
     Hotkey,
+    SwitchDevice,
 }
 
 public enum TargetKind
@@ -23,6 +24,24 @@ public enum TargetKind
 }
 
 public sealed record Option<T>(string Text, T Value);
+
+/// <summary>One device in the list of devices that take part in the rotation of a "switch device" key.</summary>
+public sealed class DeviceChoice(string id, string name, DeviceFlow flow) : ObservableObject
+{
+    private bool _isSelected;
+
+    public string Id { get; } = id;
+
+    public string Name { get; } = name;
+
+    public DeviceFlow Flow { get; } = flow;
+
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set => SetField(ref _isSelected, value);
+    }
+}
 
 /// <summary>Edits the action of the selected control. Nothing is applied until <see cref="TryBuild"/> succeeds.</summary>
 public sealed class MappingEditorViewModel : ObservableObject
@@ -36,6 +55,9 @@ public sealed class MappingEditorViewModel : ObservableObject
     private double _minPercent;
     private double _maxPercent = 100;
     private string? _validationMessage;
+    private DeviceFlow _switchFlow = DeviceFlow.Render;
+    private List<string> _selectedDeviceIds = [];
+    private List<(string Id, string Name, DeviceFlow Flow)> _devices = [];
 
     public IReadOnlyList<Option<ActionKind>> KindOptions { get; } =
     [
@@ -44,6 +66,7 @@ public sealed class MappingEditorViewModel : ObservableObject
         new(Texts.UiKindMute, ActionKind.ToggleMute),
         new(Texts.UiKindMedia, ActionKind.Media),
         new(Texts.UiKindHotkey, ActionKind.Hotkey),
+        new(Texts.UiKindSwitch, ActionKind.SwitchDevice),
     ];
 
     public IReadOnlyList<Option<TargetKind>> TargetOptions { get; } =
@@ -55,6 +78,17 @@ public sealed class MappingEditorViewModel : ObservableObject
 
     public IReadOnlyList<Option<MediaCommand>> MediaOptions { get; } =
         Enum.GetValues<MediaCommand>().Select(c => new Option<MediaCommand>(Texts.MediaCommandName(c), c)).ToList();
+
+    public IReadOnlyList<Option<DeviceFlow>> SwitchFlowOptions { get; } =
+    [
+        new(Texts.UiSwitchRender, DeviceFlow.Render),
+        new(Texts.UiSwitchCapture, DeviceFlow.Capture),
+    ];
+
+    /// <summary>Devices of the chosen kind that can be part of the rotation (all connected ones).</summary>
+    public ObservableCollection<DeviceChoice> DeviceChoices { get; } = [];
+
+    public bool HasNoDevices => DeviceChoices.Count == 0;
 
     /// <summary>Programs that currently produce or hold audio sessions, offered as suggestions.</summary>
     public ObservableCollection<string> AvailableApps { get; } = [];
@@ -147,6 +181,33 @@ public sealed class MappingEditorViewModel : ObservableObject
 
     public bool IsHotkey => _kind == ActionKind.Hotkey;
 
+    public bool IsSwitchDevice => _kind == ActionKind.SwitchDevice;
+
+    public DeviceFlow SwitchFlow
+    {
+        get => _switchFlow;
+        set
+        {
+            if (_switchFlow == value)
+            {
+                return;
+            }
+
+            CaptureSelection();
+            _switchFlow = value;
+            OnPropertyChanged();
+            RebuildDeviceChoices();
+        }
+    }
+
+    /// <summary>Tells the editor which devices exist right now (both kinds). Ticked devices stay ticked.</summary>
+    public void SetAvailableDevices(IEnumerable<(string Id, string Name, DeviceFlow Flow)> devices)
+    {
+        CaptureSelection();
+        _devices = devices.ToList();
+        RebuildDeviceChoices();
+    }
+
     public void Load(ControlId control, ControlMapping? mapping)
     {
         Control = control;
@@ -159,6 +220,8 @@ public sealed class MappingEditorViewModel : ObservableObject
         Invert = false;
         MinPercent = 0;
         MaxPercent = 100;
+        _selectedDeviceIds = [];
+        _switchFlow = DeviceFlow.Render;
 
         switch (mapping?.Action)
         {
@@ -181,11 +244,18 @@ public sealed class MappingEditorViewModel : ObservableObject
                 HotkeyText = hotkey.Keys;
                 Kind = ActionKind.Hotkey;
                 break;
+            case SwitchDeviceAction switchDevice:
+                _switchFlow = switchDevice.Flow;
+                _selectedDeviceIds = switchDevice.SelectedIds.ToList();
+                Kind = ActionKind.SwitchDevice;
+                break;
             default:
                 Kind = ActionKind.None;
                 break;
         }
 
+        OnPropertyChanged(nameof(SwitchFlow));
+        RebuildDeviceChoices();
         RaiseVisibility();
     }
 
@@ -226,6 +296,12 @@ public sealed class MappingEditorViewModel : ObservableObject
                 break;
             case ActionKind.Media:
                 mapping = new ControlMapping(Control, new MediaAction(_media));
+                break;
+            case ActionKind.SwitchDevice:
+                CaptureSelection();
+                IEnumerable<string> ids = _selectedDeviceIds.Where(id =>
+                    _devices.FirstOrDefault(d => d.Id == id) is { } known ? known.Flow == _switchFlow : true);
+                mapping = new ControlMapping(Control, new SwitchDeviceAction(_switchFlow, ids.ToList()));
                 break;
             case ActionKind.Hotkey:
                 if (Hotkey.TryParse(_hotkeyText, out Hotkey hotkey, out string hotkeyError))
@@ -291,5 +367,31 @@ public sealed class MappingEditorViewModel : ObservableObject
         OnPropertyChanged(nameof(IsApplication));
         OnPropertyChanged(nameof(IsMedia));
         OnPropertyChanged(nameof(IsHotkey));
+        OnPropertyChanged(nameof(IsSwitchDevice));
+    }
+
+    /// <summary>Remembers the ticked devices, including ones that are not connected right now (so an unplugged headset stays in the rotation).</summary>
+    private void CaptureSelection()
+    {
+        if (DeviceChoices.Count == 0 && _devices.Count == 0)
+        {
+            return;
+        }
+
+        var shown = DeviceChoices.Select(c => c.Id).ToHashSet();
+        var ticked = DeviceChoices.Where(c => c.IsSelected).Select(c => c.Id).ToList();
+        var kept = _selectedDeviceIds.Where(id => !shown.Contains(id)).ToList();
+        _selectedDeviceIds = kept.Concat(ticked).Distinct().ToList();
+    }
+
+    private void RebuildDeviceChoices()
+    {
+        DeviceChoices.Clear();
+        foreach ((string id, string name, DeviceFlow flow) in _devices.Where(d => d.Flow == _switchFlow).OrderBy(d => d.Name, StringComparer.OrdinalIgnoreCase))
+        {
+            DeviceChoices.Add(new DeviceChoice(id, name, flow) { IsSelected = _selectedDeviceIds.Contains(id) });
+        }
+
+        OnPropertyChanged(nameof(HasNoDevices));
     }
 }

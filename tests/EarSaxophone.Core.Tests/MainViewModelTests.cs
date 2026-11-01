@@ -1,3 +1,4 @@
+using EarSaxophone.Core.Localization;
 using EarSaxophone.Core.Input;
 using EarSaxophone.Core.Actions;
 using EarSaxophone.Core.Audio;
@@ -476,6 +477,172 @@ public class MainViewModelTests : IDisposable
         Assert.Contains("nicht gespeichert", vm.ErrorMessage);
     }
 
+    private void AddMoreDevices()
+    {
+        _audio.AddEndpoint("hs", "Kopfhörer", DeviceFlow.Render, makeDefault: false);
+        _audio.AddEndpoint("hdmi", "Monitor (HDMI)", DeviceFlow.Render, makeDefault: false);
+        _audio.AddEndpoint("mic2", "Headset-Mikrofon", DeviceFlow.Capture, makeDefault: false);
+    }
+
+    [Fact]
+    public void SwitchKey_IsConfiguredInTheEditor_AndSwitchesTheOutputDevice()
+    {
+        MainViewModel vm = Create();
+        AddMoreDevices();
+        vm.RefreshApps();
+
+        vm.Select(Element(vm, "Track ◄"));
+        vm.Editor.Kind = ActionKind.SwitchDevice;
+        Assert.Equal(["Kopfhörer", "Lautsprecher", "Monitor (HDMI)"], vm.Editor.DeviceChoices.Select(c => c.Name));
+        vm.Editor.DeviceChoices.Single(c => c.Id == "hs").IsSelected = true;
+        vm.Editor.DeviceChoices.Single(c => c.Id == "spk").IsSelected = true;
+        vm.ApplyEditor();
+
+        Assert.Equal("Wiedergabegerät wechseln (2 ausgewählt)", Element(vm, "Track ◄").Summary);
+        var osd = new List<OsdMessage>();
+        vm.OsdRequested += osd.Add;
+        Send(vm, 58, 127);
+        Send(vm, 58, 0);
+        Assert.Equal("Kopfhörer", _audio.GetDefaultEndpoint(DeviceFlow.Render, DeviceRole.Console)!.Name);
+        Send(vm, 58, 127);
+        Assert.Equal("Lautsprecher", _audio.GetDefaultEndpoint(DeviceFlow.Render, DeviceRole.Console)!.Name);
+        Assert.Equal("Wiedergabegerät", osd[0].Title);
+        Assert.Equal("Kopfhörer", osd[0].Detail);
+        Assert.Null(osd[0].Level);
+    }
+
+    [Fact]
+    public void SwitchKey_WithoutTickedDevices_RotatesThroughAllDevices_AndTheMicrophoneListIsSeparate()
+    {
+        MainViewModel vm = Create();
+        AddMoreDevices();
+        vm.RefreshApps();
+        vm.Select(Element(vm, "Track ►"));
+        vm.Editor.Kind = ActionKind.SwitchDevice;
+        vm.Editor.SwitchFlow = DeviceFlow.Capture;
+
+        Assert.Equal(["Headset-Mikrofon", "Mikrofon"], vm.Editor.DeviceChoices.Select(c => c.Name));
+        vm.ApplyEditor();
+
+        var action = Assert.IsType<SwitchDeviceAction>(vm.Current.Find(Element(vm, "Track ►").Control)!.Action);
+        Assert.Equal(DeviceFlow.Capture, action.Flow);
+        Assert.Empty(action.SelectedIds);
+        Assert.Equal("Aufnahmegerät wechseln", Element(vm, "Track ►").Summary);
+
+        Send(vm, 59, 127);
+        Assert.Equal("Headset-Mikrofon", _audio.GetDefaultEndpoint(DeviceFlow.Capture, DeviceRole.Console)!.Name);
+        Assert.Equal("Lautsprecher", _audio.GetDefaultEndpoint(DeviceFlow.Render, DeviceRole.Console)!.Name);
+    }
+
+    [Fact]
+    public void TickedDevices_SurviveARefresh_AndAnUnpluggedDeviceStaysInTheRotation()
+    {
+        MainViewModel vm = Create();
+        AddMoreDevices();
+        vm.RefreshApps();
+        vm.Select(Element(vm, "Cycle"));
+        vm.Editor.Kind = ActionKind.SwitchDevice;
+        vm.Editor.DeviceChoices.Single(c => c.Id == "hs").IsSelected = true;
+
+        vm.RefreshApps();                       // e.g. the "Aktualisieren" button
+        Assert.True(vm.Editor.DeviceChoices.Single(c => c.Id == "hs").IsSelected);
+
+        vm.ApplyEditor();
+        _audio.Endpoints.RemoveAll(e => e.Id == "hs");   // headphones unplugged
+        vm.RefreshApps();
+        vm.Select(Element(vm, "Cycle"));
+        Assert.DoesNotContain(vm.Editor.DeviceChoices, c => c.Id == "hs");
+        vm.ApplyEditor();
+
+        var action = Assert.IsType<SwitchDeviceAction>(vm.Current.Find(Element(vm, "Cycle").Control)!.Action);
+        Assert.Contains("hs", action.SelectedIds);
+    }
+
+    [Fact]
+    public void OnScreenDisplay_ShowsLevelTargetAndMuteState_ForVolumeKeys()
+    {
+        MainViewModel vm = Create();
+        Assign(vm, "Fader 1", e => { e.Kind = ActionKind.SetVolume; e.Target = TargetKind.Application; e.AppName = "Discord.exe"; });
+        Assign(vm, "Fader 2", e => { e.Kind = ActionKind.SetVolume; e.Target = TargetKind.Speakers; });
+        Assign(vm, "M 1", e => { e.Kind = ActionKind.ToggleMute; e.Target = TargetKind.Microphone; });
+        Assign(vm, "Play", e => { e.Kind = ActionKind.Media; e.Media = MediaCommand.PlayPause; });
+        Assign(vm, "Cycle", e => { e.Kind = ActionKind.Hotkey; e.HotkeyText = "Ctrl+Alt+M"; });
+        var shown = new List<OsdMessage>();
+        vm.OsdRequested += shown.Add;
+
+        Send(vm, 0, 127);
+        Send(vm, 1, 64);
+        Send(vm, 48, 127);   // mute
+        Send(vm, 48, 0);     // release: no action
+        Send(vm, 48, 127);   // unmute
+        Send(vm, 41, 127);
+        Send(vm, 46, 127);   // shortcut: no display
+
+        Assert.Equal(5, shown.Count);
+        Assert.Equal(("Discord.exe", 1.0), (shown[0].Title, shown[0].Level));
+        Assert.Equal("Lautsprecher", shown[1].Title);
+        Assert.Equal(64 / 127.0, shown[1].Level!.Value, 3);
+        Assert.Equal(("Mikrofon", "Stumm", true), (shown[2].Title, shown[2].Detail, shown[2].Muted));
+        Assert.Equal(("Ton an", false), (shown[3].Detail, shown[3].Muted));
+        Assert.Equal(("Medien", "Wiedergabe/Pause"), (shown[4].Title, shown[4].Detail));
+    }
+
+    [Fact]
+    public void OnScreenDisplay_IsSilentWhenSwitchedOff_OrWhenTheActionFailed_AndMarksInactiveApps()
+    {
+        MainViewModel vm = Create(withMic: false);
+        Assign(vm, "Fader 3", e => { e.Kind = ActionKind.SetVolume; e.Target = TargetKind.Microphone; });
+        Assign(vm, "Fader 4", e => { e.Kind = ActionKind.SetVolume; e.Target = TargetKind.Application; e.AppName = "Spotify.exe"; });
+        var shown = new List<OsdMessage>();
+        vm.OsdRequested += shown.Add;
+
+        Send(vm, 2, 100);   // no microphone: failure, no display
+        Assert.Empty(shown);
+
+        Send(vm, 3, 100);   // Spotify is not running: remembered, shown as inactive
+        Assert.Equal("nicht aktiv", Assert.Single(shown).Detail);
+
+        shown.Clear();
+        vm.ShowOsd = false;
+        Send(vm, 3, 50);
+        Assert.Empty(shown);
+    }
+
+    [Fact]
+    public void OnScreenDisplaySettings_ArePersisted_AndTheTestButtonShowsASample()
+    {
+        MainViewModel vm = Create();
+        Assert.True(vm.ShowOsd);
+        Assert.Equal(OsdPosition.BottomRight, vm.OsdPosition);
+        Assert.Equal(6, vm.OsdPositionOptions.Count);
+        Assert.Contains(vm.OsdPositionOptions, o => o.Text == "Oben links" && o.Value == OsdPosition.TopLeft);
+
+        vm.OsdPosition = OsdPosition.TopLeft;
+        vm.ShowOsd = false;
+
+        AppSettings stored = new SettingsStore(SettingsPath).Load();
+        Assert.Equal(OsdPosition.TopLeft, stored.OsdPosition);
+        Assert.False(stored.ShowOsd);
+        Assert.Contains("\"osdPosition\": \"topLeft\"", File.ReadAllText(SettingsPath));
+
+        var shown = new List<OsdMessage>();
+        vm.OsdRequested += shown.Add;
+        vm.TestOsdCommand.Execute(null);
+        Assert.Single(shown);
+    }
+
+    [Fact]
+    public void OldSettingsFileWithoutOsdFields_LoadsWithDefaults()
+    {
+        File.WriteAllText(SettingsPath, "{ \"keepInTray\": false }");
+
+        AppSettings loaded = new SettingsStore(SettingsPath).Load();
+
+        Assert.False(loaded.KeepInTray);
+        Assert.True(loaded.ShowOsd);
+        Assert.Equal(OsdPosition.BottomRight, loaded.OsdPosition);
+    }
+
     [Fact]
     public void Settings_ArePersisted_AndAutostartIsSwitched()
     {
@@ -489,7 +656,7 @@ public class MainViewModelTests : IDisposable
 
         Assert.True(_autostart.IsEnabled);
         AppSettings stored = new SettingsStore(SettingsPath).Load();
-        Assert.Equal(new AppSettings(true, false, true), stored);
+        Assert.Equal(new AppSettings(true, false, true), stored); // OSD options keep their defaults
     }
 
     [Fact]

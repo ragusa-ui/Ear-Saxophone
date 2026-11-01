@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Threading;
+using EarSaxophone.Core.Settings;
 using EarSaxophone.Core.ViewModels;
 
 namespace EarSaxophone.App;
@@ -17,7 +18,7 @@ internal static class UiSelfCheck
 {
     public sealed record Result(string Name, bool Ok, string Detail);
 
-    public static List<Result> Run(Window window, MainViewModel vm)
+    public static List<Result> Run(Window window, MainViewModel vm, OsdWindow osd)
     {
         var results = new List<Result>();
 
@@ -98,6 +99,56 @@ internal static class UiSelfCheck
             peer.Toggle();
             Flush(window);
             return (changed && vm.KeepInTray == before, $"changedByClick={changed}, restored={vm.KeepInTray == before}");
+        });
+
+        Check("Aktion 'Audiogerät wechseln' zeigt Gerätetyp und Geräteliste", () =>
+        {
+            ActionKind before = vm.Editor.Kind;
+            vm.Editor.Kind = ActionKind.SwitchDevice;
+            Flush(window);
+            bool flow = FindText(window, tb => tb.Text == "Gerätetyp") is not null;
+            bool list = FindText(window, tb => tb.Text == "Geräte im Wechsel") is not null;
+            bool hint = FindText(window, tb => tb.Text.StartsWith("Jeder Tastendruck schaltet", StringComparison.Ordinal)) is not null;
+            vm.Editor.Kind = before;
+            Flush(window);
+            return (flow && list && hint, $"gerätetyp={flow}, liste={list}, hinweis={hint}");
+        });
+
+        Check("'Anzeige testen' zeigt das Overlay mit Ziel und Prozentwert", () =>
+        {
+            Click(window, FindButton(window, "Anzeige testen"));
+            Flush(window);
+            bool ok = osd.IsVisible && osd.TitleValue == "Lautsprecher" && osd.ValueTextValue == "65 %";
+            return (ok, $"sichtbar={osd.IsVisible}, titel={osd.TitleValue}, wert={osd.ValueTextValue}");
+        });
+
+        Check("Overlay ist klickdurchlässig und nimmt keinen Fokus (Fensterstil)", () =>
+            (osd.IsClickThroughAndNoFocus, $"exStyle=0x{osd.ExtendedStyle:X}"));
+
+        Check("Overlay liegt in allen sechs Positionen vollständig auf dem Bildschirm", () =>
+        {
+            var area = SystemParameters.WorkArea;
+            var problems = new List<string>();
+            foreach (OsdPosition position in Enum.GetValues<OsdPosition>())
+            {
+                osd.Present(new EarSaxophone.Core.Localization.OsdMessage("Discord.exe", "Ton an", 0.3), position, TimeSpan.FromSeconds(5));
+                Flush(window);
+                bool inside = osd.Left >= area.Left - 1 && osd.Top >= area.Top - 1
+                    && osd.Left + osd.ActualWidth <= area.Right + 1 && osd.Top + osd.ActualHeight <= area.Bottom + 1;
+                if (!inside)
+                {
+                    problems.Add($"{position}: {osd.Left:0},{osd.Top:0} {osd.ActualWidth:0}x{osd.ActualHeight:0} (Arbeitsbereich {area.Width:0}x{area.Height:0})");
+                }
+            }
+
+            return (problems.Count == 0, problems.Count == 0 ? $"arbeitsbereich={area.Width:0}x{area.Height:0}" : string.Join("; ", problems));
+        });
+
+        Check("Overlay lässt sich sofort ausblenden", () =>
+        {
+            osd.HideNow();
+            Flush(window);
+            return (!osd.IsVisible, $"sichtbar={osd.IsVisible}");
         });
 
         return results;

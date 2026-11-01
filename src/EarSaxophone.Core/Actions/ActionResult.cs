@@ -12,7 +12,12 @@ public enum ActionOutcome
 }
 
 /// <summary>Result of running an action; Message is meant to be shown to the user.</summary>
-public sealed record ActionResult(ActionOutcome Outcome, string Message)
+/// <param name="Outcome">Whether the action reached its target.</param>
+/// <param name="Message">Text for the user.</param>
+/// <param name="Muted">New mute state when the action changed it (for the on-screen display).</param>
+/// <param name="Level">Volume level 0..1 that was set (for the on-screen display).</param>
+/// <param name="Detail">Short extra text such as the name of the device that was switched to.</param>
+public sealed record ActionResult(ActionOutcome Outcome, string Message, bool? Muted = null, float? Level = null, string? Detail = null)
 {
     public bool IsFailure => Outcome == ActionOutcome.Failed;
 }

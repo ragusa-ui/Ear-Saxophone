@@ -102,6 +102,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         DeleteProfileCommand = new RelayCommand(_ => DeleteProfile());
         DismissErrorCommand = new RelayCommand(_ => ErrorMessage = null);
         RefreshAppsCommand = new RelayCommand(_ => RefreshApps());
+        TestOsdCommand = new RelayCommand(_ => OsdRequested?.Invoke(new OsdMessage(Texts.TargetSpeakersShort, null, 0.65)));
         ReconnectCommand = new RelayCommand(_ => ReconnectDevice());
 
         RefreshSummaries();
@@ -142,6 +143,26 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public RelayCommand RefreshAppsCommand { get; }
 
     public RelayCommand ReconnectCommand { get; }
+
+    public RelayCommand TestOsdCommand { get; }
+
+    /// <summary>Raised on the UI thread when the on-screen display should show something (only when the display is switched on).</summary>
+    public event Action<OsdMessage>? OsdRequested;
+
+    public IReadOnlyList<Option<OsdPosition>> OsdPositionOptions { get; } =
+        Enum.GetValues<OsdPosition>().Select(p => new Option<OsdPosition>(Texts.OsdPositionName(p), p)).ToList();
+
+    public bool ShowOsd
+    {
+        get => _settings.ShowOsd;
+        set => ChangeSettings(_settings with { ShowOsd = value }, nameof(ShowOsd));
+    }
+
+    public OsdPosition OsdPosition
+    {
+        get => _settings.OsdPosition;
+        set => ChangeSettings(_settings with { OsdPosition = value }, nameof(OsdPosition));
+    }
 
     public Profile Current => _profiles[_active];
 
@@ -318,6 +339,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             Editor.AvailableApps.Add(name);
         }
+
+        try
+        {
+            Editor.SetAvailableDevices(
+                new[] { DeviceFlow.Render, DeviceFlow.Capture }
+                    .SelectMany(flow => _audio.GetEndpoints(flow).Select(e => (e.Id, e.Name, flow))));
+        }
+        catch (Exception)
+        {
+            // Devices are only suggestions; the list stays as it was.
+        }
     }
 
     public void ApplyEditor()
@@ -368,7 +400,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
 
         ActionResult result = _executor.Execute(new ActionInvocation(mapping, 0.5f));
-        ShowResult(_selected.Label, result);
+        ShowResult(_selected.Label, mapping, result);
     }
 
     public void NewProfile()
@@ -538,12 +570,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             string label = _elements.TryGetValue(invocation.Mapping.Control, out ControllerElementViewModel? element)
                 ? element.Label
                 : invocation.Mapping.Control.ToString();
-            ShowResult(label, result);
+            ShowResult(label, invocation.Mapping, result);
         });
     }
 
-    private void ShowResult(string label, ActionResult result)
+    private void ShowResult(string label, ControlMapping mapping, ActionResult result)
     {
+        if (ShowOsd && OsdMessageFactory.Create(mapping, result) is { } osd)
+        {
+            OsdRequested?.Invoke(osd);
+        }
+
         if (result.IsFailure)
         {
             ErrorMessage = Texts.UiActionResultFor(label, result.Message);

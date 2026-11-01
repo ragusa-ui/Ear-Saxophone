@@ -80,11 +80,30 @@ internal static class UiReport
         if (node is FrameworkElement element && element.IsVisible && Describe(element) is { } description)
         {
             Rect bounds = element.TransformToAncestor(window).TransformBounds(new Rect(0, 0, element.ActualWidth, element.ActualHeight));
-            bool outside = !IsInsideScrollViewer(element)
+            bool scrolled = false;
+            for (DependencyObject? parent = VisualTreeHelper.GetParent(element); parent is not null; parent = VisualTreeHelper.GetParent(parent))
+            {
+                if (parent is ScrollViewer viewer)
+                {
+                    // Only the part inside the scroll viewer's viewport is visible; the rest is clipped.
+                    Rect viewport = viewer.TransformToAncestor(window).TransformBounds(new Rect(0, 0, viewer.ViewportWidth, viewer.ViewportHeight));
+                    bounds = Rect.Intersect(bounds, viewport);
+                    scrolled = true;
+                    break;
+                }
+            }
+
+            if (bounds.IsEmpty)
+            {
+                goto children; // scrolled out of view: not visible
+            }
+
+            bool outside = !scrolled
                 && (bounds.Right > window.ActualWidth + 1 || bounds.Bottom > window.ActualHeight + 1 || bounds.Left < -1 || bounds.Top < -1);
             found.Add(new Found(element, bounds, description, outside));
         }
 
+        children:
         int count = VisualTreeHelper.GetChildrenCount(node);
         for (int i = 0; i < count; i++)
         {

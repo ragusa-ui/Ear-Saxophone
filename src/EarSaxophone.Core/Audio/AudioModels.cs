@@ -51,6 +51,15 @@ public interface IAudioSystem
 
     IAudioEndpoint? GetEndpoint(string deviceId);
 
+    /// <summary>All currently active devices of the given kind (connected and enabled).</summary>
+    IReadOnlyList<IAudioEndpoint> GetEndpoints(DeviceFlow flow);
+
+    /// <summary>
+    /// Makes the device the Windows default for all roles. Windows has no official API for this; the Windows implementation uses the
+    /// same internal interface as other tools. Throws <see cref="AudioUnsupportedException"/> when Windows refuses.
+    /// </summary>
+    void SetDefaultEndpoint(string deviceId, DeviceFlow flow);
+
     /// <summary>All current sessions of all active devices, both render and capture.</summary>
     IReadOnlyList<IAudioSession> GetSessions();
 

@@ -73,6 +73,7 @@ public enum MediaCommand
 [JsonDerivedType(typeof(ToggleMuteAction), "toggleMute")]
 [JsonDerivedType(typeof(MediaAction), "media")]
 [JsonDerivedType(typeof(HotkeyAction), "hotkey")]
+[JsonDerivedType(typeof(SwitchDeviceAction), "switchDevice")]
 public abstract record ActionDefinition
 {
     [JsonIgnore]
@@ -109,4 +110,23 @@ public sealed record HotkeyAction(string Keys) : ActionDefinition
     public override bool IsContinuous => false;
 
     public override bool IsValid => Input.Hotkey.TryParse(Keys, out _, out _);
+}
+
+/// <summary>
+/// Makes the next device in a rotation the Windows default device (playback or recording). DeviceIds limits the rotation
+/// to the chosen devices; empty or null means all connected devices. The order is by device name.
+/// </summary>
+public sealed record SwitchDeviceAction(DeviceFlow Flow = DeviceFlow.Render, IReadOnlyList<string>? DeviceIds = null) : ActionDefinition
+{
+    public override bool IsContinuous => false;
+
+    public override bool IsValid => Enum.IsDefined(Flow);
+
+    [JsonIgnore]
+    public IReadOnlyList<string> SelectedIds => DeviceIds ?? [];
+
+    public bool Equals(SwitchDeviceAction? other) =>
+        other is not null && Flow == other.Flow && SelectedIds.SequenceEqual(other.SelectedIds);
+
+    public override int GetHashCode() => HashCode.Combine(Flow, SelectedIds.Count);
 }

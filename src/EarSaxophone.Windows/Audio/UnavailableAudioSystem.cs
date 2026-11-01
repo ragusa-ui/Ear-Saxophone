@@ -16,5 +16,10 @@ public sealed class UnavailableAudioSystem : IAudioSystem
 
     public IAudioEndpoint? GetEndpoint(string deviceId) => null;
 
+    public IReadOnlyList<IAudioEndpoint> GetEndpoints(DeviceFlow flow) => [];
+
+    public void SetDefaultEndpoint(string deviceId, DeviceFlow flow) =>
+        throw new AudioUnsupportedException(Core.Localization.Texts.AudioUnavailable("-"));
+
     public IReadOnlyList<IAudioSession> GetSessions() => [];
 }

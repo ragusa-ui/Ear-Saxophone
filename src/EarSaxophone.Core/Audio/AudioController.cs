@@ -44,6 +44,7 @@ public sealed class AudioController : IDisposable
     {
         SetVolumeAction a => SetVolume(a.Target, invocation.Level),
         ToggleMuteAction a => ToggleMute(a.Target),
+        SwitchDeviceAction a => SwitchDevice(a),
         _ => null,
     };
 
@@ -54,7 +55,7 @@ public sealed class AudioController : IDisposable
         {
             return target.Kind == AudioTargetKind.Application
                 ? SetApplication(target, volume: level, muted: null)
-                : SetEndpoint(target, e => e.Volume = level, Texts.WhatVolume);
+                : SetEndpoint(target, e => e.Volume = level, Texts.WhatVolume, level: level);
         }
     }
 
@@ -64,7 +65,7 @@ public sealed class AudioController : IDisposable
         {
             if (target.Kind != AudioTargetKind.Application)
             {
-                return SetEndpoint(target, e => e.Muted = !e.Muted, Texts.WhatMute);
+                return SetEndpoint(target, e => e.Muted = !e.Muted, Texts.WhatMute, readMute: true);
             }
 
             if (!target.IsValid)
@@ -121,6 +122,62 @@ public sealed class AudioController : IDisposable
         }
     }
 
+    private ActionResult SwitchDevice(SwitchDeviceAction action)
+    {
+        lock (_gate)
+        {
+            DeviceFlow flow = action.Flow;
+            IReadOnlyList<IAudioEndpoint> all;
+            IAudioEndpoint? current;
+            try
+            {
+                all = _system.GetEndpoints(flow);
+                current = _system.GetDefaultEndpoint(flow, DeviceRole.Console);
+            }
+            catch (Exception ex)
+            {
+                return Fail(Texts.TargetQueryFailed(Texts.DeviceKindName(flow), ex.Message));
+            }
+
+            IReadOnlyList<string> chosen = action.SelectedIds;
+            List<IAudioEndpoint> rotation = all
+                .Where(e => chosen.Count == 0 || chosen.Contains(e.Id))
+                .OrderBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(e => e.Id, StringComparer.Ordinal)
+                .ToList();
+            if (rotation.Count == 0)
+            {
+                return Fail(Texts.SwitchNoDevices(flow));
+            }
+
+            if (rotation.Count == 1)
+            {
+                return Fail(Texts.SwitchNeedTwo(flow));
+            }
+
+            int index = rotation.FindIndex(e => e.Id == current?.Id);
+            IAudioEndpoint next = rotation[(index + 1) % rotation.Count]; // index -1 (current not in rotation) -> first
+            try
+            {
+                _system.SetDefaultEndpoint(next.Id, flow);
+            }
+            catch (AudioUnsupportedException ex)
+            {
+                return Fail(Texts.SwitchRefused(next.Name, ex.Message));
+            }
+            catch (AudioGoneException)
+            {
+                return Fail(Texts.EndpointDisconnected(next.Name));
+            }
+            catch (Exception ex)
+            {
+                return Fail(Texts.SwitchRefused(next.Name, ex.Message));
+            }
+
+            return new ActionResult(ActionOutcome.Applied, Texts.SwitchDone(flow, next.Name), Detail: next.Name);
+        }
+    }
+
     private ActionResult SetApplication(AudioTarget target, float? volume, bool? muted)
     {
         if (!target.IsValid)
@@ -143,8 +200,7 @@ public sealed class AudioController : IDisposable
         List<IAudioSession> sessions = FindSessions(desired);
         if (sessions.Count == 0)
         {
-            return new ActionResult(ActionOutcome.Deferred,
-                Texts.AppSilentDeferred(name));
+            return new ActionResult(ActionOutcome.Deferred, Texts.AppSilentDeferred(name), desired.Muted, desired.Volume);
         }
 
         int applied = 0;
@@ -158,11 +214,11 @@ public sealed class AudioController : IDisposable
         }
 
         return applied > 0
-            ? new ActionResult(ActionOutcome.Applied, Texts.AppSessionsUpdated(name, applied))
+            ? new ActionResult(ActionOutcome.Applied, Texts.AppSessionsUpdated(name, applied), muted ?? desired.Muted, volume ?? desired.Volume)
             : Fail(Texts.AppSessionsFailed(name));
     }
 
-    private ActionResult SetEndpoint(AudioTarget target, Action<IAudioEndpoint> change, string what)
+    private ActionResult SetEndpoint(AudioTarget target, Action<IAudioEndpoint> change, string what, float? level = null, bool readMute = false)
     {
         string label = Describe(target);
         IAudioEndpoint? endpoint;
@@ -187,7 +243,8 @@ public sealed class AudioController : IDisposable
         try
         {
             change(endpoint);
-            return new ActionResult(ActionOutcome.Applied, Texts.EndpointChanged(endpoint.Name, what));
+            bool? muted = readMute ? endpoint.Muted : null;
+            return new ActionResult(ActionOutcome.Applied, Texts.EndpointChanged(endpoint.Name, what), muted, level);
         }
         catch (AudioUnsupportedException ex)
         {

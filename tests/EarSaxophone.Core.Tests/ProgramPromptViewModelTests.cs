@@ -51,6 +51,11 @@ public class ProgramPromptViewModelTests : IDisposable
         Assert.Equal(@"C:\Games\game.exe", prompt.ExePath);
         Assert.Equal(16, prompt.Choices.Count);
         Assert.All(prompt.Choices, c => Assert.True(c.IsStepless));
+        Assert.Equal(8, prompt.Choices.Count(c => c.Label.StartsWith("Fader")));
+        Assert.Equal(8, prompt.Choices.Count(c => c.Label.StartsWith("Drehregler")));
+        Assert.Equal("game.exe spielt Ton. Auf welchen Regler legen?", prompt.MiniQuestion);
+        Assert.Equal(Enumerable.Range(1, 8), prompt.Slots.Select(sl => sl.Number));
+        Assert.All(prompt.Slots, sl => Assert.Equal(($"Fader {sl.Number}", $"Drehregler {sl.Number}"), (sl.Fader!.Label, sl.Knob!.Label)));
         Assert.Equal((Texts.PromptNotNow, Texts.PromptNeverAsk), (prompt.NotNowText, prompt.NeverAskText));
         Assert.Equal(TimeSpan.FromSeconds(25), ProgramPromptViewModel.AutoDismissAfter);
     }

@@ -8,6 +8,9 @@ namespace EarSaxophone.Core.Actions;
 /// <summary>Runs every kind of action. Media commands and keyboard shortcuts are separate actions and independent of any program.</summary>
 public sealed class ActionExecutor(AudioController audio, IKeyboardSender keyboard)
 {
+    /// <summary>The audio controller the actions run on (read by the LED feedback, which must see the same remembered states).</summary>
+    public AudioController Audio => audio;
+
     /// <summary>
     /// Runs one action. An action that does not react to the invocation's phase (for example a media key on release)
     /// does nothing and reports <see cref="Texts.ActionNotTriggered"/>. Exceptions never escape.

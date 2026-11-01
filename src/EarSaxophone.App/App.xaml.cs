@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.IO;
+using System.Net.Http;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -10,6 +12,7 @@ using EarSaxophone.Core.Mapping;
 using EarSaxophone.Core.Midi;
 using EarSaxophone.Core.Persistence;
 using EarSaxophone.Core.Settings;
+using EarSaxophone.Core.Updates;
 using EarSaxophone.Core.ViewModels;
 using EarSaxophone.Windows.Audio;
 using EarSaxophone.Windows.Input;
@@ -26,6 +29,15 @@ public partial class App : Application
     private const string MutexName = @"Local\EarSaxophone.SingleInstance";
     private const string ActivateEventName = @"Local\EarSaxophone.Activate";
 
+    /// <summary>Command line of the instance started by an update: wait until the previous instance has quit.</summary>
+    private const string AfterUpdateArgument = "--after-update";
+
+    /// <summary>Added when the installed package had no checksum file (shown as a note after the restart).</summary>
+    private const string UnverifiedArgument = "--update-unverified";
+
+    private const string ReleaseOwner = "ragusa-ui";
+    private const string ReleaseRepository = "Ear-Saxophone";
+
     private Mutex? _singleInstance;
     private EventWaitHandle? _activate;
     private MainViewModel? _viewModel;
@@ -35,6 +47,7 @@ public partial class App : Application
     private System.Threading.Timer? _timer;
     private MidiConnectionManager? _midi;
     private IDisposable? _audioToDispose;
+    private HttpClient? _http;
     private string _dataFolder = AppContext.BaseDirectory;
     private int _ticking;
 
@@ -42,13 +55,17 @@ public partial class App : Application
 
     public bool IsExiting { get; private set; }
 
+    /// <summary>CI demo only: the fake update (test installation, recorded restart).</summary>
+    internal DemoUpdate? DemoUpdate { get; private set; }
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
         string? screenshotPath = ArgumentValue(e.Args, "--demo-screenshot");
         bool demo = screenshotPath is not null;
+        bool afterUpdate = e.Args.Contains(AfterUpdateArgument);
 
-        if (!demo && !AcquireSingleInstance())
+        if (!demo && !AcquireSingleInstance(waitForPrevious: afterUpdate))
         {
             Shutdown();
             return;
@@ -93,8 +110,29 @@ public partial class App : Application
         _midi = new MidiConnectionManager(new NAudioMidiInputProvider());
         var executor = new ActionExecutor(new AudioController(audio), new SendInputKeyboardSender());
         IAutostart autostart = demo ? new MemoryAutostart() : CreateAutostart();
+        UpdateService? updates;
+        IAppRestarter restarter;
+        if (demo)
+        {
+            DemoUpdate = DemoUpdate.Create();
+            updates = DemoUpdate.Service;
+            restarter = DemoUpdate.Restarter;
+        }
+        else
+        {
+            StartLeftoverCleanup(AppContext.BaseDirectory);
+            updates = CreateUpdateService(AppContext.BaseDirectory);
+            restarter = new ProcessRestarter(this);
+        }
+
         _viewModel = new MainViewModel(profileStore, _midi, executor, audio, new DispatcherUiThread(Dispatcher),
-            new SettingsStore(Path.Combine(_dataFolder, "settings.json")), autostart);
+            new SettingsStore(Path.Combine(_dataFolder, "settings.json")), autostart, updates: updates, restarter: restarter,
+            midiOutput: new NAudioMidiOutputProvider());
+        if (afterUpdate)
+        {
+            _viewModel.Update.NoteJustUpdated(checksumVerified: !e.Args.Contains(UnverifiedArgument));
+        }
+
         if (audioProblem is not null)
         {
             _viewModel.ShowError(audioProblem);
@@ -120,7 +158,8 @@ public partial class App : Application
         }
 
         CreateTrayIcon();
-        bool startHidden = e.Args.Contains("--minimized") || _viewModel.StartMinimized;
+        // After an update the user just clicked "Jetzt aktualisieren" in the window: show it again.
+        bool startHidden = e.Args.Contains("--minimized") || (_viewModel.StartMinimized && !afterUpdate);
         if (startHidden && _viewModel.KeepInTray)
         {
             return; // lives in the tray until the user opens it
@@ -149,7 +188,8 @@ public partial class App : Application
         _viewModel?.Dispose();
         _midi?.Dispose();
         _audioToDispose?.Dispose();
-        _singleInstance?.Dispose();
+        _http?.Dispose();
+        ReleaseSingleInstance();
         Shutdown();
     }
 
@@ -181,9 +221,36 @@ public partial class App : Application
         return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
     }
 
-    private bool AcquireSingleInstance()
+    /// <param name="waitForPrevious">
+    /// Started by an update: the previous instance is still quitting and holds the mutex for a moment, so wait (up to 30 s)
+    /// instead of handing over to it.
+    /// </param>
+    private bool AcquireSingleInstance(bool waitForPrevious)
     {
-        _singleInstance = new Mutex(true, MutexName, out bool createdNew);
+        bool createdNew;
+        if (waitForPrevious)
+        {
+            _singleInstance = new Mutex(false, MutexName);
+            try
+            {
+                createdNew = _singleInstance.WaitOne(TimeSpan.FromSeconds(30));
+            }
+            catch (AbandonedMutexException)
+            {
+                createdNew = true; // the previous instance ended without releasing it; now it is ours
+            }
+
+            if (!createdNew)
+            {
+                _singleInstance.Dispose();
+                _singleInstance = null;
+            }
+        }
+        else
+        {
+            _singleInstance = new Mutex(true, MutexName, out createdNew);
+        }
+
         if (!createdNew)
         {
             try
@@ -211,6 +278,63 @@ public partial class App : Application
         listener.Start();
         return true;
     }
+
+    private void ReleaseSingleInstance()
+    {
+        if (_singleInstance is null)
+        {
+            return;
+        }
+
+        try
+        {
+            _singleInstance.ReleaseMutex(); // a waiting updated instance gets it at once
+        }
+        catch (ApplicationException)
+        {
+            // Not owned by this thread; closing the handle below is enough.
+        }
+
+        _singleInstance.Dispose();
+        _singleInstance = null;
+    }
+
+    /// <summary>Update check against the GitHub releases (public repository, no token). Null when the own version is unknown.</summary>
+    private UpdateService? CreateUpdateService(string programFolder)
+    {
+        if (!SemVersion.TryParse(AppInfo.Version, out SemVersion? current))
+        {
+            return null;
+        }
+
+        _http = new HttpClient { Timeout = Timeout.InfiniteTimeSpan }; // each request sets its own time limit
+        string userAgent = "EarSaxophone/" + current;
+        return new UpdateService(new GitHubReleaseSource(_http, ReleaseOwner, ReleaseRepository, userAgent),
+            new HttpFileDownloader(_http, userAgent), current, programFolder);
+    }
+
+    /// <summary>Deletes the .old files of the previous update; the previous instance may still be exiting, so it retries for a while.</summary>
+    private void StartLeftoverCleanup(string programFolder) => _ = Task.Run(async () =>
+    {
+        var installer = new UpdateInstaller();
+        for (int attempt = 0; attempt < 10; attempt++)
+        {
+            try
+            {
+                if (installer.CleanUpLeftovers(programFolder) == 0)
+                {
+                    return;
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                LogError(ex);
+                return;
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+        }
+    });
 
     private static IAutostart CreateAutostart()
     {
@@ -343,6 +467,30 @@ public partial class App : Application
             Environment.Exit(exitCode);
         };
         wait.Start();
+    }
+
+    /// <summary>
+    /// Starts the updated EarSaxophone.exe and quits. The new instance is told to wait for the single-instance mutex,
+    /// which <see cref="Quit"/> releases; if starting fails, this instance keeps running and the error is shown.
+    /// </summary>
+    private sealed class ProcessRestarter(App app) : IAppRestarter
+    {
+        public void Restart(string executable, bool checksumVerified)
+        {
+            var start = new ProcessStartInfo(executable)
+            {
+                UseShellExecute = false,
+                WorkingDirectory = Path.GetDirectoryName(executable) ?? AppContext.BaseDirectory,
+            };
+            start.ArgumentList.Add(AfterUpdateArgument);
+            if (!checksumVerified)
+            {
+                start.ArgumentList.Add(UnverifiedArgument);
+            }
+
+            using Process started = Process.Start(start) ?? throw new InvalidOperationException(executable);
+            app.Quit();
+        }
     }
 
     private sealed class MemoryAutostart : IAutostart

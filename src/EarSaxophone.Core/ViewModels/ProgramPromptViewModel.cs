@@ -1,4 +1,5 @@
 using EarSaxophone.Core.Audio;
+using EarSaxophone.Core.Devices;
 using EarSaxophone.Core.Localization;
 using EarSaxophone.Core.Midi;
 
@@ -32,7 +33,15 @@ public sealed class ProgramPromptViewModel : ObservableObject
     internal ProgramPromptViewModel(ProgramPrompt prompt, IReadOnlyList<ControllerElementViewModel> choices, Action<ProgramPromptViewModel, ProgramPromptAnswer, ControlId?> answer)
     {
         Prompt = prompt;
-        Choices = choices;
+        Choices = choices
+            .Where(c => c.Kind is ElementKind.Fader or ElementKind.Knob && c.IsStepless)
+            .ToList();
+        Slots = Enumerable.Range(1, 8)
+            .Select(n => new ProgramPromptSlot(
+                n,
+                Choices.FirstOrDefault(c => c.Kind == ElementKind.Fader && c.Label == $"Fader {n}"),
+                Choices.FirstOrDefault(c => c.Kind == ElementKind.Knob && c.Label == $"Drehregler {n}")))
+            .ToList();
         _answer = answer;
         AssignCommand = new RelayCommand(p => Assign((p as ControllerElementViewModel)?.Control), _ => _isOpen);
         NotNowCommand = new RelayCommand(_ => NotNow(), _ => _isOpen);
@@ -48,13 +57,22 @@ public sealed class ProgramPromptViewModel : ObservableObject
 
     public string Title => Texts.PromptPlaysSound(Prompt.ExeName);
 
+    /// <summary>The program name on top of the miniature.</summary>
+    public string ProgramName => Prompt.ExeName;
+
+    /// <summary>"&lt;Programm&gt; spielt Ton. Auf welchen Regler legen?"</summary>
+    public string MiniQuestion => Texts.PromptMiniQuestion(Prompt.ExeName);
+
     public string Question => Texts.PromptQuestion;
 
     public string NotNowText => Texts.PromptNotNow;
 
     public string NeverAskText => Texts.PromptNeverAsk;
 
-    /// <summary>The faders and knobs that can take the program (the mini picture; their badges show what is on them).</summary>
+    /// <summary>Eight columns of the miniature: knob above, fader below, number 1-8.</summary>
+    public IReadOnlyList<ProgramPromptSlot> Slots { get; }
+
+    /// <summary>Only the faders and knobs that can take the program (no keys, transport or markers).</summary>
     public IReadOnlyList<ControllerElementViewModel> Choices { get; }
 
     /// <summary>Parameter: the chosen <see cref="ControllerElementViewModel"/>.</summary>
@@ -103,4 +121,21 @@ public sealed class ProgramPromptViewModel : ObservableObject
         Closed?.Invoke(answer);
         return true;
     }
+}
+
+/// <summary>One column of the miniature: knob n, fader n and the number n.</summary>
+public sealed class ProgramPromptSlot
+{
+    internal ProgramPromptSlot(int number, ControllerElementViewModel? fader, ControllerElementViewModel? knob)
+    {
+        Number = number;
+        Fader = fader;
+        Knob = knob;
+    }
+
+    public int Number { get; }
+
+    public ControllerElementViewModel? Fader { get; }
+
+    public ControllerElementViewModel? Knob { get; }
 }

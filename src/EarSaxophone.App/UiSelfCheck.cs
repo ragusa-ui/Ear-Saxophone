@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Automation.Peers;
@@ -439,7 +440,138 @@ internal static class UiSelfCheck
             }
         });
 
+        AddUpdateChecks(Check, window, main, vm);
         return results;
+    }
+
+    /// <summary>
+    /// Update area and banner with the fake release source of the demo (<see cref="DemoUpdate"/>, no network). The last
+    /// check really installs into the demo's test folder; the restart is only recorded. Runs last because it ends in the
+    /// "restarting" state.
+    /// </summary>
+    private static void AddUpdateChecks(Action<string, Func<(bool Ok, string Detail)>> check, Window window, MainWindow main, MainViewModel vm)
+    {
+        DemoUpdate demo = App.Instance.DemoUpdate ?? throw new InvalidOperationException("demo update missing");
+        UpdateViewModel update = vm.Update;
+
+        check("Update: automatische Pruefung beim Start (Fake-Quelle) zeigt das Banner 'Version 9.9.9 ist verfuegbar' mit 'Jetzt aktualisieren'", () =>
+        {
+            bool found = WaitUntil(window, () => update.IsUpdateAvailable, TimeSpan.FromSeconds(10));
+            bool banner = FindById<Border>(window, "UpdateBanner") is { IsVisible: true };
+            string? text = FindById<TextBlock>(window, "UpdateBannerText")?.Text;
+            bool button = FindById<ButtonBase>(window, "InstallUpdateButton") is { IsVisible: true, IsEnabled: true };
+            bool noError = !vm.HasError;
+            return (found && banner && text == Texts.UpdateAvailable(DemoUpdate.NewVersion) && button && update.AvailableVersion == DemoUpdate.NewVersion && noError,
+                $"gefunden={found}, banner={banner}, text='{text}', knopf={button}, version={update.AvailableVersion} (Entwurf 10.0.0 ignoriert), keineFehlerleiste={noError}");
+        });
+
+        check("Update im Zahnrad: Version, 'Nach Updates suchen' (meldet 9.9.9), 'Jetzt aktualisieren' und Schalter 'Beim Start nach Updates suchen'", () =>
+        {
+            Popup popup = main.SettingsPopup;
+            popup.StaysOpen = true;
+            bool checking = false;
+            void Watch(object? sender, System.ComponentModel.PropertyChangedEventArgs e) => checking |= e.PropertyName == nameof(UpdateViewModel.IsChecking) && update.IsChecking;
+            update.PropertyChanged += Watch;
+            try
+            {
+                Toggle(FindById<ToggleButton>(window, "SettingsButton")!);
+                Flush(window);
+                string[] ids = ["UpdateInstalledText", "CheckForUpdatesButton", "GearInstallUpdateButton", "CheckUpdatesOnStartToggle"];
+                List<string> missing = ids.Where(id => FindById<FrameworkElement>(popup.Child, id) is not { IsVisible: true }).ToList();
+                string? installed = FindById<TextBlock>(popup.Child, "UpdateInstalledText")?.Text;
+
+                Click(FindById<ButtonBase>(popup.Child, "CheckForUpdatesButton")!);
+                bool finished = WaitUntil(window, () => checking && !update.IsChecking, TimeSpan.FromSeconds(10));
+                string? status = FindById<TextBlock>(popup.Child, "UpdateStatusText") is { IsVisible: true } shown ? shown.Text : null;
+
+                var toggle = FindById<ToggleButton>(popup.Child, "CheckUpdatesOnStartToggle")!;
+                bool before = update.CheckOnStart;
+                Toggle(toggle);
+                Flush(window);
+                bool flipped = update.CheckOnStart != before && vm.Update.CheckOnStart != before;
+                Toggle(toggle);
+                Flush(window);
+                bool restored = update.CheckOnStart == before && before;
+
+                return (missing.Count == 0 && installed == Texts.UpdateInstalledVersion(demo.Service.CurrentVersion.ToString()) && finished
+                        && status == Texts.UpdateAvailable(DemoUpdate.NewVersion) && flipped && restored,
+                    $"fehlt=[{string.Join(",", missing)}], installiert='{installed}', suche={checking}/{finished}, meldung='{status}', schalter={flipped}/{restored}");
+            }
+            finally
+            {
+                update.PropertyChanged -= Watch;
+                popup.IsOpen = false;
+                popup.StaysOpen = false;
+            }
+        });
+
+        check("Update: 'Spaeter' blendet das Banner aus; 'Jetzt aktualisieren' laedt, prueft, ersetzt die Test-Installation (Benutzerdateien bleiben) und startet neu", () =>
+        {
+            Click(FindById<ButtonBase>(window, "DismissUpdateButton")!);
+            Flush(window);
+            bool hidden = FindById<Border>(window, "UpdateBanner") is not { IsVisible: true };
+
+            double maxProgress = 0;
+            bool bannerWhileInstalling = false;
+            void Watch(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+            {
+                maxProgress = Math.Max(maxProgress, update.Progress);
+                bannerWhileInstalling |= update.IsInstalling && update.ShowBanner;
+            }
+
+            update.PropertyChanged += Watch;
+            Popup popup = main.SettingsPopup;
+            popup.StaysOpen = true;
+            try
+            {
+                popup.IsOpen = true;
+                Flush(window);
+                Click(FindById<ButtonBase>(popup.Child, "GearInstallUpdateButton")!);
+                bool restarted = WaitUntil(window, () => demo.Restarter.Calls == 1, TimeSpan.FromSeconds(30));
+                popup.IsOpen = false;
+                Flush(window);
+
+                string app = demo.AppDirectory;
+                string Read(string name) => File.Exists(Path.Combine(app, name)) ? File.ReadAllText(Path.Combine(app, name)) : "(fehlt)";
+                bool exe = Read("EarSaxophone.exe") == DemoUpdate.NewExeContent;
+                bool userFiles = Read("profiles.json") == DemoUpdate.UserFileContent && Read("settings.json") == DemoUpdate.UserFileContent;
+                bool newFiles = File.Exists(Path.Combine(app, "EarSaxophone.dll")) && File.Exists(Path.Combine(app, "de", "EarSaxophone.resources.dll"));
+                bool noOld = !File.Exists(Path.Combine(app, "EarSaxophone.exe.old")); // not running, so deleted at once
+                bool target = string.Equals(demo.Restarter.Executable, Path.Combine(app, "EarSaxophone.exe"), StringComparison.OrdinalIgnoreCase);
+                bool banner = FindById<Border>(window, "UpdateBanner") is { IsVisible: true }
+                    && FindById<TextBlock>(window, "UpdateBannerText")?.Text == Texts.UpdateRestarting
+                    && FindById<ProgressBar>(window, "UpdateProgress") is { IsVisible: true, Value: 1 };
+                return (hidden && restarted && exe && userFiles && newFiles && noOld && target && banner && bannerWhileInstalling && maxProgress >= 1 && !vm.HasError,
+                    $"ausgeblendet={hidden}, neustart={restarted}, exe={exe}, benutzerdateien={userFiles}, neueDateien={newFiles}, keinOld={noOld}, " +
+                    $"ziel={target}, bannerNeustart={banner}, bannerWaehrend={bannerWhileInstalling}, fortschritt={maxProgress:0.00}, fehler={vm.ErrorMessage}");
+            }
+            finally
+            {
+                update.PropertyChanged -= Watch;
+                popup.IsOpen = false;
+                popup.StaysOpen = false;
+            }
+        });
+    }
+
+    private static bool WaitUntil(Window window, Func<bool> condition, TimeSpan timeout)
+    {
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        while (true)
+        {
+            Flush(window);
+            if (condition())
+            {
+                return true;
+            }
+
+            if (watch.Elapsed > timeout)
+            {
+                return false;
+            }
+
+            Thread.Sleep(30);
+        }
     }
 
     private static void Click(ButtonBase button)

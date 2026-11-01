@@ -523,6 +523,9 @@
                             <ui:ToggleSwitch x:Name="StartMinimizedToggle" Content="{x:Static loc:Texts.UiStartMinimized}"
                                              IsChecked="{Binding StartMinimized, Mode=TwoWay}" Margin="0,10,0,0"
                                              AutomationProperties.AutomationId="StartMinimizedToggle" />
+                            <ui:ToggleSwitch x:Name="LedFeedbackToggle" Content="{x:Static loc:Texts.UiLedFeedback}" ToolTip="{x:Static loc:Texts.UiLedFeedbackTip}"
+                                             IsChecked="{Binding LedFeedback, Mode=TwoWay}" Margin="0,10,0,0"
+                                             AutomationProperties.AutomationId="LedFeedbackToggle" />
 
                             <Separator Margin="0,14,0,6" Opacity="0.4" />
                             <ui:ToggleSwitch x:Name="AskForNewProgramsToggle" Content="{x:Static loc:Texts.UiAskForNewPrograms}"
@@ -532,6 +535,28 @@
                                        Margin="0,10,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
                                        Command="{Binding ResetIgnoredProgramsCommand}" IsEnabled="{Binding HasIgnoredPrograms}"
                                        AutomationProperties.AutomationId="ResetIgnoredButton" />
+
+                            <!-- Updates: Version, Suche, Installation, automatische Prüfung -->
+                            <Separator Margin="0,14,0,6" Opacity="0.4" />
+                            <StackPanel x:Name="UpdateSection" AutomationProperties.AutomationId="UpdateSection">
+                                <TextBlock Text="{x:Static loc:Texts.UiUpdates}" Style="{StaticResource SectionLabel}" Margin="2,6,0,4" />
+                                <TextBlock x:Name="UpdateInstalledText" Text="{Binding Update.InstalledVersionText}" Style="{StaticResource Hint}" Margin="2,0,0,0"
+                                           AutomationProperties.AutomationId="UpdateInstalledText" />
+                                <TextBlock x:Name="UpdateStatusText" Text="{Binding Update.StatusText}" TextWrapping="Wrap" Margin="2,6,0,0"
+                                           Visibility="{Binding Update.HasStatusText, Converter={StaticResource BoolToVis}}"
+                                           AutomationProperties.AutomationId="UpdateStatusText" />
+                                <ui:Button x:Name="CheckForUpdatesButton" Content="{x:Static loc:Texts.UiCheckForUpdates}" Icon="{ui:SymbolIcon ArrowSync20}"
+                                           Margin="0,10,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                           Command="{Binding Update.CheckCommand}" AutomationProperties.AutomationId="CheckForUpdatesButton" />
+                                <ui:Button x:Name="GearInstallUpdateButton" Content="{x:Static loc:Texts.UiInstallUpdate}" Icon="{ui:SymbolIcon ArrowDownload20}"
+                                           Appearance="Primary" Margin="0,6,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                           Command="{Binding Update.InstallCommand}" ToolTip="{x:Static loc:Texts.UiInstallUpdateTip}"
+                                           Visibility="{Binding Update.IsUpdateAvailable, Converter={StaticResource BoolToVis}}"
+                                           AutomationProperties.AutomationId="GearInstallUpdateButton" />
+                                <ui:ToggleSwitch x:Name="CheckUpdatesOnStartToggle" Content="{x:Static loc:Texts.UiCheckForUpdatesOnStart}"
+                                                 IsChecked="{Binding Update.CheckOnStart, Mode=TwoWay}" Margin="0,10,0,0"
+                                                 AutomationProperties.AutomationId="CheckUpdatesOnStartToggle" />
+                            </StackPanel>
                         </StackPanel>
                     </Border>
                 </Popup>
@@ -555,6 +580,34 @@
                 </Grid.RowDefinitions>
 
                 <StackPanel Grid.Row="0">
+                    <!-- Neue Version verfügbar (oder Update läuft): dezenter Hinweis mit "Jetzt aktualisieren" und Fortschritt -->
+                    <Border x:Name="UpdateBanner" Visibility="{Binding Update.ShowBanner, Converter={StaticResource BoolToVis}}" Padding="14,6,6,6"
+                            Margin="0,0,0,8" CornerRadius="12" Background="{StaticResource SubtleFillBrush}" BorderBrush="{StaticResource CardStrokeBrush}"
+                            BorderThickness="1" AutomationProperties.AutomationId="UpdateBanner">
+                        <DockPanel>
+                            <ui:SymbolIcon DockPanel.Dock="Left" Symbol="ArrowCircleUp20" FontSize="18" Margin="0,0,10,0" VerticalAlignment="Center"
+                                           Foreground="{StaticResource AccentStrongBrush}" />
+                            <Button x:Name="DismissUpdateButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}" Margin="4,0,0,0"
+                                    Command="{Binding Update.DismissCommand}" ToolTip="{x:Static loc:Texts.UiDismissUpdate}"
+                                    Visibility="{Binding Update.IsInstalling, Converter={StaticResource InverseBoolToVis}}"
+                                    AutomationProperties.AutomationId="DismissUpdateButton" AutomationProperties.Name="{x:Static loc:Texts.UiDismissUpdate}">
+                                <ui:SymbolIcon Symbol="Dismiss20" />
+                            </Button>
+                            <ui:Button x:Name="InstallUpdateButton" DockPanel.Dock="Right" Content="{x:Static loc:Texts.UiInstallUpdate}"
+                                       Icon="{ui:SymbolIcon ArrowDownload20}" Appearance="Primary" Height="30" Command="{Binding Update.InstallCommand}"
+                                       ToolTip="{x:Static loc:Texts.UiInstallUpdateTip}"
+                                       Visibility="{Binding Update.IsInstalling, Converter={StaticResource InverseBoolToVis}}"
+                                       AutomationProperties.AutomationId="InstallUpdateButton" />
+                            <StackPanel VerticalAlignment="Center" Margin="0,0,8,0">
+                                <TextBlock x:Name="UpdateBannerText" Text="{Binding Update.BannerText}" TextTrimming="CharacterEllipsis"
+                                           AutomationProperties.AutomationId="UpdateBannerText" />
+                                <ProgressBar x:Name="UpdateProgress" Minimum="0" Maximum="1" Value="{Binding Update.Progress, Mode=OneWay}" Height="4"
+                                             Margin="0,6,0,2" Visibility="{Binding Update.IsInstalling, Converter={StaticResource BoolToVis}}"
+                                             AutomationProperties.AutomationId="UpdateProgress" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
                     <!-- MIDI-Learn läuft -->
                     <Border x:Name="LearnBanner" Visibility="{Binding IsLearning, Converter={StaticResource BoolToVis}}" Padding="14,10"
                             Margin="0,0,0,8" CornerRadius="12" Background="{StaticResource AccentSoftBrush}" BorderBrush="{StaticResource AccentBrush}"

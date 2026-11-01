@@ -7,6 +7,7 @@ using EarSaxophone.Core.Mapping;
 using EarSaxophone.Core.Midi;
 using EarSaxophone.Core.Persistence;
 using EarSaxophone.Core.Settings;
+using EarSaxophone.Core.Updates;
 
 namespace EarSaxophone.Core.ViewModels;
 
@@ -29,6 +30,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly DeviceGestureDetector _gestures = new();
     private readonly TimeProvider _time;
     private readonly ProgramPromptService _programs;
+    private readonly LedController? _leds;
     private readonly List<Profile> _profiles;
     private readonly Dictionary<ControlId, ControllerElementViewModel> _elements = [];
     private int _active;
@@ -55,7 +57,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         SettingsStore settingsStore,
         IAutostart autostart,
         TimeProvider? time = null,
-        ProgramPromptService? programs = null)
+        ProgramPromptService? programs = null,
+        UpdateService? updates = null,
+        IAppRestarter? restarter = null,
+        IMidiOutputProvider? midiOutput = null)
     {
         _store = store;
         _midi = midi;
@@ -96,9 +101,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             Elements.Add(element);
         }
 
+        if (midiOutput is not null)
+        {
+            _leds = new LedController(new MidiOutputConnection(midiOutput, LedOptions.Default.OutputPortFragment), executor.Audio.ReadGroupMuted,
+                LedOptions.Default, _time) { Enabled = _settings.LedFeedback };
+            _leds.SetProfile(Current);
+            _leds.StatusChanged += OnLedStatus;
+        }
+
         _router = new ControlRouter(Current);
         _pump = new MidiMessagePump(_router.Handle, ex => _ui.Post(() => ShowError(Texts.ActionFailed(ex.Message))));
-        _midi.MessageReceived += _pump.Post;
+        _midi.MessageReceived += OnMidiMessage;
         _midi.StateChanged += OnConnectionChanged;
         _midi.Warning += OnMidiWarning;
         _router.MessageObserved += OnMessageObserved;
@@ -121,9 +134,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         TestOsdCommand = new RelayCommand(_ => OsdRequested?.Invoke(new OsdMessage(Texts.TargetSpeakersShort, null, 0.65)));
         ReconnectCommand = new RelayCommand(_ => ReconnectDevice());
 
+        Update = new UpdateViewModel(updates, ui, _time, () => _settings, s => ChangeSettings(s, null), ShowError,
+            text => StatusMessage = text, restarter);
+
         RefreshSummaries();
         RefreshApps();
     }
+
+    /// <summary>Update check and installation (gear and banner).</summary>
+    public UpdateViewModel Update { get; }
 
     public ObservableCollection<string> ProfileNames { get; } = [];
 
@@ -324,14 +343,33 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         set => ChangeSettings(_settings with { StartMinimized = value }, nameof(StartMinimized));
     }
 
+    /// <summary>Setting "LEDs am Gerät anzeigen": keys with a mute action light up while their target is muted.</summary>
+    public bool LedFeedback
+    {
+        get => _settings.LedFeedback;
+        set
+        {
+            ChangeSettings(_settings with { LedFeedback = value }, nameof(LedFeedback));
+            if (_leds is not null)
+            {
+                _leds.Enabled = _settings.LedFeedback;
+            }
+        }
+    }
+
     /// <summary>Shape of a control: from the device layout, for other controls what their values have shown so far.</summary>
     public ControlShape ShapeOf(ControlId control) => _shapes.ShapeOf(control);
 
-    /// <summary>Called about once per second (any thread): finds, reconnects and checks the MIDI device and looks for new programs with sound.</summary>
+    /// <summary>
+    /// Called about once per second (any thread): finds, reconnects and checks the MIDI device, looks for new programs with
+    /// sound and starts the automatic update check when it is due (at most once per 24 h).
+    /// </summary>
     public void Tick()
     {
         _midi.Poll();
+        PollLeds();
         _ui.Post(CheckForNewPrograms);
+        _ui.Post(Update.CheckIfDue);
     }
 
     /// <summary>Opens the MIDI device again (button, or return from sleep).</summary>
@@ -342,7 +380,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
-        _midi.MessageReceived -= _pump.Post;
+        _midi.MessageReceived -= OnMidiMessage;
+        if (_leds is not null)
+        {
+            _leds.StatusChanged -= OnLedStatus;
+            _leds.Dispose();
+        }
+
         _midi.StateChanged -= OnConnectionChanged;
         _midi.Warning -= OnMidiWarning;
         _pump.Dispose();
@@ -695,6 +739,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         _active = index;
         _router.SetProfile(Current);
+        _leds?.SetProfile(Current);
         _profileNameEdit = Current.Name;
         RefreshSummaries();
         if (_selected is not null)
@@ -786,6 +831,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
 
         _router.SetProfile(Current);
+        _leds?.SetProfile(Current);
         RefreshSummaries();
         return true;
     }
@@ -840,6 +886,32 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     });
 
     private void OnMidiWarning(string text) => _ui.Post(() => StatusMessage = text);
+
+    // Driver thread: our own LED messages looped back by a driver must never act like a key press.
+    private void OnMidiMessage(MidiMessage message)
+    {
+        if (_leds is not null && _leds.IsOwnEcho(message))
+        {
+            return;
+        }
+
+        _pump.Post(message);
+    }
+
+    private void OnLedStatus(string text) => _ui.Post(() => StatusMessage = text);
+
+    /// <summary>Opens the LED output next to the input and follows mute changes; a problem there never reaches the input or the tick.</summary>
+    private void PollLeds()
+    {
+        try
+        {
+            _leds?.Poll(_midi.State == MidiConnectionState.Connected, _midi.ConnectionGeneration);
+        }
+        catch (Exception)
+        {
+            // LED feedback is a convenience; the controller already reports port problems in the status line.
+        }
+    }
 
     // Runs on the MIDI worker thread (the shape tracker is thread-safe); the picture is updated on the UI thread.
     private void OnMessageObserved(MidiMessage message)
@@ -946,6 +1018,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private void OnActionsRequested(IReadOnlyList<ActionInvocation> invocations)
     {
         IReadOnlyList<ActionResult> results = _executor.ExecuteAll(invocations);
+        if (_leds is not null && invocations.Any(i => !i.Action.IsContinuous))
+        {
+            _leds.Refresh(); // a pressed mute key shows its new state at once, not only with the next tick
+        }
+
         _ui.Post(() =>
         {
             ControlId control = invocations[0].Mapping.Control;
@@ -1008,7 +1085,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ChangeSettings(_settings with { StartWithWindows = enabled }, nameof(StartWithWindows));
     }
 
-    private void ChangeSettings(AppSettings updated, string property)
+    /// <summary>Saves changed settings; <paramref name="property"/> is the property of this view model to announce (null = none).</summary>
+    private void ChangeSettings(AppSettings updated, string? property)
     {
         if (updated == _settings)
         {
@@ -1016,7 +1094,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
 
         _settings = updated;
-        OnPropertyChanged(property);
+        if (property is not null)
+        {
+            OnPropertyChanged(property);
+        }
+
         try
         {
             _settingsStore.Save(updated);

@@ -4,34 +4,159 @@
         Title="Ear Saxophone Nachfrage"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         ShowInTaskbar="False" ShowActivated="False" Topmost="True" Focusable="False"
-        ResizeMode="NoResize" SizeToContent="WidthAndHeight">
-    <Border Margin="16" CornerRadius="14" Padding="18,14,18,14" MinWidth="300" MaxWidth="420"
-            Background="#F0171A26" BorderBrush="#4A546E" BorderThickness="1">
+        ResizeMode="NoResize" SizeToContent="Manual" Width="380" Height="230">
+    <Window.Resources>
+        <SolidColorBrush x:Key="CardBrush" Color="#F2181B27" />
+        <SolidColorBrush x:Key="RailBrush" Color="#2B3146" />
+        <SolidColorBrush x:Key="AccentBrush" Color="#3FB6A8" />
+        <SolidColorBrush x:Key="TextBrush" Color="#F2F4FA" />
+        <SolidColorBrush x:Key="MutedBrush" Color="#8E97AE" />
+
+        <!-- Round knob (stepless control, shown as a small circle). -->
+        <Style x:Key="KnobButton" TargetType="Button">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Width" Value="26" />
+            <Setter Property="Height" Value="26" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid Background="Transparent">
+                            <Ellipse x:Name="Disc" Fill="#3A4160" Stroke="#566086" StrokeThickness="1" />
+                            <Rectangle Width="2" Height="8" RadiusX="1" RadiusY="1" Fill="#C9CFE2"
+                                       VerticalAlignment="Top" Margin="0,3,0,0" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Disc" Property="Fill" Value="{StaticResource AccentBrush}" />
+                                <Setter TargetName="Disc" Property="Stroke" Value="#7FE6D9" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.35" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <!-- Taken by another mapping: dimmed, but still clickable. -->
+                <DataTrigger Binding="{Binding HasMapping}" Value="True">
+                    <Setter Property="Opacity" Value="0.42" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Narrow fader rail with a small cap; the whole column is the click target. -->
+        <Style x:Key="FaderButton" TargetType="Button">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Width" Value="26" />
+            <Setter Property="Height" Value="62" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid Background="Transparent">
+                            <Border x:Name="Rail" Width="6" CornerRadius="3" Background="{StaticResource RailBrush}" />
+                            <Border x:Name="Cap" Width="16" Height="9" CornerRadius="3" Background="#C9CFE2"
+                                    VerticalAlignment="Bottom" Margin="0,0,0,12" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Rail" Property="Background" Value="{StaticResource AccentBrush}" />
+                                <Setter TargetName="Cap" Property="Background" Value="#7FE6D9" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.35" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <!-- Taken by another mapping: dimmed, but still clickable. -->
+                <DataTrigger Binding="{Binding HasMapping}" Value="True">
+                    <Setter Property="Opacity" Value="0.42" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="LinkButton" TargetType="Button">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bg" CornerRadius="6" Padding="8,3" Background="Transparent">
+                            <TextBlock Text="{TemplateBinding Content}" FontSize="12" Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="#2B3146" />
+                                <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border Margin="10" CornerRadius="14" Padding="16,12,16,8" Background="{StaticResource CardBrush}"
+            BorderBrush="#3A4160" BorderThickness="1">
         <Border.Effect>
-            <DropShadowEffect BlurRadius="24" ShadowDepth="5" Opacity="0.55" Color="Black" />
+            <DropShadowEffect BlurRadius="20" ShadowDepth="4" Opacity="0.5" Color="Black" />
         </Border.Effect>
-        <StackPanel>
-            <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="SemiBold" Foreground="#F2F4FA" TextTrimming="CharacterEllipsis" />
-            <TextBlock Text="{Binding Question}" Margin="0,4,0,8" FontSize="13" Foreground="#A4ACC2" />
-            <ItemsControl ItemsSource="{Binding Choices}" Focusable="False">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0">
+                <StackPanel Orientation="Horizontal">
+                    <Border Width="4" Height="16" CornerRadius="2" Background="{StaticResource AccentBrush}" Margin="0,0,8,0" />
+                    <TextBlock Text="{Binding ProgramName}" FontSize="15" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+                <TextBlock Text="{Binding MiniQuestion}" Margin="12,2,0,0" FontSize="11.5"
+                           Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+
+            <ItemsControl Grid.Row="1" ItemsSource="{Binding Slots}" Focusable="False" Margin="0,8,0,0"
+                          VerticalAlignment="Center">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <WrapPanel />
+                        <UniformGrid Rows="1" Columns="8" />
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Button Content="{Binding Label}" ToolTip="{Binding TooltipText}" Margin="0,0,6,6" Padding="10,4"
-                                Focusable="False"
-                                Command="{Binding DataContext.AssignCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                CommandParameter="{Binding}" />
+                        <StackPanel>
+                            <Button Style="{StaticResource KnobButton}" Margin="0,0,0,6"
+                                    DataContext="{Binding Knob}"
+                                    ToolTip="{Binding TooltipText}"
+                                    Command="{Binding DataContext.AssignCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}" />
+                            <Button Style="{StaticResource FaderButton}"
+                                    DataContext="{Binding Fader}"
+                                    ToolTip="{Binding TooltipText}"
+                                    Command="{Binding DataContext.AssignCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}" />
+                            <TextBlock Text="{Binding Number}" HorizontalAlignment="Center" Margin="0,4,0,0"
+                                       FontSize="11" Foreground="{StaticResource MutedBrush}" />
+                        </StackPanel>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0">
-                <Button Content="{Binding NotNowText}" Command="{Binding NotNowCommand}" Focusable="False" Margin="0,0,8,0" Padding="12,4" />
-                <Button Content="{Binding NeverAskText}" Command="{Binding NeverAskCommand}" Focusable="False" Padding="12,4" />
+
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
+                <Button Style="{StaticResource LinkButton}" Content="{Binding NotNowText}" Command="{Binding NotNowCommand}" />
+                <Button Style="{StaticResource LinkButton}" Content="{Binding NeverAskText}" Command="{Binding NeverAskCommand}" />
             </StackPanel>
-        </StackPanel>
+        </Grid>
     </Border>
 </Window>

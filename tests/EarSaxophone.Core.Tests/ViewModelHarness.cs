@@ -4,6 +4,7 @@ using EarSaxophone.Core.Mapping;
 using EarSaxophone.Core.Midi;
 using EarSaxophone.Core.Persistence;
 using EarSaxophone.Core.Settings;
+using EarSaxophone.Core.Updates;
 using EarSaxophone.Core.ViewModels;
 
 namespace EarSaxophone.Core.Tests;
@@ -44,12 +45,12 @@ internal sealed class ViewModelHarness : IDisposable
 
     public static ControlId Cc(int number) => new(ControlKind.ControlChange, 0, (byte)number);
 
-    public MainViewModel Create()
+    public MainViewModel Create(UpdateService? updates = null, IAppRestarter? restarter = null)
     {
         var midi = new MidiConnectionManager(Provider);
         var executor = new ActionExecutor(new AudioController(Audio), Keyboard);
         var vm = new MainViewModel(new ProfileStore(ProfilePath), midi, executor, Audio, new ImmediateUi(),
-            new SettingsStore(SettingsPath), new FakeAutostart(), Clock);
+            new SettingsStore(SettingsPath), new FakeAutostart(), Clock, updates: updates, restarter: restarter);
         _disposables.Add(midi);
         _disposables.Add(vm);
         vm.Tick();

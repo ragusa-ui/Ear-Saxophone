@@ -450,6 +450,93 @@ public static class Texts
     public const string UiDiscardTip = "Änderungen verwerfen";
 
     public const string UiRemoveMapping = "Belegung entfernen";
+
+    // Updates (in the program, from the GitHub releases)
+    public const string UiUpdates = "Updates";
+
+    public const string UiCheckForUpdates = "Nach Updates suchen";
+
+    public const string UiCheckForUpdatesOnStart = "Beim Start nach Updates suchen";
+
+    public const string UiInstallUpdate = "Jetzt aktualisieren";
+
+    public const string UiInstallUpdateTip = "Neue Version herunterladen, prüfen und installieren; danach startet Ear Saxophone neu. Belegungen und Einstellungen bleiben erhalten.";
+
+    public const string UiDismissUpdate = "Später";
+
+    public static string UpdateInstalledVersion(string version) => $"Installiert: Version {version}";
+
+    public const string UpdateChecking = "Suche nach Updates …";
+
+    public static string UpdateAvailable(string version) => $"Version {version} ist verfügbar.";
+
+    public static string UpdateUpToDate(string version) => $"Ear Saxophone ist aktuell (Version {version}).";
+
+    public const string UpdateNotReachable =
+        "Update-Prüfung nicht möglich – das Repository ist nicht öffentlich oder es besteht keine Verbindung.";
+
+    public const string UpdateRateLimited =
+        "Update-Prüfung gerade nicht möglich: GitHub begrenzt die Anfragen ohne Anmeldung. Bitte später erneut versuchen.";
+
+    public const string UpdateUnexpectedAnswer = "Update-Prüfung fehlgeschlagen: GitHub hat unerwartet geantwortet. Bitte später erneut versuchen.";
+
+    public const string UpdateNotAvailableHere = "Updates sind für diese Programmversion nicht verfügbar (unbekannte Versionsnummer).";
+
+    public static string UpdateDownloading(string version, int percent) => $"Version {version} wird heruntergeladen … {percent} %";
+
+    public const string UpdateInstalling = "Das Update wird installiert …";
+
+    public const string UpdateRestarting = "Update installiert. Ear Saxophone startet neu …";
+
+    public static string UpdateDone(string version) => $"Update installiert: Version {version}.";
+
+    public const string UpdateNoChecksumNote =
+        "Hinweis: Zu dieser Version gab es keine Prüfsumme (.sha256), der Download wurde ohne Prüfung installiert.";
+
+    public static string UpdateDownloadFailed(string reason) => $"Der Download ist fehlgeschlagen ({reason}). Es wurde nichts verändert.";
+
+    public const string UpdateChecksumMismatch =
+        "Die Prüfsumme der heruntergeladenen Datei stimmt nicht (Download beschädigt?). Es wurde nichts verändert.";
+
+    public const string UpdateInvalidPackage =
+        "Die heruntergeladene Datei ist kein gültiges Ear-Saxophone-Paket (keine EarSaxophone.exe gefunden). Es wurde nichts verändert.";
+
+    public const string UpdateNoWriteAccess =
+        "Kein Schreibzugriff auf den Programmordner, das Update wurde rückgängig gemacht. Verschieben Sie das Programm in einen Ordner, " +
+        "in den Sie schreiben dürfen (zum Beispiel C:\\Tools\\EarSaxophone).";
+
+    public static string UpdateInstallFailed(string reason) =>
+        $"Das Update konnte nicht installiert werden ({reason}). Alle Programmdateien wurden wiederhergestellt.";
+
+    public static string UpdateRollbackIncomplete(string reason) =>
+        $"Das Update konnte nicht installiert werden ({reason}) und nicht alle Dateien ließen sich wiederherstellen. " +
+        "Bitte die ZIP-Datei von der Release-Seite herunterladen und in den Programmordner entpacken.";
+
+    public static string UpdateRestartFailed(string reason) =>
+        $"Das Update ist installiert, aber der Neustart ist fehlgeschlagen ({reason}). Bitte Ear Saxophone selbst neu starten.";
+
+    // Mini picture of the question for a new program
+    public static string PromptMiniQuestion(string program) => $"{program} spielt Ton. Auf welchen Regler legen?";
+
+    // LEDs am Gerät (Statuszeile, nie als Fehler)
+    public const string UiLedFeedback = "LEDs am Gerät anzeigen";
+
+    public const string UiLedFeedbackTip =
+        "Eine Taste mit Stumm-Aktion leuchtet, solange ihr Ziel stumm ist. Dafür muss am nanoKONTROL2 im Korg KONTROL Editor der LED-Modus „External“ eingestellt sein.";
+
+    public static string LedOutputOpened(string port) => $"LED-Anzeige über den MIDI-Ausgang {port} aktiv.";
+
+    public static string LedOutputNotFound(string fragment) =>
+        $"LED-Anzeige: kein MIDI-Ausgang mit „{fragment}“ im Namen gefunden. Die Tasten funktionieren trotzdem.";
+
+    public static string LedOutputOpenFailed(string port, string reason) =>
+        $"LED-Anzeige: der MIDI-Ausgang {port} ließ sich nicht öffnen ({reason}). Die Tasten funktionieren trotzdem.";
+
+    public static string LedOutputListFailed(string reason) =>
+        $"LED-Anzeige: MIDI-Ausgänge konnten nicht aufgelistet werden ({reason}). Die Tasten funktionieren trotzdem.";
+
+    public static string LedSendFailed(string port, string reason) =>
+        $"LED-Anzeige: Senden an {port} fehlgeschlagen ({reason}). Es wird erneut versucht.";
 }
 
 /// <summary>Display text of a control, used inside messages.</summary>

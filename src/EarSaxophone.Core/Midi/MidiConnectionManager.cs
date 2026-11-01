@@ -25,6 +25,9 @@ public sealed class MidiConnectionManager(IMidiInputProvider provider, string de
 
     public string? ConnectedDeviceName { get; private set; }
 
+    /// <summary>Counts successful opens of the input; a new value means the device was (re)connected, even when the state text stayed the same.</summary>
+    public int ConnectionGeneration { get; private set; }
+
     /// <summary>Raised on a driver thread for every parsed message of the connected device.</summary>
     public event Action<MidiMessage>? MessageReceived;
 
@@ -95,6 +98,7 @@ public sealed class MidiConnectionManager(IMidiInputProvider provider, string de
                 _input = input;
                 ConnectedDeviceName = target.Name;
                 _connectedIndex = target.Index;
+                ConnectionGeneration++;
                 SetState(MidiConnectionState.Connected, Texts.MidiConnected(target.Name));
             }
             catch (Exception ex)

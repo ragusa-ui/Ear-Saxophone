@@ -20,8 +20,4 @@
   <ItemGroup>
     <Resource Include="Assets\app.ico" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="Update\Update.ps1" Link="Update.ps1" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <None Include="Update\Update.cmd" Link="Update.cmd" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-  </ItemGroup>
 </Project>

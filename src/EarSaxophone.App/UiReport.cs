@@ -183,7 +183,7 @@ internal static class UiReport
         ToggleButton toggle when Id(toggle).Length > 0 => $"{toggle.GetType().Name}{Id(toggle)} checked={toggle.IsChecked}",
         ButtonBase { Content: string text } b => $"Button{Id(b)} '{text}' enabled={b.IsEnabled}",
         ButtonBase b when Id(b).Length > 0 => $"Button{Id(b)} (Symbol) enabled={b.IsEnabled}",
-        Border b when Id(b) is " #ApplyBar" or " #ErrorBar" or " #LearnBanner" or " #PendingBanner" or " #SidePanel" => $"Border{Id(b)}",
+        Border b when Id(b) is " #ApplyBar" or " #ErrorBar" or " #LearnBanner" or " #PendingBanner" or " #UpdateBanner" or " #SidePanel" => $"Border{Id(b)}",
         _ => null,
     };
 

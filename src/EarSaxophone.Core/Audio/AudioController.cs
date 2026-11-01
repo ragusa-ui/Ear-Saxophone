@@ -87,9 +87,23 @@ public sealed class AudioController : IDisposable
     {
         lock (_gate)
         {
-            List<bool> known = targets.Select(ReadMuted).OfType<bool>().ToList();
+            List<bool> known = targets.Select(t => ReadMuted(t)).OfType<bool>().ToList();
             bool mute = known.Count == 0 || known.Any(m => !m);
             return targets.Select(t => SetMute(t, mute)).ToList();
+        }
+    }
+
+    /// <summary>
+    /// Mute state of several targets as one group, without changing anything (LED feedback): true when every target whose
+    /// state can be read is muted, false when one of them is audible, null when none can be read. This is the opposite of
+    /// the decision of <see cref="ToggleMute(IReadOnlyList{AudioTarget})"/>: a group reported as muted is unmuted by the next toggle.
+    /// </summary>
+    public bool? ReadGroupMuted(IReadOnlyList<AudioTarget> targets)
+    {
+        lock (_gate)
+        {
+            List<bool> known = targets.Select(t => ReadMuted(t, remember: false)).OfType<bool>().ToList();
+            return known.Count == 0 ? null : known.All(m => m);
         }
     }
 
@@ -271,7 +285,7 @@ public sealed class AudioController : IDisposable
         }
     }
 
-    private Desired GetDesired(AudioTarget target)
+    private Desired GetDesired(AudioTarget target, bool remember = true)
     {
         AppSelector selector = target.App!;
         var key = (AppMatcher.NormalizeName(selector.ExeName),
@@ -280,7 +294,10 @@ public sealed class AudioController : IDisposable
         if (!_desired.TryGetValue(key, out Desired? desired))
         {
             desired = new Desired(selector, target.Flow);
-            _desired[key] = desired;
+            if (remember)
+            {
+                _desired[key] = desired;
+            }
         }
 
         return desired;
@@ -349,8 +366,11 @@ public sealed class AudioController : IDisposable
         return mode == MuteMode.MuteWhileHeld ? held : !held;
     }
 
-    /// <summary>Current mute state of a target, or null when it cannot be read. Call under the lock.</summary>
-    private bool? ReadMuted(AudioTarget target)
+    /// <summary>
+    /// Current mute state of a target, or null when it cannot be read. Call under the lock. <paramref name="remember"/> false
+    /// only reads: an application that was never set is not added to the remembered values.
+    /// </summary>
+    private bool? ReadMuted(AudioTarget target, bool remember = true)
     {
         if (target.Kind == AudioTargetKind.Application)
         {
@@ -359,7 +379,7 @@ public sealed class AudioController : IDisposable
                 return null;
             }
 
-            Desired desired = GetDesired(target);
+            Desired desired = GetDesired(target, remember);
             List<IAudioSession> sessions = FindSessions(desired);
             return sessions.Count > 0 ? sessions.All(s => SafeMuted(s) == true) : desired.Muted == true;
         }

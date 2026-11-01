@@ -15,6 +15,9 @@ public enum OsdPosition
 
 /// <param name="AskForNewPrograms">Ask on which control a program goes when it plays sound for the first time (see <c>ProgramPromptService</c>).</param>
 /// <param name="IgnoredPrograms">Programs the user never wants to be asked about ("Nie fragen"), as executable names; null means none.</param>
+/// <param name="CheckForUpdates">Look for a new version in the background at start (at most once per 24 h, see <c>UpdateService</c>).</param>
+/// <param name="LastUpdateCheck">When the last automatic or manual update check ran (UTC); null = never.</param>
+/// <param name="LedFeedback">Show mute states on the key LEDs of the device (see <c>LedController</c>).</param>
 public sealed record AppSettings(
     bool StartWithWindows = false,
     bool KeepInTray = true,
@@ -22,7 +25,10 @@ public sealed record AppSettings(
     bool ShowOsd = true,
     OsdPosition OsdPosition = OsdPosition.BottomRight,
     bool AskForNewPrograms = true,
-    IReadOnlyList<string>? IgnoredPrograms = null)
+    IReadOnlyList<string>? IgnoredPrograms = null,
+    bool CheckForUpdates = true,
+    DateTimeOffset? LastUpdateCheck = null,
+    bool LedFeedback = true)
 {
     /// <summary>The ignored programs, never null.</summary>
     [System.Text.Json.Serialization.JsonIgnore]
@@ -37,10 +43,14 @@ public sealed record AppSettings(
         && ShowOsd == other.ShowOsd
         && OsdPosition == other.OsdPosition
         && AskForNewPrograms == other.AskForNewPrograms
+        && CheckForUpdates == other.CheckForUpdates
+        && LastUpdateCheck == other.LastUpdateCheck
+        && LedFeedback == other.LedFeedback
         && IgnoredProgramList.SequenceEqual(other.IgnoredProgramList);
 
     public override int GetHashCode() =>
-        HashCode.Combine(StartWithWindows, KeepInTray, StartMinimized, ShowOsd, OsdPosition, AskForNewPrograms, IgnoredProgramList.Count);
+        HashCode.Combine(StartWithWindows, KeepInTray, StartMinimized, ShowOsd, OsdPosition, AskForNewPrograms, IgnoredProgramList.Count,
+            HashCode.Combine(CheckForUpdates, LastUpdateCheck, LedFeedback));
 }
 
 public sealed class SettingsStore(string path)

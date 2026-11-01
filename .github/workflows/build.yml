@@ -73,47 +73,6 @@ jobs:
           $log = Join-Path $PWD 'artifacts/publish/error.log'
           if (Test-Path $log) { Get-Content $log; throw 'error.log was written during normal start' }
           Write-Host 'Normal mode: first instance stayed running (tray), second instance exited, no error.log'
-      - name: Update script (Windows PowerShell 5.1, test installation)
-        shell: pwsh
-        run: |
-          $root = Join-Path $PWD 'artifacts/updatetest'
-          $install = Join-Path $root 'install'
-          New-Item -ItemType Directory -Path $install -Force | Out-Null
-          Copy-Item artifacts/publish/* $install -Recurse
-          foreach ($f in 'Update.ps1', 'Update.cmd', 'EarSaxophone.exe') { if (-not (Test-Path (Join-Path $install $f))) { throw "Missing $f in publish output" } }
-          Set-Content (Join-Path $install 'profiles.json') 'KEEP-ME'
-          Set-Content (Join-Path $install 'settings.json') 'KEEP-ME-TOO'
-          $newName = 'EarSaxophone-9.9.9-win-x64'
-          $stage = Join-Path $root $newName
-          New-Item -ItemType Directory -Path $stage -Force | Out-Null
-          Copy-Item artifacts/publish/* $stage -Recurse
-          Set-Content (Join-Path $stage 'NEW-FILE.txt') 'new'
-          Set-Content (Join-Path $stage 'profiles.json') 'FROM-ZIP-MUST-NOT-OVERWRITE'
-          $zip = Join-Path $root "$newName.zip"
-          Compress-Archive -Path $stage -DestinationPath $zip
-          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
-
-          # 1. wrong checksum: must fail and change nothing
-          "0000$hash  x.zip" | Set-Content "$zip.sha256" -Encoding ascii
-          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $install 'Update.ps1') -Zip $zip -NoStart -NoPause
-          if ($LASTEXITCODE -ne 1) { throw "Wrong checksum should exit with 1, got $LASTEXITCODE" }
-          if (Test-Path (Join-Path $install 'NEW-FILE.txt')) { throw 'Files were copied despite a wrong checksum' }
-
-          # 2. correct checksum: update, user files stay
-          "$hash  $newName.zip" | Set-Content "$zip.sha256" -Encoding ascii
-          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $install 'Update.ps1') -Zip $zip -NoStart -NoPause
-          if ($LASTEXITCODE -ne 0) { throw "Update failed with exit code $LASTEXITCODE" }
-          if (-not (Test-Path (Join-Path $install 'NEW-FILE.txt'))) { throw 'New file was not copied' }
-          if ((Get-Content (Join-Path $install 'profiles.json') -Raw).Trim() -ne 'KEEP-ME') { throw 'profiles.json was changed' }
-          if ((Get-Content (Join-Path $install 'settings.json') -Raw).Trim() -ne 'KEEP-ME-TOO') { throw 'settings.json was changed' }
-
-          # 3. not a release zip: clear error
-          Set-Content (Join-Path $root 'other.txt') 'x'
-          Compress-Archive -Path (Join-Path $root 'other.txt') -DestinationPath (Join-Path $root 'other.zip')
-          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $install 'Update.ps1') -Zip (Join-Path $root 'other.zip') -NoStart -NoPause
-          if ($LASTEXITCODE -ne 1) { throw "A zip without EarSaxophone.exe should fail with 1, got $LASTEXITCODE" }
-          Write-Host 'Update script: wrong checksum rejected, update applied, profiles and settings kept, foreign zip rejected'
-          $global:LASTEXITCODE = 0   # the last native call failed on purpose; do not let it fail this step
       - name: Print screenshot as base64 JPEG
         if: ${{ github.event.inputs.print_screenshot == 'true' }}
         shell: pwsh

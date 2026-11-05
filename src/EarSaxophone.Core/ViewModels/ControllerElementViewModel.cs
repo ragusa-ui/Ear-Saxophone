@@ -16,6 +16,8 @@ public sealed class ControllerElementViewModel : ObservableObject
     private bool _isContinuous;
     private bool _isSelected;
     private bool _isMuteLit;
+    private bool _isTargetMuted;
+    private string _customName = string.Empty;
     private bool _isLedBlinkOff;
     private int _lastValue;
     private ControlShape _shape;
@@ -108,6 +110,35 @@ public sealed class ControllerElementViewModel : ObservableObject
     /// <summary>What the LED shows at this moment: muted-lit and not in the dark blink phase.</summary>
     public bool IsLedShownOn => _isMuteLit && !_isLedBlinkOff;
 
+    /// <summary>
+    /// A fader or knob whose volume targets are all muted right now (by any means, also in the Windows mixer). The picture dims
+    /// it and marks it, so a muted program is not mistaken for a broken control. Set by <see cref="MainViewModel"/>.
+    /// </summary>
+    public bool IsTargetMuted
+    {
+        get => _isTargetMuted;
+        set => SetField(ref _isTargetMuted, value);
+    }
+
+    /// <summary>The own label of the mapping ("Spiele"), empty when there is none.</summary>
+    public string CustomName
+    {
+        get => _customName;
+        private set
+        {
+            if (SetField(ref _customName, value))
+            {
+                OnPropertyChanged(nameof(HasCustomName));
+                OnPropertyChanged(nameof(DisplayCaption));
+            }
+        }
+    }
+
+    public bool HasCustomName => _customName.Length > 0;
+
+    /// <summary>Text under a fader: the own label, otherwise the channel number.</summary>
+    public string DisplayCaption => HasCustomName ? _customName : Caption;
+
     public string Summary
     {
         get => _summary;
@@ -166,6 +197,7 @@ public sealed class ControllerElementViewModel : ObservableObject
         HasMapping = mapping is not null;
         IsContinuous = mapping?.HasContinuousAction ?? false;
         Summary = MappingDescriber.Describe(mapping);
+        CustomName = mapping?.Name?.Trim() ?? string.Empty;
         Badge = MappingBadge.From(mapping);
     }
 

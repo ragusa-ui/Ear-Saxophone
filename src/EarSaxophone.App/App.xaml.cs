@@ -448,6 +448,17 @@ public partial class App : Application
         wait.Tick += (_, _) =>
         {
             wait.Stop();
+            if (ArgumentValue(Environment.GetCommandLineArgs(), "--demo-muted") is not null)
+            {
+                // Pictures of the muted look: no real audio device here, so the states are set by hand (the timer would reset them).
+                _timer?.Dispose();
+                foreach (string label in new[] { "Fader 2", "Drehregler 1" })
+                {
+                    _viewModel!.Elements.First(e => e.Label == label).IsTargetMuted = true;
+                }
+
+                _viewModel!.UpdateMutedSummary();
+            }
             int exitCode = 0;
             try
             {

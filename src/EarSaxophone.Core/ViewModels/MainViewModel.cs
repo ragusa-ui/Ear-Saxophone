@@ -440,12 +440,69 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             }
         }
 
+        foreach (ControllerElementViewModel element in Elements.Where(e => e.IsStepless))
+        {
+            try
+            {
+                element.IsTargetMuted = element.HasMapping && LedController.IsVolumeMuted(profile, element.Control, _executor.Audio.ReadGroupMuted);
+            }
+            catch (Exception)
+            {
+                // unreadable right now: keep what the picture shows
+            }
+        }
+
+        UpdateMutedSummary();
+
         if (newlyLit)
         {
             _blinkStart = _time.GetUtcNow(); // like the device: the blinking restarts with the on phase, so a press shows at once
         }
 
         UpdatePictureBlink();
+    }
+
+    /// <summary>What is muted right now, for the header ("Stumm: Mikrofon, Spiele"); empty when nothing is.</summary>
+    public string MutedSummary
+    {
+        get => _mutedSummary;
+        private set
+        {
+            if (SetField(ref _mutedSummary, value))
+            {
+                OnPropertyChanged(nameof(HasMuted));
+            }
+        }
+    }
+
+    public bool HasMuted => _mutedSummary.Length > 0;
+
+    private string _mutedSummary = string.Empty;
+
+    /// <summary>Rebuilds <see cref="MutedSummary"/> from the mute states of the elements (UI thread).</summary>
+    public void UpdateMutedSummary()
+    {
+        IEnumerable<string> names = Elements
+            .Where(e => e.IsTargetMuted || e.IsMuteLit)
+            .Select(MutedNameOf)
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+        string joined = string.Join(", ", names);
+        MutedSummary = joined.Length == 0 ? string.Empty : Texts.UiMutedNow(joined);
+    }
+
+    /// <summary>The own label of the control, otherwise the first target it works on, otherwise the control's name.</summary>
+    private string MutedNameOf(ControllerElementViewModel element)
+    {
+        if (element.HasCustomName)
+        {
+            return element.CustomName;
+        }
+
+        ControlMapping? mapping = StripTargets.ResolveOrNull(Current, Current.Find(element.Control));
+        AudioTarget? target = mapping?.Actions
+            .Select(a => a switch { SetVolumeAction v => v.Target, MuteAction m => m.Target, _ => null })
+            .FirstOrDefault(t => t is not null);
+        return target is null ? element.Label : MappingDescriber.Describe(target);
     }
 
     /// <summary>

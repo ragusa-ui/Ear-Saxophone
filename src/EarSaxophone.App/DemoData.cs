@@ -1,4 +1,4 @@
-using EarSaxophone.Core.Mapping;
+﻿using EarSaxophone.Core.Mapping;
 using EarSaxophone.Core.Midi;
 using EarSaxophone.Core.Persistence;
 using EarSaxophone.Core.ViewModels;
@@ -28,7 +28,7 @@ internal static class DemoData
             new ControlMapping(Cc(2), new SetVolumeAction(AudioTarget.Microphone), new ValueScaling(0.1f, 0.9f, false)),
             new ControlMapping(Cc(3), [new SetVolumeAction(App("Spotify.exe")), new SetVolumeAction(App("chrome.exe"))]),
             new ControlMapping(Cc(4), new SetVolumeAction(App("Discord.exe"))),
-            new ControlMapping(Cc(16), new SetVolumeAction(App("firefox.exe"))),
+            new ControlMapping(Cc(16), [new SetVolumeAction(App("firefox.exe"))], Name: "Browser"),
             new ControlMapping(Cc(32), new MuteAction(AudioTarget.Microphone, MuteMode.UnmuteWhileHeld)),
             new ControlMapping(Cc(48), new MuteAction(AudioTarget.Microphone)),
             new ControlMapping(Cc(49), new MuteAction(App("Discord.exe"))),
@@ -53,3 +53,4 @@ internal static class DemoData
         viewModel.Editor.AddApplication("steam.exe");
     }
 }
+

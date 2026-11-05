@@ -144,6 +144,22 @@ public sealed class LedController : IDisposable
         return targets.Count > 0 && readGroupMuted(targets) == true;
     }
 
+    /// <summary>
+    /// Whether the volume targets of a fader or knob are all muted right now (every readable target muted), for the picture.
+    /// False when the control has no volume action; "Wie Fader" targets are resolved like in <see cref="IsLit"/>.
+    /// </summary>
+    public static bool IsVolumeMuted(Profile profile, ControlId control, Func<IReadOnlyList<AudioTarget>, bool?> readGroupMuted)
+    {
+        if (profile.Find(control) is not { } stored)
+        {
+            return false;
+        }
+
+        ControlMapping mapping = StripTargets.Resolve(profile, stored);
+        List<AudioTarget> targets = mapping.Actions.OfType<SetVolumeAction>().Where(a => a.IsValid && !a.Target.IsStrip).Select(a => a.Target).Distinct().ToList();
+        return targets.Count > 0 && readGroupMuted(targets) == true;
+    }
+
     /// <summary>Uses the mappings of this profile from now on; every LED key is sent again with the next sync.</summary>
     public void SetProfile(Profile profile)
     {

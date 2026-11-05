@@ -95,6 +95,10 @@
         <DataTemplate x:Key="KnobTemplate">
             <Button Style="{StaticResource ElementButton}">
                 <Grid>
+                    <TextBlock Text="{Binding CustomName}" Width="82" Margin="0,-17,0,0" VerticalAlignment="Top" HorizontalAlignment="Center"
+                               TextAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="11" FontWeight="SemiBold"
+                               Foreground="{DynamicResource PrintBrush}" IsHitTestVisible="False" AutomationProperties.AutomationId="ElementLabel" />
+                    <Grid x:Name="KnobBody">
                     <Ellipse Width="48" Height="48" Stroke="#59FFFFFF" StrokeThickness="1.5" StrokeDashArray="0.4 4" StrokeDashCap="Round"
                              IsHitTestVisible="False" />
                     <Ellipse Width="40" Height="40" Fill="#050506" Stroke="#3A3C42" StrokeThickness="1">
@@ -111,21 +115,31 @@
                         <Border Width="3" Height="13" Margin="0,2,0,0" VerticalAlignment="Top" HorizontalAlignment="Center"
                                 CornerRadius="1.5" Background="{DynamicResource KnobMarkBrush}" />
                     </Grid>
+                    </Grid>
+                    <ui:SymbolIcon x:Name="MutedMark" Symbol="SpeakerOff20" FontSize="15" Foreground="{DynamicResource DangerBrush}" Visibility="Collapsed"
+                                   HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-6,-4,0,0" IsHitTestVisible="False"
+                                   AutomationProperties.AutomationId="MutedMark" />
                     <ContentControl Template="{StaticResource BadgeTemplate}" Focusable="False" IsHitTestVisible="False"
                                     HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-4,-8,0" />
                 </Grid>
             </Button>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsTargetMuted}" Value="True">
+                    <Setter TargetName="KnobBody" Property="Opacity" Value="0.35" />
+                    <Setter TargetName="MutedMark" Property="Visibility" Value="Visible" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
         </DataTemplate>
 
         <!-- Fader: heller Schlitz wie am Gerät, schwarze Kappe mit Rillen (fährt live mit), Kanalnummer darunter -->
         <DataTemplate x:Key="FaderTemplate">
             <Button Style="{StaticResource ElementButton}">
                 <Grid>
-                    <Border Width="18" HorizontalAlignment="Center" Margin="0,2,0,20" CornerRadius="3"
+                    <Border x:Name="Slot" Width="18" HorizontalAlignment="Center" Margin="0,2,0,20" CornerRadius="3"
                             Background="{DynamicResource SlotBrush}" BorderBrush="#2A2B2F" BorderThickness="1">
                         <Rectangle Width="3" Margin="0,4" Fill="#55000000" />
                     </Border>
-                    <Border Width="28" Height="40" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,6,0,0" CornerRadius="3"
+                    <Border x:Name="Cap" Width="28" Height="40" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,6,0,0" CornerRadius="3"
                             Background="{DynamicResource FaderCapBrush}" BorderBrush="#000000" BorderThickness="1">
                         <Border.RenderTransform>
                             <TranslateTransform Y="{Binding CapOffset}" />
@@ -141,12 +155,23 @@
                             <Rectangle Height="2" Margin="3,0" Fill="#3A3C42" />
                         </StackPanel>
                     </Border>
-                    <TextBlock Text="{Binding Caption}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,1" FontSize="12"
-                               FontWeight="SemiBold" Foreground="{DynamicResource PrintSoftBrush}" IsHitTestVisible="False" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,1" IsHitTestVisible="False">
+                        <ui:SymbolIcon x:Name="MutedMark" Symbol="SpeakerOff20" FontSize="13" Margin="0,0,3,0" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource DangerBrush}" Visibility="Collapsed" AutomationProperties.AutomationId="MutedMark" />
+                        <TextBlock Text="{Binding DisplayCaption}" MaxWidth="80" TextTrimming="CharacterEllipsis" FontSize="12"
+                                   FontWeight="SemiBold" Foreground="{DynamicResource PrintSoftBrush}" AutomationProperties.AutomationId="ElementLabel" />
+                    </StackPanel>
                     <ContentControl Template="{StaticResource BadgeTemplate}" Focusable="False" IsHitTestVisible="False"
                                     HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-12,-10,0" />
                 </Grid>
             </Button>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsTargetMuted}" Value="True">
+                    <Setter TargetName="Cap" Property="Opacity" Value="0.35" />
+                    <Setter TargetName="Slot" Property="Opacity" Value="0.4" />
+                    <Setter TargetName="MutedMark" Property="Visibility" Value="Visible" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
         </DataTemplate>
 
         <!-- Taste wie am Gerät: dunkle Fläche mit weißem Aufdruck. Tasten mit LED haben einen rötlichen Leuchtrand; bei Stumm
@@ -246,6 +271,7 @@
         <!-- Kopfzeile: Verbindung links; Profil, Neu verbinden, MIDI-Learn und Zahnrad rechts -->
         <Grid x:Name="HeaderBar" Grid.Row="1" Margin="12,0,12,6" Height="34">
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
@@ -274,8 +300,20 @@
                 </DockPanel>
             </Border>
 
+            <!-- Was gerade stumm ist: ruhiger Hinweis, nur sichtbar wenn etwas stumm ist -->
+            <Border x:Name="MutedChip" Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Center" Height="28" CornerRadius="14" Padding="9,0,12,0"
+                    Margin="0,0,12,0" Background="{DynamicResource SubtleFillBrush}" BorderBrush="{DynamicResource DangerBrush}" BorderThickness="1"
+                    ToolTip="{Binding MutedSummary}" Visibility="{Binding HasMuted, Converter={StaticResource BoolToVis}}"
+                    AutomationProperties.AutomationId="MutedChip">
+                <StackPanel Orientation="Horizontal">
+                    <ui:SymbolIcon Symbol="SpeakerOff20" FontSize="15" Foreground="{DynamicResource DangerBrush}" Margin="0,0,6,0" VerticalAlignment="Center" />
+                    <TextBlock x:Name="MutedChipText" Text="{Binding MutedSummary}" FontSize="12" TextTrimming="CharacterEllipsis" MaxWidth="260"
+                               VerticalAlignment="Center" AutomationProperties.AutomationId="MutedChipText" />
+                </StackPanel>
+            </Border>
+
             <!-- Profil: kleines Auswahlfeld, Verwalten im Menü -->
-            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,12,0">
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,12,0">
                 <ui:SymbolIcon Symbol="Person20" FontSize="16" Margin="0,0,8,0" Foreground="{DynamicResource MutedText}" VerticalAlignment="Center" />
                 <ComboBox x:Name="ProfilePicker" Width="132" Height="32" MinHeight="0" Padding="10,4" VerticalContentAlignment="Center"
                           ItemsSource="{Binding ProfileNames}" SelectedItem="{Binding ActiveProfileName, Mode=TwoWay}"
@@ -309,7 +347,7 @@
                 </Popup>
             </StackPanel>
 
-            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+            <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
                 <ui:Button x:Name="ReconnectButton" Icon="{ui:SymbolIcon PlugConnected20}" Width="38" Height="32" AutomationProperties.Name="{x:Static loc:Texts.UiReconnect}"
                            Command="{Binding ReconnectCommand}" ToolTip="{x:Static loc:Texts.UiReconnectTip}"
                            AutomationProperties.AutomationId="ReconnectButton" />
@@ -324,7 +362,7 @@
             </StackPanel>
 
             <!-- Zahnrad: alle Einstellungen -->
-            <Grid Grid.Column="3" Margin="12,0,0,0" VerticalAlignment="Center">
+            <Grid Grid.Column="4" Margin="12,0,0,0" VerticalAlignment="Center">
                 <ToggleButton x:Name="SettingsButton" Style="{StaticResource IconButton}" ToolTip="{x:Static loc:Texts.UiSettings}"
                               AutomationProperties.AutomationId="SettingsButton" AutomationProperties.Name="{x:Static loc:Texts.UiSettings}"
                               IsHitTestVisible="{Binding IsOpen, ElementName=SettingsPopup, Converter={StaticResource Inverse}}">
@@ -495,7 +533,7 @@
 
                 <!-- Das Gerät als Bild -->
                 <Viewbox x:Name="DeviceView" Grid.Row="1" Stretch="Uniform" Margin="0" AutomationProperties.AutomationId="DeviceView" ToolTip="{x:Static loc:Texts.UiDragHint}" ToolTipService.InitialShowDelay="1200">
-                    <Grid Width="1000" Height="270" Margin="8,4,8,12">
+                    <Grid Width="1000" Height="286" Margin="8,4,8,12">
                         <!-- Gehäuse: flach und schwarz wie das echte Gerät -->
                         <Border CornerRadius="{DynamicResource BodyRadius}" Background="{DynamicResource BodyBrush}" BorderBrush="{DynamicResource DeviceEdge}" BorderThickness="1.5">
                             <Border.Effect>

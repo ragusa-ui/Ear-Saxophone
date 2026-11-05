@@ -267,6 +267,10 @@ public static class Texts
 
     public const string UiStyle = "Stil";
 
+    public static string UiMutedNow(string names) => $"Stumm: {names}";
+
+    public const string UiMutedTip = "Diese Ziele sind gerade stumm geschaltet";
+
     public static string StyleName(Settings.AppStyle style) => style switch
     {
         Settings.AppStyle.Studio => "Studio dunkel",
@@ -469,9 +473,9 @@ public static class Texts
 
     public const string UiSwitchDevicesLabel = "Geräte im Wechsel";
 
-    public const string UiMappingNamePlaceholder = "Eigener Name (optional)";
+    public const string UiMappingNamePlaceholder = "Beschriftung, z. B. Games";
 
-    public const string UiMappingNameTip = "Titel für Bild und Anzeige, z. B. Spiele";
+    public const string UiMappingNameTip = "Steht am Gerät im Bild und in der Anzeige bei Änderungen, z. B. Spiele";
 
     public const string UiDropKeptActions = "Weitere Aktionen entfernen";
 

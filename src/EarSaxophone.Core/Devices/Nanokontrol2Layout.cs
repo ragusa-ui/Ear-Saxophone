@@ -41,7 +41,7 @@ public sealed record LayoutElement(
 public static class Nanokontrol2Layout
 {
     public const double DeviceWidth = 1000;
-    public const double DeviceHeight = 270;
+    public const double DeviceHeight = 286;
 
     public const double KnobSize = 48;
     public const double ButtonSize = 30;
@@ -100,16 +100,16 @@ public static class Nanokontrol2Layout
         Square("Play", 41, 181, "►");
         Square("Aufnahme", 45, 229, "●");
 
-        // Eight channel strips: knob on top, S/M/R keys to the left of the fader slot.
+        // Eight channel strips: knob on top (the label of the control sits above it), S/M/R keys to the left of the fader slot.
         for (int i = 0; i < 8; i++)
         {
             double centre = 349 + i * 85;
             int n = i + 1;
-            elements.Add(new LayoutElement($"Drehregler {n}", Cc(16 + i), ElementKind.Knob, centre - KnobSize / 2, 20, KnobSize, KnobSize, Strip: n));
-            elements.Add(new LayoutElement($"S {n}", Cc(32 + i), ElementKind.Button, centre - 54, 84, ButtonSize, ButtonSize, "S", Strip: n));
-            elements.Add(new LayoutElement($"M {n}", Cc(48 + i), ElementKind.Button, centre - 54, 134, ButtonSize, ButtonSize, "M", Strip: n));
-            elements.Add(new LayoutElement($"R {n}", Cc(64 + i), ElementKind.Button, centre - 54, 184, ButtonSize, ButtonSize, "R", Strip: n));
-            elements.Add(new LayoutElement($"Fader {n}", Cc(i), ElementKind.Fader, centre - 16, 76, FaderWidth, FaderHeight, Caption: n.ToString(), Strip: n));
+            elements.Add(new LayoutElement($"Drehregler {n}", Cc(16 + i), ElementKind.Knob, centre - KnobSize / 2, 36, KnobSize, KnobSize, Strip: n));
+            elements.Add(new LayoutElement($"S {n}", Cc(32 + i), ElementKind.Button, centre - 54, 100, ButtonSize, ButtonSize, "S", Strip: n));
+            elements.Add(new LayoutElement($"M {n}", Cc(48 + i), ElementKind.Button, centre - 54, 150, ButtonSize, ButtonSize, "M", Strip: n));
+            elements.Add(new LayoutElement($"R {n}", Cc(64 + i), ElementKind.Button, centre - 54, 200, ButtonSize, ButtonSize, "R", Strip: n));
+            elements.Add(new LayoutElement($"Fader {n}", Cc(i), ElementKind.Fader, centre - 16, 92, FaderWidth, FaderHeight, Caption: n.ToString(), Strip: n));
         }
 
         return elements;

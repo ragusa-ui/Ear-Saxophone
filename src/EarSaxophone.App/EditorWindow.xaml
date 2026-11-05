@@ -65,6 +65,13 @@
                 <ScrollViewer x:Name="EditorScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                               Visibility="{Binding HasSelection, Converter={StaticResource BoolToVis}}">
                     <StackPanel Margin="18,0,18,12">
+                        <!-- Beschriftung: steht am Gerät im Bild und in der Anzeige -->
+                        <ui:TextBox x:Name="MappingNameBox" Margin="0,0,0,6" Text="{Binding Editor.Name, UpdateSourceTrigger=PropertyChanged}"
+                                    Icon="{ui:SymbolIcon Tag20}" PlaceholderText="{x:Static loc:Texts.UiMappingNamePlaceholder}"
+                                    ToolTip="{x:Static loc:Texts.UiMappingNameTip}" AutomationProperties.AutomationId="MappingNameBox"
+                                    AutomationProperties.Name="{x:Static loc:Texts.UiMappingNamePlaceholder}" />
+
+
                         <!-- Art der Aktion: nur, was zum Element passt -->
                         <StackPanel Visibility="{Binding Editor.HasKindChoice, Converter={StaticResource BoolToVis}}">
                             <TextBlock Text="{x:Static loc:Texts.UiActionKind}" Style="{StaticResource SectionLabel}" Margin="2,4,0,6" />
@@ -385,12 +392,6 @@
                                 </StackPanel>
                             </DockPanel>
                         </Border>
-
-                        <!-- Eigener Name -->
-                        <ui:TextBox x:Name="MappingNameBox" Margin="0,18,0,0" Text="{Binding Editor.Name, UpdateSourceTrigger=PropertyChanged}"
-                                    Icon="{ui:SymbolIcon Tag20}" PlaceholderText="{x:Static loc:Texts.UiMappingNamePlaceholder}"
-                                    ToolTip="{x:Static loc:Texts.UiMappingNameTip}" AutomationProperties.AutomationId="MappingNameBox"
-                                    AutomationProperties.Name="{x:Static loc:Texts.UiMappingNamePlaceholder}" />
 
                         <TextBlock x:Name="ValidationText" Text="{Binding Editor.ValidationMessage}" TextWrapping="Wrap" Margin="2,12,0,0" FontSize="12"
                                    Foreground="{DynamicResource DangerBrush}" AutomationProperties.AutomationId="ValidationText"
